@@ -1,6 +1,6 @@
 ## Multi tenant serverless deep learning scheduler
 
-### Datasets
+### Models and Datasets
 * [ResNext model](https://github.com/lfz/ResNeXt-DenseNet) on [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).
 
 ### Local running environment
