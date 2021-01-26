@@ -29,7 +29,7 @@
     </details>
 8. Create RBAC roles required for Nuclio, `kubectl apply -f https://raw.githubusercontent.com/nuclio/nuclio/master/hack/k8s/resources/nuclio-rbac.yaml`
 9. Deploy nuclio to the cluster `kubectl apply -f https://raw.githubusercontent.com/nuclio/nuclio/master/hack/k8s/resources/nuclio.yaml`
-10. Use the command kubectl get pods --namespace nuclio to verify both the controller and dashboard are running.
+10. Use the command `kubectl get pods --namespace nuclio` to verify both the controller and dashboard are running.
 11. Forward the Nuclio dashboard port `kubectl port-forward -n nuclio $(kubectl get pods -n nuclio -l nuclio.io/app=dashboard -o jsonpath='{.items[0].metadata.name}') 8070:8070`
 12. Browse to http://localhost:8070 or
 13. Deploy a function with the Nuclio CLI (nuctl) (Since we use docker hub the url is docker.io/<username> with your dockerhub username) `nuctl deploy helloworld -n nuclio -p https://raw.githubusercontent.com/nuclio/nuclio/master/hack/examples/golang/helloworld/helloworld.go --registry docker.io/<username>`
