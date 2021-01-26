@@ -7,7 +7,7 @@
     1. Test with `nuctl version`
 4. Install [docker](https://docs.docker.com/engine/install/), container manager
     1. Test with `docker version`
-    2. Add your user to the docker group `sudo usermode -aG docker $USER && newgrp docker`
+    2. Add your user to the docker group `sudo usermod -aG docker $USER && newgrp docker`
 5. Start minikube `minikube start --driver docker --addons ingress`
 6. Kubernetes with docker requires container images to be stored in a repository, either:
     1. Use local repository with `minikube ssh -- docker run -d -p 5000:5000 registry:2`
