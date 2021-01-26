@@ -9,7 +9,8 @@
     1. Test with `docker version`
     2. Add your user to the docker group `sudo usermod -aG docker $USER && newgrp docker`
 5. Start minikube `minikube start --driver docker --addons ingress`
-6. Kubernetes with docker requires container images to be stored in a repository, either:
+6. Create the nuclio namespace with `kubectl create namespace nuclio`
+7. Kubernetes with docker requires container images to be stored in a repository, either:
     1. Use local repository with `minikube ssh -- docker run -d -p 5000:5000 registry:2`
     <details>
     <summary>ii. Create a [docker hub](https://hub.docker.com/) and store your credentials with:</summary>
@@ -20,14 +21,12 @@
         kubectl create secret docker-registry registry-credentials --namespace nuclio \
             --docker-username <username> \
             --docker-password $mypassword \
-            --docker-server <URL> \
+            --docker-server hub.docker.com \
             --docker-email ignored@nuclio.io
         unset mypassword
         
       
     </details>
-
-7. Create the nuclio namespace with `kubectl create namespace nuclio`
 8. Create RBAC roles required for Nuclio, `kubectl apply -f https://raw.githubusercontent.com/nuclio/nuclio/master/hack/k8s/resources/nuclio-rbac.yaml`
 9. Deploy nuclio to the cluster `kubectl apply -f https://raw.githubusercontent.com/nuclio/nuclio/master/hack/k8s/resources/nuclio.yaml`
 10. Use the command kubectl get pods --namespace nuclio to verify both the controller and dashboard are running.
