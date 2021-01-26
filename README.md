@@ -10,3 +10,6 @@ For instructions on installing and running hadoop/hdfs locally, see [hadoopi.md]
 
 
 For communcations with hdfs in python see [hdfsPython.md](https://github.com/Frans-Lukas/DLScheduler/blob/main/hdfsPython.md)
+
+### Python
+Uses python 3.x
