@@ -10,5 +10,4 @@ default.alias = dev
 url = http://localhost:$NAMENODE_PORT #(defaults to 9870)
 user = $YOUR_USER
 
-
 ```
