@@ -1,12 +1,35 @@
-from hdfs import Client
+import os
+
+from hdfs import Client, InsecureClient
 from hdfs import Config
+
 
 # overwrites model with name "model.json" to hdfs storage
 # model is taken from local model.json file located in same folder as this script.
 def save_model(client: Client):
-    with open('model.json') as model, client.write('model.json', overwrite=True, encoding='utf-8') as writer:
-        from json import dump
-        dump(model.read(), writer)
+    with open('/tmp/model.json') as model, client.write('model.json', overwrite=True, encoding='utf-8') as writer:
+        writer.write(model.read())
+
+
+def test_hdfs(context, event):
+    context.logger.info_with('Got invoked',
+                             trigger_kind=event.trigger.kind,
+                             event_body=event.body,
+                             some_env=os.environ.get('MY_ENV_VALUE'))
+    # onlyfiles = [f for f in os.listdir(".") if os.path.isfile(os.path.join(".", f))]
+    # return onlyfiles
+    # with open("/tmp/model.json", "r") as f:
+    #     return f.read()
+    try:
+        client.write('model.json', overwrite=True, encoding='utf-8')
+        test_client = InsecureClient("http://host.minikube.internal:9870", "franslukas")
+        save_model(test_client)
+    except Exception as e:
+        return e
+    return read_model(test_client)
+    # import getpass
+    # return getpass.getuser()
+
 
 # reads model with name "model.json" from hdfs storage
 def read_model(client: Client) -> str:
@@ -16,8 +39,11 @@ def read_model(client: Client) -> str:
     return model
 
 
+# host.minikube.internal
 # see https://hdfscli.readthedocs.io/en/latest/quickstart.html#configuration for how to configure a client.
+# defaults to ~/.hdfscli.cfg
 if __name__ == '__main__':
-    client = Config().get_client('dev')
+    # client = Config().get_client('dev')
+    client = InsecureClient("http://host.minikube.internal:9870", "franslukas")
     save_model(client)
     print(read_model(client))

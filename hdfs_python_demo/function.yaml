@@ -1,0 +1,23 @@
+apiVersion: "nuclio.io/v1"
+kind: "NuclioFunction"
+metadata:
+  name: test-hdfs
+  namespace: nuclio
+spec:
+  hostNetwork: true
+  runtime: python
+  handler: main:test_hdfs
+  env:
+    - name: HDFSCLI_CONFIG
+      value: /tmp/.hdfscli.cfg
+    - name: HADOOP_USER_NAME
+      value: franslukas
+  build:
+    commands:
+      - echo "[global]" >> /tmp/.hdfscli.cfg
+      - echo "default.alias = dev" >> /tmp/.hdfscli.cfg
+      - echo "[dev.alias]" >> /tmp/.hdfscli.cfg
+      - echo "url = http://host.minikube.internal:9870" >> /tmp/.hdfscli.cfg
+      - echo "user = franslukas" >> /tmp/.hdfscli.cfg
+      - echo "{}" >> /tmp/model.json
+      - pip install hdfs
