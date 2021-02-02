@@ -70,7 +70,6 @@ def identity_block(input, kernel_size, filters, stage, block):
     output = keras.layers.Conv2D(filters2, kernel_size, padding='same', kernel_initializer='he_normal',
                                  name=conv_name_base + '2b')(output)
     output = keras.layers.BatchNormalization(axis=3, name=bn_name_base + '2b')(output)
-    output = keras.layers.Activation('relu')(output)
     output = keras.layers.Conv2D(filters3, (1, 1), kernel_initializer='he_normal', name=conv_name_base + '2c')(output)
     output = keras.layers.BatchNormalization(axis=3, name=bn_name_base + '2c')(output)
     output = keras.layers.add([output, input])
@@ -155,6 +154,7 @@ def train():
     print('Saved model to disk!')
     # Get labels
     labels = train_generator.class_indices
+    labels = train_generator.class_indices
     # Invert labels
     classes = {}
     for key, value in labels.items():
@@ -173,6 +173,12 @@ def download_images():
         os.rename("CIFAR-10-images-master", CIFAR_PATH)
         os.remove("master.zip")
 
+def train_epoch(context, event):
+    context.logger.info_with('Got invoked',
+		trigger_kind=event.trigger.kind,
+		event_body=event.body,
+		some_env=os.environ.get('MY_ENV_VALUE'))
+    return 'A string response DEEP LEARNING'
 
 def main():
     # Download CIFAR-10-images
