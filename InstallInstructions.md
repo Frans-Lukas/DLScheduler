@@ -32,7 +32,7 @@
 10. Use the command `kubectl get pods --namespace nuclio` to verify both the controller and dashboard are running.
 11. Forward the Nuclio dashboard port `kubectl port-forward -n nuclio $(kubectl get pods -n nuclio -l nuclio.io/app=dashboard -o jsonpath='{.items[0].metadata.name}') 8070:8070`
 12. Browse to http://localhost:8070 or
-13. Deploy a function with the Nuclio CLI (nuctl) (Since we use docker hub the url is docker.io/<username> with your dockerhub username) `nuctl deploy helloworld -n nuclio -p https://raw.githubusercontent.com/nuclio/nuclio/master/hack/examples/golang/helloworld/helloworld.go --registry docker.io/<username>`
+13. Deploy a function with the Nuclio CLI (nuctl) (for local repositories thr URL is `localhost:5000`, if we use docker hub the URL is `docker.io/<username>` with your dockerhub username) `nuctl deploy helloworld -n nuclio -p https://raw.githubusercontent.com/nuclio/nuclio/master/hack/examples/golang/helloworld/helloworld.go --registry <URL>`
 14. Get function info `nuctl get function helloworld`, if NodePort is zero, go to 16, otherwise:
 15. Invoke function with `nuctl invoke helloworld --method POST --body '{"hello":"world"}' --content-type "application/json"`
 16. (If nodeport is zero), `kubectl patch svc nuclio-helloworld -p '{"spec": {"type": "NodePort"}}' -n nuclio`
