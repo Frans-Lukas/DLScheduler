@@ -1,16 +1,17 @@
 import os
+import pickle
 
 import dload as dload
 import keras
-import pickle
 import numpy as np
 
 # Get a ResNet50 model
-CIFAR_CLASSES_PATH = './classes.pkl'
-MODEL_WEIGHTS_PATH = './resnet_50.h5'
-CIFAR_PATH = 'CIFAR-10-images'
-TEST_PATH = 'CIFAR-10-images/test'
-TRAIN_PATH = 'CIFAR-10-images/train'
+CIFAR_CLASSES_PATH = '/tmp/classes.pkl'
+MODEL_WEIGHTS_PATH = '/tmp/resnet_50.h5'
+CIFAR_PATH = '/tmp/CIFAR-10-images'
+TEST_PATH = '/tmp/CIFAR-10-images/test'
+TRAIN_PATH = '/tmp/CIFAR-10-images/train'
+
 
 # Thanks to @annytab https://www.annytab.com/
 # https://www.annytab.com/resnet50-image-classification-in-python/
@@ -105,7 +106,7 @@ def conv_block(input, kernel_size, filters, stage, block, strides=(2, 2)):
 
 
 # Train a model
-def train():
+def train(steps_per_epoch, batch_size):
     # Variables, 25 epochs so far
     epochs = 1
     batch_size = 32
@@ -135,25 +136,25 @@ def train():
         shuffle=True,
         class_mode='categorical')
     # Create a test generator
-    validation_generator = validation_data_generator.flow_from_directory(
-        TEST_PATH,
-        target_size=(img_width, img_height),
-        batch_size=batch_size,
-        color_mode='rgb',
-        shuffle=True,
-        class_mode='categorical')
+    # validation_generator = validation_data_generator.flow_from_directory(
+    #     TEST_PATH,
+    #     target_size=(img_width, img_height),
+    #     batch_size=batch_size,
+    #     color_mode='rgb',
+    #     shuffle=True,
+    #     class_mode='categorical')
     # Start training, fit the model
     model.fit_generator(
         train_generator,
-        steps_per_epoch=train_samples // batch_size,
-        validation_data=validation_generator,
-        validation_steps=validation_samples // batch_size,
+        steps_per_epoch=steps_per_epoch,
+        # validation_data=validation_generator,
+        # validation_steps=validation_samples // batch_size,
         epochs=epochs)
     # Save model to disk
+    print(model.weights)
     model.save(MODEL_WEIGHTS_PATH)
     print('Saved model to disk!')
     # Get labels
-    labels = train_generator.class_indices
     labels = train_generator.class_indices
     # Invert labels
     classes = {}
@@ -169,22 +170,50 @@ def train():
 def download_images():
     if not os.path.exists(CIFAR_PATH):
         print("Downloading training and test data")
-        dload.save_unzip("https://github.com/YoongiKim/CIFAR-10-images/archive/master.zip", ".")
-        os.rename("CIFAR-10-images-master", CIFAR_PATH)
+        dload.save_unzip("https://github.com/YoongiKim/CIFAR-10-images/archive/master.zip", "/tmp")
+        os.rename("/tmp/CIFAR-10-images-master", CIFAR_PATH)
         os.remove("master.zip")
+
 
 def train_epoch(context, event):
     context.logger.info_with('Got invoked',
-		trigger_kind=event.trigger.kind,
-		event_body=event.body,
-		some_env=os.environ.get('MY_ENV_VALUE'))
-    return 'A string response DEEP LEARNING'
+                             trigger_kind=event.trigger.kind,
+                             event_body=event.body,
+                             some_env=os.environ.get('MY_ENV_VALUE'))
+    if not os.path.exists(CIFAR_PATH):
+        download_images()
+    train(steps_per_epoch=1, batch_size=32)
+    return 'training successful'
+
 
 def main():
     # Download CIFAR-10-images
     download_images()
     # Train a model
-    train()
+    train(1, 32)
+
+
+def load_models_from_storage():
+    models = list()
+    models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
+    return models
+
+
+def load_weights_from_storage():
+    models = load_models_from_storage()
+    weights = [model.get_weights() for model in models]
+    return weights
+
+
+def calculate_average_weights():
+    weights = load_weights_from_storage()
+    new_weights = list()
+
+    # Average all weights
+    # Thanks Marcin Mozejko! https://stackoverflow.com/a/48212579
+    for weight_list_tuple in zip(*weights):
+        new_weights.append([np.array(weights_).mean(axis=0) for weights_ in zip(*weight_list_tuple)])
+    return new_weights
 
 
 # Tell python to run main method
