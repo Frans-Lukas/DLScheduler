@@ -1,11 +1,16 @@
 import os
 import pickle
+from random import randint
 
 import dload as dload
 import keras
 import numpy as np
+from hdfs import Client, Config
 
 # Get a ResNet50 model
+HDFS_CONNECTION = 'hdfs_connection'
+NODE_ID = 'node_id'
+INT_MAX = 2147483647
 CIFAR_CLASSES_PATH = '/tmp/classes.pkl'
 MODEL_WEIGHTS_PATH = '/tmp/resnet_50.h5'
 CIFAR_PATH = '/tmp/CIFAR-10-images'
@@ -172,7 +177,14 @@ def download_images():
         print("Downloading training and test data")
         dload.save_unzip("https://github.com/YoongiKim/CIFAR-10-images/archive/master.zip", "/tmp")
         os.rename("/tmp/CIFAR-10-images-master", CIFAR_PATH)
-        os.remove("master.zip")
+        # os.remove("master.zip")
+
+
+def init_context(context):
+    setattr(context.user_data, HDFS_CONNECTION, Config().get_client('dev'))
+    setattr(context.user_data, NODE_ID, randint(1, INT_MAX))
+    # if not os.path.exists(CIFAR_PATH):
+    #     download_images()
 
 
 def train_epoch(context, event):
@@ -180,10 +192,26 @@ def train_epoch(context, event):
                              trigger_kind=event.trigger.kind,
                              event_body=event.body,
                              some_env=os.environ.get('MY_ENV_VALUE'))
+    hdfs_client = getattr(context.user_data, HDFS_CONNECTION)
     if not os.path.exists(CIFAR_PATH):
         download_images()
     train(steps_per_epoch=1, batch_size=32)
+    # hdfs_test(hdfs_client)
+    # return open(MODEL_WEIGHTS_PATH, 'rb').read()
+    save_model_to_hdfs(hdfs_client, getattr(context.user_data, NODE_ID))
     return 'training successful'
+
+
+def hdfs_test(client: Client):
+    with open('/tmp/model.json') as model, client.write('model.json', overwrite=True, encoding='utf-8') as writer:
+        writer.write(model.read())
+
+
+def save_model_to_hdfs(client: Client, node_id: str):
+    if os.path.exists(MODEL_WEIGHTS_PATH):
+        with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('weights-' + str(node_id) + '.json',
+                                                                   overwrite=True) as writer:
+            writer.write(model.read())
 
 
 def main():

@@ -6,7 +6,18 @@ metadata:
 spec:
   runtime: python
   handler: main:train_epoch
+  env:
+    - name: HDFSCLI_CONFIG
+      value: /tmp/.hdfscli.cfg
+    - name: HADOOP_USER_NAME
+      value: franslukas
   build:
     commands:
-    - "mkdir -p /tmp/resnetmodel"
-    - "pip install dload pillow keras numpy tensorflow"
+      - echo "[global]" >> /tmp/.hdfscli.cfg
+      - echo "default.alias = dev" >> /tmp/.hdfscli.cfg
+      - echo "[dev.alias]" >> /tmp/.hdfscli.cfg
+      - echo "url = http://192.168.10.205:9870" >> /tmp/.hdfscli.cfg
+      - echo "user = franslukas" >> /tmp/.hdfscli.cfg
+      - echo "{}" >> /tmp/model.json
+      - "mkdir -p /tmp/resnetmodel"
+      - "pip install dload hdfs pillow keras numpy tensorflow"
