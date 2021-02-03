@@ -206,7 +206,6 @@ def train_epoch(context, event):
             download_images()
         try:
             hdfs_client.download('models/' + AVERAGED_MODEL_NAME, AVERAGED_MODEL_NAME, overwrite=True)
-            return "success!"
         except HdfsError:
             print("file does not exist")
 
