@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 from random import randint
@@ -190,8 +191,7 @@ def init_context(context):
 def train_epoch(context, event):
     context.logger.info_with('Got invoked',
                              trigger_kind=event.trigger.kind,
-                             event_body=event.body,
-                             some_env=os.environ.get('MY_ENV_VALUE'))
+                             event_body=event.body)
     hdfs_client = getattr(context.user_data, HDFS_CONNECTION)
     if not os.path.exists(CIFAR_PATH):
         download_images()
@@ -199,17 +199,19 @@ def train_epoch(context, event):
     # hdfs_test(hdfs_client)
     # return open(MODEL_WEIGHTS_PATH, 'rb').read()
     save_model_to_hdfs(hdfs_client, getattr(context.user_data, NODE_ID))
-    return 'training successful'
+
+    weights = calculate_average_weights(hdfs_client)
+    return "success!"
 
 
 def hdfs_test(client: Client):
-    with open('/tmp/model.json') as model, client.write('model.json', overwrite=True, encoding='utf-8') as writer:
+    with open('/tmp/model.json') as model, client.write('test/model.json', overwrite=True, encoding='utf-8') as writer:
         writer.write(model.read())
 
 
 def save_model_to_hdfs(client: Client, node_id: str):
     if os.path.exists(MODEL_WEIGHTS_PATH):
-        with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('weights-' + str(node_id) + '.json',
+        with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('models/weights-' + str(node_id) + '.json',
                                                                    overwrite=True) as writer:
             writer.write(model.read())
 
@@ -221,20 +223,25 @@ def main():
     train(1, 32)
 
 
-def load_models_from_storage():
+def load_models_from_storage(client: Client):
+    files = client.list('models')
     models = list()
-    models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
+    for file in files:
+        client.download('models/' + file, file)
+        models.append(keras.models.load_model(file))
+        # with client.read('models/' + file) as reader:
+    # models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
     return models
 
 
-def load_weights_from_storage():
-    models = load_models_from_storage()
+def load_weights_from_storage(client: Client):
+    models = load_models_from_storage(client)
     weights = [model.get_weights() for model in models]
     return weights
 
 
-def calculate_average_weights():
-    weights = load_weights_from_storage()
+def calculate_average_weights(client: Client):
+    weights = load_weights_from_storage(client)
     new_weights = list()
 
     # Average all weights
