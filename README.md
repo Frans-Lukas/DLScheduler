@@ -14,3 +14,6 @@ Uses python 3.x
 
 For communcations with hdfs in python see [hdfsPython.md](https://github.com/Frans-Lukas/DLScheduler/blob/main/hdfsPython.md)
 
+### Deploy a nuclio function
+To deploy a nuclio functioin see [functionDeploy.md](https://github.com/Frans-Lukas/DLScheduler/blob/main/functionDeploy.md).
+
