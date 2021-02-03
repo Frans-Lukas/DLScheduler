@@ -17,7 +17,7 @@ spec:
       - echo "[global]" >> /tmp/.hdfscli.cfg
       - echo "default.alias = dev" >> /tmp/.hdfscli.cfg
       - echo "[dev.alias]" >> /tmp/.hdfscli.cfg
-      - echo "url = http://host.minikube.internal:9870" >> /tmp/.hdfscli.cfg
+      - echo "url = http://192.168.10.205:9870" >> /tmp/.hdfscli.cfg
       - echo "user = franslukas" >> /tmp/.hdfscli.cfg
       - echo "{}" >> /tmp/model.json
       - pip install hdfs

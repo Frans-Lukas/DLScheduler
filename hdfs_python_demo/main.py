@@ -1,11 +1,12 @@
 import os
 
 from hdfs import Client, InsecureClient
-from hdfs import Config
-
 
 # overwrites model with name "model.json" to hdfs storage
 # model is taken from local model.json file located in same folder as this script.
+ADDRESS = "http://192.168.10.205:9870"
+
+
 def save_model(client: Client):
     with open('/tmp/model.json') as model, client.write('model.json', overwrite=True, encoding='utf-8') as writer:
         writer.write(model.read())
@@ -22,7 +23,7 @@ def test_hdfs(context, event):
     #     return f.read()
     try:
         client.write('model.json', overwrite=True, encoding='utf-8')
-        test_client = InsecureClient("http://host.minikube.internal:9870", "franslukas")
+        test_client = InsecureClient(ADDRESS, "franslukas")
         save_model(test_client)
     except Exception as e:
         return e
@@ -44,6 +45,6 @@ def read_model(client: Client) -> str:
 # defaults to ~/.hdfscli.cfg
 if __name__ == '__main__':
     # client = Config().get_client('dev')
-    client = InsecureClient("http://host.minikube.internal:9870", "franslukas")
+    client = InsecureClient(ADDRESS, "franslukas")
     save_model(client)
     print(read_model(client))
