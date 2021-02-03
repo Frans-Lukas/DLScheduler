@@ -20,3 +20,10 @@ spec:
 3. The yaml file should contain all the metadata `nuctl` needs to deploy the funciton. Simply call:
     1. `nuctl deploy --path /path/to/your/function/folder --registry $(minikube ip):5000 --run-registry localhost:5000` to deploy locally or
     2. `nuctl deploy --path /path/to/your/function/folder	--registry docker.io/$USERNAME` to deploy on dockerhub. 
+    3. Sudo might be required for deployment, if sudo is used, it must be used when listing and invoking the funciton. 
+   
+
+### Invoke a nuctl function
+1. First list the available functions with `nuctl get function`.
+2. Make sure the function has a node port. If it does, invoke the function with `nuctl invoke my-function`.
+3. If it does not, see the nuclio installation instructions on how to provide a node port.  
