@@ -1,7 +1,8 @@
 ### How do I deploy a deep learning function?
-Each nuclio function must have an entrypoint which should be described in the .yaml file. The yaml file also includes commands for downloading potential dependencies. 
+Each nuclio function must have an entrypoint which should be described in the .yaml file. The yaml file also includes commands for downloading potential dependencies. See a full description [here](https://nuclio.io/docs/latest/tasks/deploying-functions/).
 1. Create a folder containing your python/go/java function and a yaml file. E.x. `main.py` and `function.yaml` as seen in [our example](https://github.com/Frans-Lukas/DLScheduler/tree/main/ResNet50).
-2. Add metadata and spec to your yaml file. E.x:
+2. The python file must contain a handler function with two arguments, `context`, and `event`. The handler function name is then given in the yaml file at the `handler` tag.  
+3. Add metadata and spec to your yaml file. E.x:
 ```
 apiVersion: "nuclio.io/v1"
 kind: "NuclioFunction"
