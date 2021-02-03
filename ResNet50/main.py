@@ -6,9 +6,13 @@ from random import randint
 import dload as dload
 import keras
 import numpy as np
-from hdfs import Client, Config
+from hdfs import Client, Config, HdfsError
 
 # Get a ResNet50 model
+from tensorflow.python.keras.callbacks import History
+
+AVERAGED_MODEL_NAME = "averaged_model.h5"
+
 HDFS_CONNECTION = 'hdfs_connection'
 NODE_ID = 'node_id'
 INT_MAX = 2147483647
@@ -24,6 +28,8 @@ TRAIN_PATH = '/tmp/CIFAR-10-images/train'
 
 def resnet50_model(classes=1000, *args, **kwargs):
     # Load a model if we have saved one
+    if os.path.isfile(AVERAGED_MODEL_NAME):
+        return keras.models.load_model(AVERAGED_MODEL_NAME)
     if os.path.isfile(MODEL_WEIGHTS_PATH):
         return keras.models.load_model(MODEL_WEIGHTS_PATH)
     # Create an input layer 
@@ -150,7 +156,7 @@ def train(steps_per_epoch, batch_size):
     #     shuffle=True,
     #     class_mode='categorical')
     # Start training, fit the model
-    model.fit_generator(
+    history = model.fit_generator(
         train_generator,
         steps_per_epoch=steps_per_epoch,
         # validation_data=validation_generator,
@@ -161,15 +167,16 @@ def train(steps_per_epoch, batch_size):
     model.save(MODEL_WEIGHTS_PATH)
     print('Saved model to disk!')
     # Get labels
-    labels = train_generator.class_indices
+    # labels = train_generator.class_indices
     # Invert labels
-    classes = {}
-    for key, value in labels.items():
-        classes[value] = key.capitalize()
+    # classes = {}
+    # for key, value in labels.items():
+    #     classes[value] = key.capitalize()
     # Save classes to file
-    with open(CIFAR_CLASSES_PATH, 'wb') as file:
-        pickle.dump(classes, file)
-    print('Saved classes to disk!')
+    # with open(CIFAR_CLASSES_PATH, 'wb') as file:
+    #     pickle.dump(classes, file)
+    # print('Saved classes to disk!')
+    return history
 
 
 # The main entry point for this module
@@ -192,16 +199,30 @@ def train_epoch(context, event):
     context.logger.info_with('Got invoked',
                              trigger_kind=event.trigger.kind,
                              event_body=event.body)
+    body = event.body.decode('utf-8')
     hdfs_client = getattr(context.user_data, HDFS_CONNECTION)
-    if not os.path.exists(CIFAR_PATH):
-        download_images()
-    train(steps_per_epoch=1, batch_size=32)
-    # hdfs_test(hdfs_client)
-    # return open(MODEL_WEIGHTS_PATH, 'rb').read()
-    save_model_to_hdfs(hdfs_client, getattr(context.user_data, NODE_ID))
+    if body == "train":
+        if not os.path.exists(CIFAR_PATH):
+            download_images()
+        try:
+            hdfs_client.download('models/' + AVERAGED_MODEL_NAME, AVERAGED_MODEL_NAME, overwrite=True)
+            return "success!"
+        except HdfsError:
+            print("file does not exist")
 
-    weights = calculate_average_weights(hdfs_client)
-    return "success!"
+        history = train(steps_per_epoch=1, batch_size=32)
+
+        save_model_to_hdfs(hdfs_client, getattr(context.user_data, NODE_ID))
+        return history.history['loss']
+    elif body == "average":
+        weights = calculate_average_weights(hdfs_client)
+        model = resnet50_model(10)
+        model.set_weights(weights)
+        model.save(MODEL_WEIGHTS_PATH)
+        save_model_to_hdfs(hdfs_client, getattr(context.user_data, NODE_ID), name=AVERAGED_MODEL_NAME)
+        return "averaging successful"
+    else:
+        return "invalid command"
 
 
 def hdfs_test(client: Client):
@@ -209,27 +230,28 @@ def hdfs_test(client: Client):
         writer.write(model.read())
 
 
-def save_model_to_hdfs(client: Client, node_id: str):
+def save_model_to_hdfs(client: Client, node_id: str, name=""):
     if os.path.exists(MODEL_WEIGHTS_PATH):
-        with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('models/weights-' + str(node_id) + '.json',
-                                                                   overwrite=True) as writer:
+        if name == "":
+            name = 'weights-' + str(node_id) + '.json'
+        print("saving " + name)
+        with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('models/' + name, overwrite=True) as writer:
             writer.write(model.read())
 
 
 def main():
-    # Download CIFAR-10-images
-    download_images()
-    # Train a model
-    train(1, 32)
+    body = "average"
+    hdfs_client = Config().get_client('dev')
+    save_model_to_hdfs(hdfs_client, "1245", name=AVERAGED_MODEL_NAME)
 
 
 def load_models_from_storage(client: Client):
     files = client.list('models')
     models = list()
     for file in files:
-        client.download('models/' + file, file)
+        client.download('models/' + file, file, overwrite=True)
         models.append(keras.models.load_model(file))
-        # with client.read('models/' + file) as reader:
+    # with client.read('models/' + file) as reader:
     # models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
     return models
 
@@ -245,9 +267,9 @@ def calculate_average_weights(client: Client):
     new_weights = list()
 
     # Average all weights
-    # Thanks Marcin Mozejko! https://stackoverflow.com/a/48212579
-    for weight_list_tuple in zip(*weights):
-        new_weights.append([np.array(weights_).mean(axis=0) for weights_ in zip(*weight_list_tuple)])
+    # Thanks Marcin Mozejko and ursusminimus! https://stackoverflow.com/a/48212579 https://stackoverflow.com/a/59324995
+    for weights_list_tuple in zip(*weights):
+        new_weights.append(np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)]))
     return new_weights
 
 
