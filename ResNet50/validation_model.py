@@ -1,34 +1,26 @@
-import json
 import os
-import pickle
-from random import randint
 
 import dload as dload
 import keras
+import pickle
 import numpy as np
-from hdfs import Client, Config, HdfsError
 
 # Get a ResNet50 model
-from tensorflow.python.keras.callbacks import History
-
-AVERAGED_MODEL_NAME = "averaged_model.h5"
-
-HDFS_CONNECTION = 'hdfs_connection'
-NODE_ID = 'node_id'
-INT_MAX = 2147483647
-CIFAR_CLASSES_PATH = '/tmp/classes.pkl'
-MODEL_WEIGHTS_PATH = '/tmp/resnet_50.h5'
-CIFAR_PATH = '/tmp/CIFAR-10-images'
-TEST_PATH = '/tmp/CIFAR-10-images/test'
-TRAIN_PATH = '/tmp/CIFAR-10-images/train'
+CIFAR_CLASSES_PATH = './classes.pkl'
+MODEL_WEIGHTS_PATH = './resnet_50.h5'
+CIFAR_PATH = 'CIFAR-10-images'
+TEST_PATH = 'CIFAR-10-images/test'
+TRAIN_PATH = 'CIFAR-10-images/train'
 
 
 # Thanks to @annytab https://www.annytab.com/
 # https://www.annytab.com/resnet50-image-classification-in-python/
 
-def fresh_resnet50_model(classes=1000, *args, **kwargs):
+def resnet50_model(classes=1000, *args, **kwargs):
     # Load a model if we have saved one
-    # Create an input layer 
+    if os.path.isfile(MODEL_WEIGHTS_PATH):
+        return keras.models.load_model(MODEL_WEIGHTS_PATH)
+    # Create an input layer
     input = keras.layers.Input(shape=(None, None, 3))
     # Create output layers
     output = keras.layers.ZeroPadding2D(padding=3, name='padding_conv1')(input)
@@ -57,8 +49,8 @@ def fresh_resnet50_model(classes=1000, *args, **kwargs):
     # Create a model from input layer and output layers
     model = keras.models.Model(inputs=input, outputs=output, *args, **kwargs)
     # Print model
-    # print()
-    # print(model.summary(), '\n')
+    print()
+    print(model.summary(), '\n')
     # Compile the model
     model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(lr=0.01, clipnorm=0.001),
                   metrics=['accuracy'])
@@ -114,7 +106,7 @@ def conv_block(input, kernel_size, filters, stage, block, strides=(2, 2)):
 
 
 # Train a model
-def train(steps_per_epoch, batch_size, model):
+def train():
     # Variables, 25 epochs so far
     epochs = 1
     batch_size = 32
@@ -122,6 +114,7 @@ def train(steps_per_epoch, batch_size, model):
     validation_samples = 10 * 1000  # 10 categories with 1000 images in each category
     img_width, img_height = 32, 32
     # Get the model (10 categories)
+    model = resnet50_model(10)
     # Create a data generator for training
     train_data_generator = keras.preprocessing.image.ImageDataGenerator(
         rescale=1. / 255,
@@ -129,11 +122,11 @@ def train(steps_per_epoch, batch_size, model):
         zoom_range=0.2,
         horizontal_flip=True)
     # Create a data generator for validation
-    # validation_data_generator = keras.preprocessing.image.ImageDataGenerator(
-    #     rescale=1. / 255,
-    #     shear_range=0.2,
-    #     zoom_range=0.2,
-    #     horizontal_flip=True)
+    validation_data_generator = keras.preprocessing.image.ImageDataGenerator(
+        rescale=1. / 255,
+        shear_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True)
     # Create a train generator
     train_generator = train_data_generator.flow_from_directory(
         TRAIN_PATH,
@@ -143,165 +136,58 @@ def train(steps_per_epoch, batch_size, model):
         shuffle=True,
         class_mode='categorical')
     # Create a test generator
-    # validation_generator = validation_data_generator.flow_from_directory(
-    #     TEST_PATH,
-    #     target_size=(img_width, img_height),
-    #     batch_size=batch_size,
-    #     color_mode='rgb',
-    #     shuffle=True,
-    #     class_mode='categorical')
+    validation_generator = validation_data_generator.flow_from_directory(
+        TEST_PATH,
+        target_size=(img_width, img_height),
+        batch_size=batch_size,
+        color_mode='rgb',
+        shuffle=True,
+        class_mode='categorical')
     # Start training, fit the model
-    history = model.fit_generator(
+    model.fit_generator(
         train_generator,
-        steps_per_epoch=steps_per_epoch,
-        # validation_data=validation_generator,
-        # validation_steps=validation_samples // batch_size,
+        steps_per_epoch=train_samples // batch_size,
+        validation_data=validation_generator,
+        validation_steps=validation_samples // batch_size,
         epochs=epochs)
     # Save model to disk
-    # print(model.weights)
     model.save(MODEL_WEIGHTS_PATH)
     print('Saved model to disk!')
     # Get labels
-    # labels = train_generator.class_indices
+    labels = train_generator.class_indices
+    labels = train_generator.class_indices
     # Invert labels
-    # classes = {}
-    # for key, value in labels.items():
-    #     classes[value] = key.capitalize()
+    classes = {}
+    for key, value in labels.items():
+        classes[value] = key.capitalize()
     # Save classes to file
-    # with open(CIFAR_CLASSES_PATH, 'wb') as file:
-    #     pickle.dump(classes, file)
-    # print('Saved classes to disk!')
-    return history
+    with open(CIFAR_CLASSES_PATH, 'wb') as file:
+        pickle.dump(classes, file)
+    print('Saved classes to disk!')
 
 
 # The main entry point for this module
 def download_images():
     if not os.path.exists(CIFAR_PATH):
         print("Downloading training and test data")
-        dload.save_unzip("https://github.com/YoongiKim/CIFAR-10-images/archive/master.zip", "/tmp")
-        os.rename("/tmp/CIFAR-10-images-master", CIFAR_PATH)
-        # os.remove("master.zip")
-
-
-def init_context(context):
-    setattr(context.user_data, HDFS_CONNECTION, Config().get_client('dev'))
-    setattr(context.user_data, NODE_ID, randint(1, INT_MAX))
-    # if not os.path.exists(CIFAR_PATH):
-    #     download_images()
+        dload.save_unzip("https://github.com/YoongiKim/CIFAR-10-images/archive/master.zip", ".")
+        os.rename("CIFAR-10-images-master", CIFAR_PATH)
+        os.remove("master.zip")
 
 
 def train_epoch(context, event):
     context.logger.info_with('Got invoked',
                              trigger_kind=event.trigger.kind,
-                             event_body=event.body)
-    body = event.body.decode('utf-8')
-    hdfs_client = getattr(context.user_data, HDFS_CONNECTION)
-    node_id = getattr(context.user_data, NODE_ID)
-    if body == "train":
-        return train_one_epoch(node_id, hdfs_client)
-    elif body == "average":
-        average_current_weights(node_id, hdfs_client)
-        return "averaging successful"
-    else:
-        return "invalid command"
-
-
-def average_current_weights(node_id, hdfs_client):
-    weights = calculate_average_weights(hdfs_client)
-    model = load_model()
-    model.set_weights(weights)
-    # save model locally so that it can be stored in hdfs
-    model.save(MODEL_WEIGHTS_PATH)
-    save_average_model(node_id, hdfs_client)
-
-
-def train_one_epoch(node_id, hdfs_client):
-    download_images()
-    download_averaged_model(hdfs_client)
-    model = load_model()
-    history = train(steps_per_epoch=1, batch_size=32, model=model)
-    save_model_to_hdfs(hdfs_client, node_id)
-    return history.history['loss'][0]
-
-
-def save_average_model(node_id, hdfs_client):
-    save_model_to_hdfs(hdfs_client, node_id, name=AVERAGED_MODEL_NAME)
-
-
-def load_model():
-    model = None
-    if os.path.isfile(AVERAGED_MODEL_NAME):
-        model = averaged_model()
-    elif os.path.isfile(MODEL_WEIGHTS_PATH):
-        model = local_model()
-    else:
-        model = fresh_resnet50_model(10)
-    return model
-
-
-def local_model():
-    return keras.models.load_model(MODEL_WEIGHTS_PATH)
-
-
-def averaged_model():
-    return keras.models.load_model(AVERAGED_MODEL_NAME)
-
-
-def download_averaged_model(hdfs_client):
-    try:
-        hdfs_client.download('models/' + AVERAGED_MODEL_NAME, AVERAGED_MODEL_NAME, overwrite=True)
-    except HdfsError:
-        print("averaged model does not exist")
-
-
-def hdfs_test(client: Client):
-    with open('/tmp/model.json') as model, client.write('test/model.json', overwrite=True, encoding='utf-8') as writer:
-        writer.write(model.read())
-
-
-def save_model_to_hdfs(client: Client, node_id: str, name=""):
-    if os.path.exists(MODEL_WEIGHTS_PATH):
-        if name == "":
-            name = 'weights-' + str(node_id) + '.json'
-        print("saving trained model to hdfs: " + name)
-        with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('models/' + name, overwrite=True) as writer:
-            writer.write(model.read())
+                             event_body=event.body,
+                             some_env=os.environ.get('MY_ENV_VALUE'))
+    return 'A string response DEEP LEARNING'
 
 
 def main():
-    body = "average"
-    hdfs_client = Config().get_client('dev')
-    save_model_to_hdfs(hdfs_client, "1245", name=AVERAGED_MODEL_NAME)
-    while True:
-        print(train_one_epoch("5", hdfs_client))
-
-
-def load_models_from_storage(client: Client):
-    files = client.list('models')
-    models = list()
-    for file in files:
-        client.download('models/' + file, file, overwrite=True)
-        models.append(keras.models.load_model(file))
-    # with client.read('models/' + file) as reader:
-    # models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
-    return models
-
-
-def load_weights_from_storage(client: Client):
-    models = load_models_from_storage(client)
-    weights = [model.get_weights() for model in models]
-    return weights
-
-
-def calculate_average_weights(client: Client):
-    weights = load_weights_from_storage(client)
-    new_weights = list()
-
-    # Average all weights
-    # Thanks Marcin Mozejko and ursusminimus! https://stackoverflow.com/a/48212579 https://stackoverflow.com/a/59324995
-    for weights_list_tuple in zip(*weights):
-        new_weights.append(np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)]))
-    return new_weights
+    # Download CIFAR-10-images
+    download_images()
+    # Train a model
+    train()
 
 
 # Tell python to run main method

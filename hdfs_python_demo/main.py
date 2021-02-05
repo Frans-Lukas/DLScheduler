@@ -18,7 +18,6 @@ def test_hdfs(context, event):
                              trigger_kind=event.trigger.kind,
                              event_body=event.body,
                              some_env=os.environ.get('MY_ENV_VALUE'))
-
     save_model(test_client)
     return read_model(test_client)
 
