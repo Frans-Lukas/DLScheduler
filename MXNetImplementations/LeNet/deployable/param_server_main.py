@@ -66,7 +66,7 @@ def start_lenet():
     trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.03}, kvstore=kv)
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
-    epoch = 2
+    epoch = 1
     train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer, logger)
     evaluate(ctx, net, val_data)
 
@@ -75,6 +75,15 @@ def start_from_nuclio(context, event):
     context.logger.info_with('Got invoked',
                              trigger_kind=event.trigger.kind,
                              event_body=event.body)
+    # body = event.body.decode('utf-8')
+    # if len(body) == 0:
+    #     return "empty body, can't set DMLC_ROLE"
+    # if body == "worker" or body == "scheduler" or body == "server":
+    os.environ["DMLC_ROLE"] = "worker"
+    # else:
+    #     return "invalid body: " + body + ", should be \"worker\" \"scheduler\" or \"server\""
+    context.logger.info_with(os.getenv("DMLC_ROLE"))
+    print(os.getenv("DMLC_ROLE"))
     start_lenet()
     return "training successful"
 
@@ -132,7 +141,6 @@ def evaluate(ctx, net, val_data):
         # Updates internal evaluation
         metric.update(label, outputs)
     print('validation acc: %s=%f' % metric.get())
-    assert metric.get()[1] > 0.98
 
 
 if __name__ == '__main__': main()

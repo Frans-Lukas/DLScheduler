@@ -1,5 +1,7 @@
 import logging
 import os
+from _testcapi import INT_MAX
+from random import randint
 
 import mxnet
 import mxnet as mx
@@ -9,6 +11,10 @@ import mxnet.ndarray as F
 from mxnet import gluon
 from mxnet.gluon import nn
 from mxnet.test_utils import get_mnist_iterator
+from hdfs import Client, Config, HdfsError
+
+NODE_ID = 'node_id'
+HDFS_CONNECTION = 'hdfs_connection'
 
 
 class Net(gluon.Block):
@@ -54,7 +60,7 @@ def start_lenet():
 
     logger.info('Starting new image-classification task')
 
-    kv = mxnet.kv.create('dist_sync')
+    kv = mxnet.kv.create('local')
     mx.random.seed(42)
     batch_size = 100
     train_data, val_data = get_mnist_iterator(batch_size, (1, 28, 28), num_parts=kv.num_workers, part_index=kv.rank)
@@ -66,17 +72,31 @@ def start_lenet():
     trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.03}, kvstore=kv)
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
-    epoch = 2
+    epoch = 1
     train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer, logger)
-    evaluate(ctx, net, val_data)
+    return evaluate(ctx, net, val_data)
+
+
+def init_context(context):
+    setattr(context.user_data, HDFS_CONNECTION, Config().get_client('dev'))
+    setattr(context.user_data, NODE_ID, randint(1, INT_MAX))
 
 
 def start_from_nuclio(context, event):
     context.logger.info_with('Got invoked',
                              trigger_kind=event.trigger.kind,
                              event_body=event.body)
-    start_lenet()
-    return "training successful"
+    # body = event.body.decode('utf-8')
+    # if len(body) == 0:
+    #     return "empty body, can't set DMLC_ROLE"
+    # if body == "worker" or body == "scheduler" or body == "server":
+    os.environ["DMLC_ROLE"] = "worker"
+    # else:
+    #     return "invalid body: " + body + ", should be \"worker\" \"scheduler\" or \"server\""
+    context.logger.info_with("my role is: " + os.getenv("DMLC_ROLE"))
+    print(os.getenv("DMLC_ROLE"))
+
+    return "training successful, acc: " + str(start_lenet())
 
 
 def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer, logger):
@@ -132,7 +152,7 @@ def evaluate(ctx, net, val_data):
         # Updates internal evaluation
         metric.update(label, outputs)
     print('validation acc: %s=%f' % metric.get())
-    assert metric.get()[1] > 0.98
+    return metric.get()
 
 
 if __name__ == '__main__': main()
