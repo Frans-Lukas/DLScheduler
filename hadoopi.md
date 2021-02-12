@@ -13,6 +13,9 @@
 
 ## The folder `user` does not exist?
 For some reason hadoop does not create the correct folders. To create the user folders use:
+
 `hadoop fs -mkdir /user`
+
 `hadoop fs -mkdir /user/$USER`
+
 `hadoop fs -mkdir /user/$USER/models`
