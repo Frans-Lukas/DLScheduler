@@ -10,3 +10,9 @@
 2. If not, format namenode with `hdfs namenode -format`
 3. Call `./hadoop/sbin/start-dfs.sh`
 4. If something is already running, call `./hadoop/sbin/stop-all.sh` and try from step 2 again.
+
+## The folder `user` does not exist?
+For some reason hadoop does not create the correct folders. To create the user folders use:
+`hadoop fs -mkdir /user`
+`hadoop fs -mkdir /user/$USER`
+`hadoop fs -mkdir /user/$USER/models`
