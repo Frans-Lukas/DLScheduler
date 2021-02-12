@@ -7,6 +7,16 @@ spec:
   runtime: python
   handler: param_server_main:start_from_nuclio
   env:
+    - name: DMLC_ROLE
+      value: worker
+    - name: DMLC_PS_ROOT_URI
+      value: 192.168.10.205
+    - name: DMLC_PS_ROOT_PORT
+      value: 9092
+    - name: DMLC_NUM_SERVER
+      value: 1
+    - name: DMLC_NUM_WORKER
+      value: 1
     - name: HDFSCLI_CONFIG
       value: /tmp/.hdfscli.cfg
     - name: HADOOP_USER_NAME

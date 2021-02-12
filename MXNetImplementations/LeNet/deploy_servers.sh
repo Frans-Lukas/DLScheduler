@@ -1,5 +1,5 @@
 #!/bin/bash
 
-export COMMAND='python deployable/param_server_main.py'
+export COMMAND='python worker/param_server_main.py'
 DMLC_ROLE=server DMLC_PS_ROOT_URI=192.168.10.205 DMLC_PS_ROOT_PORT=9092 DMLC_NUM_SERVER=1 DMLC_NUM_WORKER=1 $COMMAND &
 DMLC_ROLE=scheduler DMLC_PS_ROOT_URI=192.168.10.205 DMLC_PS_ROOT_PORT=9092 DMLC_NUM_SERVER=1 DMLC_NUM_WORKER=1 $COMMAND
