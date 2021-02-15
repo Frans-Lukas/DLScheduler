@@ -3,7 +3,12 @@ module awesomeProject1
 go 1.13
 
 require (
-	k8s.io/api v0.0.0-20210206010904-48bd8381a38a
-	k8s.io/apimachinery v0.0.0-20210206010734-c93b0f84892e
-	k8s.io/client-go v0.0.0-20210209155049-20732a1bc198
+	github.com/Azure/go-autorest/autorest v0.11.12 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/moby/spdystream v0.2.0 // indirect
+	k8s.io/api v0.20.2
+	k8s.io/apimachinery v0.20.2
+	k8s.io/client-go v0.20.2
+	k8s.io/klog/v2 v2.5.0 // indirect
+	k8s.io/metrics v0.20.2
 )
