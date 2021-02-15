@@ -1,14 +1,23 @@
 import logging
 import os
+import sys
+from random import randint
 
 import mxnet
 import mxnet as mx
 import mxnet.autograd as ag
 import mxnet.metric
 import mxnet.ndarray as F
+from hdfs import Config, Client
 from mxnet import gluon
 from mxnet.gluon import nn
 from mxnet.test_utils import get_mnist_iterator
+
+MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
+
+NODE_ID = 'node_id'
+HDFS_CONNECTION = 'hdfs_connection'
+INT_MAX = sys.maxsize
 
 
 class Net(gluon.Block):
@@ -37,10 +46,10 @@ class Net(gluon.Block):
 
 def main():
     print("role: " + os.getenv("DMLC_ROLE"))
-    start_lenet()
+    start_lenet(Config().get_client('dev'))
 
 
-def start_lenet():
+def start_lenet(client: Client):
     logging.basicConfig(level=logging.INFO)
     fh = logging.FileHandler('/tmp/image-classification.log')
     logger = logging.getLogger()
@@ -58,25 +67,64 @@ def start_lenet():
     mx.random.seed(42)
     batch_size = 100
     train_data, val_data = get_mnist_iterator(batch_size, (1, 28, 28), num_parts=kv.num_workers, part_index=kv.rank)
-    # train_data = mx.io.NDArrayIter(mnist['train_data'], mnist['train_label'], batch_size, shuffle=True)
-    # val_data = mx.io.NDArrayIter(mnist['test_data'], mnist['test_label'], batch_size)
     net = Net()
+    net = load_model(net, client)
     ctx = [mx.gpu() if mx.test_utils.list_gpus() else mx.cpu()]
     net.initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.03}, kvstore=kv)
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
-    epoch = 2
+    epoch = 1
     train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer, logger)
-    evaluate(ctx, net, val_data)
+
+    save_model_to_hdfs(net, client)
+
+    return evaluate(ctx, net, val_data)
+
+
+def load_model_from_hdfs(client: Client):
+    files = client.list('models')
+    models = list()
+    for file in files:
+        client.download('models/' + file, MODEL_WEIGHTS_PATH, overwrite=True)
+    # with client.read('models/' + file) as reader:
+    # models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
+    return models
+
+
+def load_model(net: Net, client: Client):
+    load_model_from_hdfs(client)
+    if os.path.isfile(MODEL_WEIGHTS_PATH):
+        net.load_params(MODEL_WEIGHTS_PATH)
+    return net
+
+
+def save_model_to_hdfs(net: Net, client: Client, node_id="0", name=""):
+    net.save_params(MODEL_WEIGHTS_PATH)
+    if os.path.exists(MODEL_WEIGHTS_PATH):
+        if name == "":
+            name = 'weights-' + str(node_id) + '.json'
+        print("saving trained model to hdfs: " + name)
+        try:
+            with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('models/' + name, overwrite=True) as writer:
+                writer.write(model.read())
+        except:
+            exit(-1)
+
+
+def init_context(context):
+    setattr(context.user_data, HDFS_CONNECTION, Config().get_client('dev'))
+    setattr(context.user_data, NODE_ID, randint(1, INT_MAX))
 
 
 def start_from_nuclio(context, event):
     context.logger.info_with('Got invoked',
                              trigger_kind=event.trigger.kind,
                              event_body=event.body)
-    start_lenet()
-    return "training successful"
+    os.environ["DMLC_ROLE"] = "worker"
+    client = getattr(context.user_data, HDFS_CONNECTION)
+    acc = start_lenet(client)
+    return "training successful, acc: " + str(acc)
 
 
 def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer, logger):
@@ -132,7 +180,7 @@ def evaluate(ctx, net, val_data):
         # Updates internal evaluation
         metric.update(label, outputs)
     print('validation acc: %s=%f' % metric.get())
-    assert metric.get()[1] > 0.98
+    return metric.get()
 
 
 if __name__ == '__main__': main()
