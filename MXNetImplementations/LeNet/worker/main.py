@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 from random import randint
@@ -45,24 +44,12 @@ class Net(gluon.Block):
 
 
 def main():
+    # os.environ["DMLC_ROLE"] = sys.argv[1]
     print("role: " + os.getenv("DMLC_ROLE"))
     start_lenet(Config().get_client('dev'))
 
 
 def start_lenet(client: Client):
-    logging.basicConfig(level=logging.INFO)
-    fh = logging.FileHandler('/tmp/image-classification.log')
-    logger = logging.getLogger()
-    logger.addHandler(fh)
-    formatter = logging.Formatter('%(message)s')
-    fh.setFormatter(formatter)
-    fh.setLevel(logging.DEBUG)
-    logging.debug('\n%s', '-' * 100)
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    fh.setFormatter(formatter)
-
-    logger.info('Starting new image-classification task')
-
     kv = mxnet.kv.create('dist_sync')
     mx.random.seed(42)
     batch_size = 100
@@ -75,11 +62,11 @@ def start_lenet(client: Client):
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
     epoch = 1
-    train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer, logger)
+    train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer)
 
     save_model_to_hdfs(net, client)
-
-    return evaluate(ctx, net, val_data)
+    acc = evaluate(ctx, net, val_data)
+    return acc
 
 
 def load_model_from_hdfs(client: Client):
@@ -127,7 +114,7 @@ def start_from_nuclio(context, event):
     return "training successful, acc: " + str(acc)
 
 
-def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer, logger):
+def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer):
     for i in range(epoch):
         # Reset the train data iterator.
         train_data.reset()
@@ -158,7 +145,6 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
         name, acc = metric.get()
         # Reset evaluation result to initial state.
         metric.reset()
-        logger.info('training acc at epoch %d: %s=%f' % (i, name, acc))
 
 
 def evaluate(ctx, net, val_data):
