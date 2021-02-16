@@ -108,7 +108,7 @@ def start_from_nuclio(context, event):
     context.logger.info_with('Got invoked',
                              trigger_kind=event.trigger.kind,
                              event_body=event.body)
-    os.environ["DMLC_ROLE"] = "worker"
+    os.environ["DMLC_ROLE"] = "TensorFlow"
     client = getattr(context.user_data, HDFS_CONNECTION)
     acc = start_lenet(client)
     return "training successful, acc: " + str(acc)
