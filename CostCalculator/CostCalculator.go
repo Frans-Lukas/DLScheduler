@@ -21,7 +21,8 @@ var metricsClientSet *metricsv.Clientset
 
 var costPerSec = 0.01
 var fixedCost = 0.1
-var memoryCost = 0.1
+var memoryCost = 0.0001
+var CPUCost = 100.0
 
 func main() {
 
@@ -60,11 +61,14 @@ func getTotalCostOfPods(prefix string, pods *v12.PodList, metricPods *v1beta1.Po
 	for _, pod := range pods.Items {
 		if matchesPrefix(prefix, pod) {
 			memoryPodIndex, err := findMetricsPodIndex(pod.Name, metricPods)
-			fatalErrorCheck(err, "getTotalCostOfPods")
+			nonFatalErrorCheck(err, "getTotalCostOfPods")
 			println("pod: ", pod.Name)
-			cost += getTotalCostOfpod(pod, metricPods.Items[memoryPodIndex], currentTime)
+			if memoryPodIndex != -1 {
+				cost += getTotalCostOfpod(pod, metricPods.Items[memoryPodIndex], currentTime)
+			} else {
+				cost += getTotalCostOfpodWithoutMetricPod(pod, currentTime)
+			}
 		}
-
 	}
 
 	return cost
@@ -83,8 +87,26 @@ func findMetricsPodIndex(name string, pods *v1beta1.PodMetricsList) (int, error)
 	return -1, errors.New("findMetricsPod: could not find corresponding metric pod")
 }
 
+func getTotalCostOfpodWithoutMetricPod(pod v12.Pod, currentTime time.Time) float64 {
+	return fixedCost + getDurationCostOfpod(pod, currentTime) + getMemoryTransferCostOfpod(pod)
+}
+
 func getTotalCostOfpod(pod v12.Pod, metricsPod v1beta1.PodMetrics, currentTime time.Time) float64 {
-	return fixedCost + getDurationCostOfpod(pod, currentTime) + getMemoryCostOfPod(metricsPod) + getMemoryTransferCostOfpod(pod)
+	return fixedCost + getDurationCostOfpod(pod, currentTime) + getMemoryCostOfPod(metricsPod) + getCPUCostOfPod(metricsPod) + getMemoryTransferCostOfpod(pod)
+}
+
+func getCPUCostOfPod(pod v1beta1.PodMetrics) float64 {
+	totalCPUUsed := float64(0)
+	for _, container := range pod.Containers {
+		for metric, value := range container.Usage {
+			if metric == "cpu" {
+				val := value.AsApproximateFloat64()
+				totalCPUUsed += val
+			}
+		}
+	}
+	println("  CPUCost: ", totalCPUUsed * CPUCost)
+	return (totalCPUUsed) * CPUCost
 }
 
 func getMemoryCostOfPod(pod v1beta1.PodMetrics) float64 {
@@ -147,6 +169,12 @@ func getNuclioPodsMetrics() *v1beta1.PodMetricsList {
 	fatalErrorCheck(err, "getNuclioPodMetrics")
 
 	return podMetricsList
+}
+
+func nonFatalErrorCheck(err error, errorPrefix string) {
+	if err != nil {
+		println(errorPrefix + ": " + err.Error())
+	}
 }
 
 func fatalErrorCheck(err error, errorPrefix string) {
