@@ -50,7 +50,7 @@ def run(context, event):
     job_type = body['job_type']
 
     hdfs_client = getattr(context.user_data, HDFS_CONNECTION)
-    helper = DistributedHelper(hdfs_client, worker_id, number_of_workers)
+    helper = DistributedHelper(hdfs_client, worker_id, number_of_workers, AVERAGED_MODEL_NAME)
     if job_type == "train":
         return train_one_epoch(helper)
     elif job_type == "average":
@@ -90,10 +90,11 @@ def train_one_epoch(helper: DistributedHelper):
     print("training")
     history = train(model, x_train, y_train)
     print("saving locally")
-    model.save(MODEL_WEIGHTS_PATH)
+    model.save_weights(MODEL_WEIGHTS_PATH)
     print("saving to hdfs")
     helper.upload_model_to_hdfs(MODEL_WEIGHTS_PATH)
-    return "training successful: " + str(history.history['loss'][0])
+
+    return "training successful: " + str(history.history['accuracy'][0])
 
 
 def LeNet(shape=(28, 28, 1), num_classes=10):
@@ -115,47 +116,43 @@ def LeNet(shape=(28, 28, 1), num_classes=10):
 
 
 def load_model():
-    model = None
-    if os.path.isfile(AVERAGED_MODEL_NAME):
+    if os.path.exists(AVERAGED_MODEL_NAME):
         print("using average model")
         model = averaged_model()
     else:
+        print("using fresh model")
         model = LeNet()
     return model
 
 
 def local_model():
-    return keras.models.load_model(MODEL_WEIGHTS_PATH)
+    model = LeNet()
+    model.load_weights(MODEL_WEIGHTS_PATH)
+    return model
 
 
 def averaged_model():
-    return keras.models.load_model(AVERAGED_MODEL_NAME)
+    model = LeNet()
+    model.load_weights(AVERAGED_MODEL_NAME)
+    return model
 
 
 def main():
     body = "average"
+    # model = LeNet()
+    # model.load_weights("/tmp/weights-2.h5")
+    # print(model.get_weights())
     hdfs_client = Config().get_client('dev')
-    helper = DistributedHelper(hdfs_client, "2", 10)
-    helper.aggregate_weights(LeNet())
-    print(train_one_epoch(helper))
+    helper = DistributedHelper(hdfs_client, 0, 3, AVERAGED_MODEL_NAME)
+    helper1 = DistributedHelper(hdfs_client, 1, 3, AVERAGED_MODEL_NAME)
+    helper2 = DistributedHelper(hdfs_client, 2, 3, AVERAGED_MODEL_NAME)
+    while True:
+        print(train_one_epoch(helper1))
+        print(train_one_epoch(helper))
+        print(train_one_epoch(helper2))
+        helper.aggregate_weights(LeNet())
 
 
-def load_models_from_storage(client: Client):
-    files = client.list('models')
-    models = list()
-    for file in files:
-        print("downloading " + file)
-        client.download('models/' + file, file, overwrite=True)
-        models.append(keras.models.load_model(file))
-    # with client.read('models/' + file) as reader:
-    # models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
-    return models
-
-
-def load_weights_from_storage(client: Client):
-    models = load_models_from_storage(client)
-    weights = [model.get_weights() for model in models]
-    return weights
 
 
 # Tell python to run main method
