@@ -5,20 +5,8 @@ metadata:
   namespace: nuclio
 spec:
   runtime: python
-  handler: main:start_from_nuclio
+  handler: main:run
   env:
-    - name: DMLC_ROLE
-      value: worker
-    - name: DMLC_PS_ROOT_URI
-      value: 192.168.10.205
-    - name: DMLC_PS_ROOT_PORT
-      value: 9092
-    - name: DMLC_NUM_SERVER
-      value: 1
-    - name: PS_VERBOSE
-      value: 1
-    - name: DMLC_NUM_WORKER
-      value: 1
     - name: HDFSCLI_CONFIG
       value: /tmp/.hdfscli.cfg
     - name: HADOOP_USER_NAME
@@ -30,4 +18,4 @@ spec:
       - echo "[dev.alias]" >> /tmp/.hdfscli.cfg
       - echo "url = http://192.168.10.205:9870" >> /tmp/.hdfscli.cfg
       - echo "user = franslukas" >> /tmp/.hdfscli.cfg
-      - "pip install mxnet hdfs"
+      - "pip install mxnet hdfs pillow keras dload numpy tensorflow hdfs "
