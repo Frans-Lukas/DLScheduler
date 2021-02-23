@@ -22,7 +22,7 @@ var metricsClientSet *metricsv.Clientset
 var costPerSec = 0.01
 var fixedCost = 0.1
 var memoryCost = 0.0001
-var CPUCost = 100.0
+var CPUCost = 10000.0
 
 func main() {
 
@@ -92,7 +92,7 @@ func getTotalCostOfpodWithoutMetricPod(pod v12.Pod, currentTime time.Time) float
 }
 
 func getTotalCostOfpod(pod v12.Pod, metricsPod v1beta1.PodMetrics, currentTime time.Time) float64 {
-	return fixedCost + getDurationCostOfpod(pod, currentTime) + getMemoryCostOfPod(metricsPod) + getCPUCostOfPod(metricsPod) + getMemoryTransferCostOfpod(pod)
+	return fixedCost + getDurationCostOfpod(pod, currentTime) + getMemoryCostOfPod(pod) + getCPUCostOfPod(metricsPod) + getMemoryTransferCostOfpod(pod)
 }
 
 func getCPUCostOfPod(pod v1beta1.PodMetrics) float64 {
@@ -109,18 +109,14 @@ func getCPUCostOfPod(pod v1beta1.PodMetrics) float64 {
 	return (totalCPUUsed) * CPUCost
 }
 
-func getMemoryCostOfPod(pod v1beta1.PodMetrics) float64 {
-	totalMemoryUsed := int64(0)
-	for _, container := range pod.Containers {
-		for metric, value := range container.Usage {
-			if metric == "memory" {
-				val, _ := value.AsInt64()
-				totalMemoryUsed += val
-			}
-		}
+func getMemoryCostOfPod(pod v12.Pod) float64 {
+	totalMemoryAllocated := float64(0)
+	for _, container := range pod.Spec.Containers {
+		// TODO decide if we should go by 'limit' or 'request'
+		totalMemoryAllocated += container.Resources.Limits.Memory().AsApproximateFloat64()
 	}
-	println("  memoryCost: ", int64(float64(totalMemoryUsed) * memoryCost))
-	return float64(totalMemoryUsed) * memoryCost
+	println("  memoryCost: ", totalMemoryAllocated * memoryCost)
+	return totalMemoryAllocated * memoryCost
 }
 
 func getDurationCostOfpod(pod v12.Pod, currentTime time.Time) float64 {
