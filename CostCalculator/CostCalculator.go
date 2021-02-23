@@ -88,11 +88,16 @@ func findMetricsPodIndex(name string, pods *v1beta1.PodMetricsList) (int, error)
 }
 
 func getTotalCostOfpodWithoutMetricPod(pod v12.Pod, currentTime time.Time) float64 {
-	return fixedCost + getDurationCostOfpod(pod, currentTime) + getMemoryTransferCostOfpod(pod)
+	return fixedCost + getDurationCostOfpod(pod, currentTime) + getMemoryCostOfPod(pod) + getMemoryTransferCostOfpod(pod)
 }
 
 func getTotalCostOfpod(pod v12.Pod, metricsPod v1beta1.PodMetrics, currentTime time.Time) float64 {
-	return fixedCost + getDurationCostOfpod(pod, currentTime) + getMemoryCostOfPod(pod) + getCPUCostOfPod(metricsPod) + getMemoryTransferCostOfpod(pod)
+	return getTotalCostOfpodWithoutMetricPod(pod, currentTime) + getCPUCostOfPod(metricsPod) + getGPUCostOfPod()
+}
+
+func getGPUCostOfPod() float64 {
+	//TODO figure out how to do this
+	return 0.0
 }
 
 func getCPUCostOfPod(pod v1beta1.PodMetrics) float64 {
