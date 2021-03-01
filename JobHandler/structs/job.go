@@ -46,5 +46,17 @@ func (job Job) budgetSurpassed() bool {
 }
 
 func (job Job) lossReached() bool {
-	return len(job.History) != 0 && job.History[len(job.History)-1].Loss <= job.TargetLoss
+	return !job.historyIsEmpty() && job.History[len(job.History)-1].Loss <= job.TargetLoss
+}
+
+func (job Job) historyIsEmpty() bool {
+	return len(job.History) == 0
+}
+
+func (job Job) CalculateNumberOfFunctions() uint {
+	if job.historyIsEmpty() {
+		return 1
+	}
+
+	return 5
 }
