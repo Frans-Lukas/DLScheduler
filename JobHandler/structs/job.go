@@ -3,20 +3,23 @@ package structs
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"jobHandler/helperFunctions"
+	"os"
 )
 
 type Job struct {
-	Budget     	float64 `json:"budget"`
-	TargetLoss 	float64 `json:"targetLoss"`
-	ImageUrl   	string `json:"imageUrl"`
-	CurrentCost float64
-	History     []HistoryEvent
+	Budget          float64 `json:"budget"`
+	TargetLoss      float64 `json:"targetLoss"`
+	ImageUrl        string  `json:"imageUrl"`
+	CurrentCost     float64
+	JobId           string
+	FunctionIds     map[int]bool
+	FunctionChannel chan int
+	History         []HistoryEvent
 }
 
 func ParseJson(jsonPath string) (Job, error) {
-	file, err  := os.Open(jsonPath)
+	file, err := os.Open(jsonPath)
 
 	helperFunctions.FatalErrCheck(err, "ParseJson: ")
 
@@ -57,6 +60,14 @@ func (job Job) CalculateNumberOfFunctions() uint {
 	if job.historyIsEmpty() {
 		return 1
 	}
-
 	return 5
+}
+
+func (job Job) FunctionsHaveFinished() bool {
+	for _, functionIsDone := range job.FunctionIds {
+		if functionIsDone == false {
+			return false
+		}
+	}
+	return true
 }
