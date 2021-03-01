@@ -42,24 +42,23 @@ func main() {
 	job.JobId = helperFunctions.GenerateId(10)
 
 	// 3. If done, store gradients and remove job from queue.
-	if job.IsDone() {
-		println("job is done")
+	for !job.IsDone() {
+
+		// 4. Calculate number of functions we want to invoke
+		desiredNumberOfFunctions := job.CalculateNumberOfFunctions()
+
+		// 5. Calculate number of functions we can invoke
+		numberOfFunctionsToDeploy := deployableNumberOfFunctions(job, desiredNumberOfFunctions)
+		println(numberOfFunctionsToDeploy)
+
+		// 6. Invoke functions asynchronously
+		deployFunctions(job, numberOfFunctionsToDeploy)
+		invokeFunctions(job, numberOfFunctionsToDeploy)
+
+		// 7. Await response from all invoked functions (loss)
+		awaitResponse(job)
 	}
-
-	// 4. Calculate number of functions we want to invoke
-	desiredNumberOfFunctions := job.CalculateNumberOfFunctions()
-
-	// 5. Calculate number of functions we can invoke
-	numberOfFunctionsToDeploy := deployableNumberOfFunctions(job, desiredNumberOfFunctions)
-	println(numberOfFunctionsToDeploy)
-
-	// 6. Invoke functions asynchronously
-	deployFunctions(job, numberOfFunctionsToDeploy)
-	invokeFunctions(job, numberOfFunctionsToDeploy)
-
-	// 7. Await response from all invoked functions (loss)
-	awaitResponse(job)
-
+	println("job is done")
 	// 8. Save history, and repeat from step 3.
 }
 
