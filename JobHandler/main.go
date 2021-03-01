@@ -21,11 +21,17 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	// 1. receive job
-	if len(os.Args) < 3 {
-		log.Fatalf("wrong input, needs arguments <jobPath> and <pathToCfg>")
+	if len(os.Args) < 2 {
+		log.Fatalf("wrong input, needs arguments <jobPath> and optional <pathToCfg>")
 	}
 
-	err := initializeClients(os.Args[2])
+	var err error
+	if len(os.Args) > 2 {
+		err = initializeClients(os.Args[2])
+	} else {
+		err = initializeClients("")
+	}
+
 	helperFunctions.FatalErrCheck(err, "main: ")
 
 	// 2. Parse to Job Class
