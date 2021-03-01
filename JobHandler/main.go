@@ -1,8 +1,7 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
+	"jobHandler/helperFunctions"
 	"jobHandler/structs"
 	"log"
 	"os"
@@ -14,30 +13,18 @@ func main() {
 		log.Fatalf("wrong input, needs argumetn jobPath")
 	}
 
-	jobPath := os.Args[1]
-	file, err  := os.Open(jobPath)
-
-	fatalErrCheck(err, "main: ")
-
-	byteValue, err := ioutil.ReadAll(file)
-
-	fatalErrCheck(err, "main: ")
-
-	var job structs.Job
-
-	err = json.Unmarshal(byteValue, &job)
-
-	fatalErrCheck(err, "main: ")
-
-	println(job.Budget)
-	println(job.TargetLoss)
-	println(job.ImageUrl)
-
 	// 2. Parse to Job Class
+	jobPath := os.Args[1]
+	job, err := structs.ParseJson(jobPath)
+	helperFunctions.FatalErrCheck(err, "main: ")
 
 	// 3. If done, store gradients and remove job from queue.
+	if job.IsDone() {
+		println("job is done")
+	}
 
 	// 4. Calculate number of functions we want to invoke
+
 
 	// 5. Calculate number of functions we can invoke
 
@@ -46,10 +33,4 @@ func main() {
 	// 7. Await response from all invoked functions (loss)
 
 	// 8. Save history, and repeat from step 3.
-}
-
-func fatalErrCheck(err error, s string) {
-	if err != nil {
-		log.Fatalf(s, err.Error())
-	}
 }
