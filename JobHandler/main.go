@@ -11,6 +11,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"os/exec"
 	"strconv"
 	"time"
 )
@@ -90,16 +91,30 @@ func getCompletedFunctionId(job structs.Job) int {
 }
 
 func deployFunctions(job structs.Job, numberOfFunctionsToDeploy uint) {
+	var finishedChannel chan int
+	finishedChannel = make(chan int)
 	for i := 0; i < int(numberOfFunctionsToDeploy); i++ {
-		deployFunction(job, i)
+		go deployFunction(job, i, finishedChannel)
+	}
+	for i := 0; i < int(numberOfFunctionsToDeploy); i++ {
+		println("pod with id: ", <- finishedChannel, " deployed")
 	}
 }
 
-func deployFunction(job structs.Job, functionId int) {
+func deployFunction(job structs.Job, functionId int, channel chan int) {
 	//TODO
 	imageUrl := job.ImageUrl
 	podName := "job_"+job.JobId+"_"+strconv.Itoa(functionId)
 	println("Deploying function: ", podName, " with imageUrl: ", imageUrl)
+
+	cmd := exec.Command("./run_nuclio_docker_container.sh", podName, imageUrl)
+	stdout, err := cmd.Output()
+
+	helperFunctions.FatalErrCheck(err, "deployFunctions: ")
+
+	println(stdout)
+
+	channel <- functionId
 }
 
 func initializeClients(pathToCfg string) error {
