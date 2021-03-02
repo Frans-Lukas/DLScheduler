@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"jobHandler/constants"
 	"jobHandler/helperFunctions"
 	"jobHandler/structs"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,10 +19,6 @@ import (
 )
 
 var clientSet *kubernetes.Clientset
-const DEPLOY_FUNCTION_SCRIPT = "./nuclio/deploy_nuclio_docker_container.sh"
-const INVOKE_FUNCTION_SCRIPT = "./nuclio/invoke_nuclio_function.sh"
-const TRAIN_JOB_TYPE = "train"
-const AGGREGATE_JOB_TYPE = "average"
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -77,14 +74,9 @@ func main() {
 func invokeAggregator(job structs.Job, numFunctions uint) {
 	println("running aggregator")
 	functionName := getPodName(job, 0)
-	jobType := AGGREGATE_JOB_TYPE
+	jobType := constants.AGGREGATE_JOB_TYPE
 
-	cmd := exec.Command(INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(0), strconv.Itoa(int(numFunctions)), jobType)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
+	out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(0), strconv.Itoa(int(numFunctions)), jobType)
 
 	helperFunctions.FatalErrCheck(err, "deployFunctions: " + out.String() + "\n" + stderr.String())
 	println(out.String())
@@ -100,14 +92,9 @@ func invokeFunctions(job structs.Job, numberOfFunctionsToInvoke int) {
 func invokeFunction(job structs.Job, id int, maxId int) {
 	println("running function: ", id)
 	functionName := getPodName(job, id)
-	jobType := TRAIN_JOB_TYPE
+	jobType := constants.TRAIN_JOB_TYPE
 
-	cmd := exec.Command(INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(id), strconv.Itoa(maxId), jobType)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
+	out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(id), strconv.Itoa(maxId), jobType)
 
 	helperFunctions.FatalErrCheck(err, "deployFunctions: " + out.String() + "\n" + stderr.String())
 
@@ -152,7 +139,7 @@ func deployFunction(job structs.Job, functionId int, channel chan int) {
 	podName := getPodName(job, functionId)
 	println("Deploying function: ", podName, " with imageUrl: ", imageUrl)
 
-	cmd := exec.Command(DEPLOY_FUNCTION_SCRIPT, podName, imageUrl)
+	cmd := exec.Command(constants.DEPLOY_FUNCTION_SCRIPT, podName, imageUrl)
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
