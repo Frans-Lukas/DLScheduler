@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"jobHandler/helperFunctions"
 	"jobHandler/structs"
@@ -17,6 +18,9 @@ import (
 )
 
 var clientSet *kubernetes.Clientset
+const DEPLOY_FUNCTION_SCRIPT = "./nuclio/deploy_nuclio_docker_container.sh"
+const INVOKE_FUNCTION_SCRIPT = "./nuclio/invoke_nuclio_function.sh"
+const TRAIN_JOB_TYPE = "train"
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -54,40 +58,59 @@ func main() {
 
 	// 6. Invoke functions asynchronously
 	deployFunctions(job, numberOfFunctionsToDeploy)
-	invokeFunctions(job, numberOfFunctionsToDeploy)
+	println("invoking functions")
+	invokeFunctions(job, int(numberOfFunctionsToDeploy))
 
 	// 7. Await response from all invoked functions (loss)
+	println("waiting for invocation responses")
 	awaitResponse(job)
 	//}
 	println("job is done")
 	// 8. Save history, and repeat from step 3.
 }
 
-func invokeFunctions(job structs.Job, numberOfFunctionsToInvoke uint) {
-	for i := 0; i < int(numberOfFunctionsToInvoke); i++ {
-		invokeFunction(job, i)
+func invokeFunctions(job structs.Job, numberOfFunctionsToInvoke int) {
+	for i := 0; i < numberOfFunctionsToInvoke; i++ {
+		go invokeFunction(job, i, numberOfFunctionsToInvoke)
 	}
 }
 
-func invokeFunction(job structs.Job, id int) {
-	job.FunctionChannel <- id
+func invokeFunction(job structs.Job, id int, maxId int) {
+	println("running function: ", id)
+	functionName := getPodName(job, id)
+	jobType := TRAIN_JOB_TYPE
+
+	cmd := exec.Command(INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(id), strconv.Itoa(maxId), jobType)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+
+	helperFunctions.FatalErrCheck(err, "deployFunctions: " + out.String() + "\n" + stderr.String())
+
+	*job.FunctionChannel <- id
 	job.History = append(job.History, structs.HistoryEvent{
-		NumWorkers: 0,
+		NumWorkers: uint(maxId),
 		Loss:       0,
 		Time:       0,
 		Epoch:      0,
 	})
+	println(out.String())
+	println("completed function: ", id)
 }
 
 func awaitResponse(job structs.Job) {
-	for job.FunctionsHaveFinished() {
+	for !job.FunctionsHaveFinished() {
 		//TODO: fault tolerance, do not allow infinite loop if a function does not return.
-		job.FunctionIds[getCompletedFunctionId(job)] = true
+		completedFunctionId := getCompletedFunctionId(job)
+		println("function completed with id: ", completedFunctionId)
+		job.FunctionIds[completedFunctionId] = true
 	}
 }
 
 func getCompletedFunctionId(job structs.Job) int {
-	return <-job.FunctionChannel
+	return <-*job.FunctionChannel
 }
 
 func deployFunctions(job structs.Job, numberOfFunctionsToDeploy uint) {
@@ -104,17 +127,27 @@ func deployFunctions(job structs.Job, numberOfFunctionsToDeploy uint) {
 func deployFunction(job structs.Job, functionId int, channel chan int) {
 	//TODO
 	imageUrl := job.ImageUrl
-	podName := "job_"+job.JobId+"_"+strconv.Itoa(functionId)
+	podName := getPodName(job, functionId)
 	println("Deploying function: ", podName, " with imageUrl: ", imageUrl)
 
-	cmd := exec.Command("./run_nuclio_docker_container.sh", podName, imageUrl)
-	stdout, err := cmd.Output()
+	cmd := exec.Command(DEPLOY_FUNCTION_SCRIPT, podName, imageUrl)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 
-	helperFunctions.FatalErrCheck(err, "deployFunctions: ")
+	helperFunctions.FatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 
-	println(stdout)
+	job.FunctionIds[functionId] = false
+
+	log.Println(out.String())
 
 	channel <- functionId
+}
+
+func getPodName(job structs.Job, functionId int) string {
+	return "job_" + job.JobId + "_" + strconv.Itoa(functionId)
 }
 
 func initializeClients(pathToCfg string) error {

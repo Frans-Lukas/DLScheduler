@@ -14,7 +14,7 @@ type Job struct {
 	CurrentCost     float64
 	JobId           string
 	FunctionIds     map[int]bool
-	FunctionChannel chan int
+	FunctionChannel *chan int
 	History         []HistoryEvent
 }
 
@@ -28,6 +28,10 @@ func ParseJson(jsonPath string) (Job, error) {
 	helperFunctions.FatalErrCheck(err, "ParseJson: ")
 
 	var job Job
+
+	tmpChan := make(chan int)
+	job.FunctionChannel = &tmpChan
+	job.FunctionIds = make(map[int]bool, 0)
 
 	err = json.Unmarshal(byteValue, &job)
 
@@ -65,6 +69,7 @@ func (job Job) CalculateNumberOfFunctions() uint {
 
 func (job Job) FunctionsHaveFinished() bool {
 	for _, functionIsDone := range job.FunctionIds {
+		println(functionIsDone)
 		if functionIsDone == false {
 			return false
 		}
