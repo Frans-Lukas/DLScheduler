@@ -1,4 +1,4 @@
-package structs
+package jobHandler
 
 type HistoryEvent struct {
 	NumWorkers 	uint
