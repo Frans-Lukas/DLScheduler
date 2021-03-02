@@ -21,6 +21,7 @@ var clientSet *kubernetes.Clientset
 const DEPLOY_FUNCTION_SCRIPT = "./nuclio/deploy_nuclio_docker_container.sh"
 const INVOKE_FUNCTION_SCRIPT = "./nuclio/invoke_nuclio_function.sh"
 const TRAIN_JOB_TYPE = "train"
+const AGGREGATE_JOB_TYPE = "average"
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -54,6 +55,7 @@ func main() {
 
 	// 5. Calculate number of functions we can invoke
 	numberOfFunctionsToDeploy := deployableNumberOfFunctions(job, desiredNumberOfFunctions)
+	numberOfFunctionsToDeploy = 5
 	println(numberOfFunctionsToDeploy)
 
 	// 6. Invoke functions asynchronously
@@ -64,9 +66,29 @@ func main() {
 	// 7. Await response from all invoked functions (loss)
 	println("waiting for invocation responses")
 	awaitResponse(job)
-	//}
+
+	// 8. aggregate history, and repeat from step 3.
+	invokeAggregator(job, numberOfFunctionsToDeploy)
 	println("job is done")
-	// 8. Save history, and repeat from step 3.
+	//
+	//}
+}
+
+func invokeAggregator(job structs.Job, numFunctions uint) {
+	println("running aggregator")
+	functionName := getPodName(job, 0)
+	jobType := AGGREGATE_JOB_TYPE
+
+	cmd := exec.Command(INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(0), strconv.Itoa(int(numFunctions)), jobType)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+
+	helperFunctions.FatalErrCheck(err, "deployFunctions: " + out.String() + "\n" + stderr.String())
+	println(out.String())
+	println("completed aggregation")
 }
 
 func invokeFunctions(job structs.Job, numberOfFunctionsToInvoke int) {
