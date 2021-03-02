@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"jobHandler/constants"
 	"jobHandler/helperFunctions"
@@ -13,7 +12,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"os/exec"
 	"strconv"
 	"time"
 )
@@ -139,12 +137,7 @@ func deployFunction(job structs.Job, functionId int, channel chan int) {
 	podName := getPodName(job, functionId)
 	println("Deploying function: ", podName, " with imageUrl: ", imageUrl)
 
-	cmd := exec.Command(constants.DEPLOY_FUNCTION_SCRIPT, podName, imageUrl)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
+	out, stderr, err := helperFunctions.ExecuteFunction(constants.DEPLOY_FUNCTION_SCRIPT, podName, imageUrl)
 
 	helperFunctions.FatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 
