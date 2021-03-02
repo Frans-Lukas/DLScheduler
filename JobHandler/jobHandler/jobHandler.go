@@ -19,6 +19,7 @@ type JobHandler struct {
 func CreateJobHandler(pthToCfg string) JobHandler {
 	var handler JobHandler
 	err := handler.InitializeClients(pthToCfg)
+	println("handler clientSet: ", handler.clientSet)
 
 	helperFunctions.FatalErrCheck(err, "CreateJobHandler: ")
 
@@ -46,9 +47,9 @@ func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke 
 func (jobHandler JobHandler) InvokeFunction(job Job, id int, maxId int) {
 	println("running function: ", id)
 	functionName := jobHandler.GetPodName(job, id)
-	jobType := constants.TRAIN_JOB_TYPE
 
-	out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(id), strconv.Itoa(maxId), jobType)
+	out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
+		functionName, strconv.Itoa(id), strconv.Itoa(maxId), constants.TRAIN_JOB_TYPE)
 
 	helperFunctions.FatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 
@@ -108,7 +109,7 @@ func (jobHandler JobHandler) GetPodName(job Job, functionId int) string {
 	return "job_" + job.JobId + "_" + strconv.Itoa(functionId)
 }
 
-func (jobHandler JobHandler) InitializeClients(pathToCfg string) error {
+func (jobHandler *JobHandler) InitializeClients(pathToCfg string) error {
 	var config *rest.Config
 	var err error
 	if pathToCfg == "" {
@@ -121,6 +122,7 @@ func (jobHandler JobHandler) InitializeClients(pathToCfg string) error {
 	helperFunctions.FatalErrCheck(err, "initializeClients")
 
 	jobHandler.clientSet, err = kubernetes.NewForConfig(config)
+	println("inside: ", jobHandler.clientSet)
 
 	helperFunctions.FatalErrCheck(err, "initializeClients, clientSet")
 

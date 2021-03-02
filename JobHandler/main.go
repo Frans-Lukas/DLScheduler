@@ -43,7 +43,6 @@ func main() {
 
 	// 5. Calculate number of functions we can invoke
 	numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
-	numberOfFunctionsToDeploy = 5
 	println(numberOfFunctionsToDeploy)
 
 	// 6. Invoke functions asynchronously
@@ -61,4 +60,3 @@ func main() {
 	//
 	//}
 }
-
