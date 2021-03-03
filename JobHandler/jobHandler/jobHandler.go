@@ -2,6 +2,8 @@ package jobHandler
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"jobHandler/constants"
 	"jobHandler/helperFunctions"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -9,7 +11,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"log"
+	"regexp"
 	"strconv"
+	"time"
 )
 
 type JobHandler struct {
@@ -46,22 +50,33 @@ func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke 
 
 func (jobHandler JobHandler) InvokeFunction(job Job, id int, maxId int) {
 	println("running function: ", id)
+	start := time.Now()
 	functionName := jobHandler.GetPodName(job, id)
 
 	out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
 		functionName, strconv.Itoa(id), strconv.Itoa(maxId), constants.TRAIN_JOB_TYPE)
 
 	helperFunctions.FatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
+	//println(out.String())
+
+	findResponseBody := regexp.MustCompile("Response body:.*\n.*")
+	findJson := regexp.MustCompile("\\{(.*)\\}")
+	responseBody := findJson.Find(findResponseBody.Find(out.Bytes()))
+
+	var response FunctionResponse
+	err = json.Unmarshal(responseBody, &response)
+	helperFunctions.FatalErrCheck(err, "deployFunctions, regexp: ")
+	fmt.Println("got response: ", response)
 
 	*job.FunctionChannel <- id
 	job.History = append(job.History, HistoryEvent{
 		NumWorkers: uint(maxId),
-		Loss:       0,
-		Time:       0,
-		Epoch:      0,
+		WorkerId:   response.WorkerId,
+		Loss:       response.Loss,
+		Time:       time.Since(start).Seconds(),
+		Epoch:      job.Epoch,
 	})
-	println(out.String())
-	println("completed function: ", id)
+	//println("completed function: ", id)
 }
 
 func (jobHandler JobHandler) AwaitResponse(job Job) {

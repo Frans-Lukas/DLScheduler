@@ -47,16 +47,26 @@ func main() {
 
 	// 6. Invoke functions asynchronously
 	handler.DeployFunctions(job, numberOfFunctionsToDeploy)
+
+	// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
+	time.Sleep(time.Second * 4)
+
+	trainOneEpoch(handler, job, numberOfFunctionsToDeploy)
+	//
+	//}
+}
+
+func trainOneEpoch(handler jobHandler.JobHandler, job jobHandler.Job, numberOfFunctionsToInvoke uint) {
 	println("invoking functions")
-	handler.InvokeFunctions(job, int(numberOfFunctionsToDeploy))
+	handler.InvokeFunctions(job, int(numberOfFunctionsToInvoke))
 
 	// 7. Await response from all invoked functions (loss)
 	println("waiting for invocation responses")
 	handler.AwaitResponse(job)
 
 	// 8. aggregate history, and repeat from step 3.
-	handler.InvokeAggregator(job, numberOfFunctionsToDeploy)
+	handler.InvokeAggregator(job, numberOfFunctionsToInvoke)
+
+	job.Epoch++
 	println("job is done")
-	//
-	//}
 }

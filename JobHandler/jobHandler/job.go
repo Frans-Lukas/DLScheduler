@@ -14,6 +14,7 @@ type Job struct {
 	CurrentCost     float64
 	JobId           string
 	FunctionIds     map[int]bool
+	Epoch           int
 	FunctionChannel *chan int
 	History         []HistoryEvent
 }
