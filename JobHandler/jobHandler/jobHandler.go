@@ -17,13 +17,13 @@ import (
 )
 
 type JobHandler struct {
-	clientSet *kubernetes.Clientset
+	ClientSet *kubernetes.Clientset
 }
 
 func CreateJobHandler(pthToCfg string) JobHandler {
 	var handler JobHandler
 	err := handler.InitializeClients(pthToCfg)
-	println("handler clientSet: ", handler.clientSet)
+	println("handler ClientSet: ", handler.ClientSet)
 
 	helperFunctions.FatalErrCheck(err, "CreateJobHandler: ")
 
@@ -121,7 +121,7 @@ func (jobHandler JobHandler) DeployFunction(job Job, functionId int, channel cha
 }
 
 func (jobHandler JobHandler) GetPodName(job Job, functionId int) string {
-	return "job_" + job.JobId + "_" + strconv.Itoa(functionId)
+	return job.JobId + "job" + strconv.Itoa(functionId)
 }
 
 func (jobHandler *JobHandler) InitializeClients(pathToCfg string) error {
@@ -136,20 +136,38 @@ func (jobHandler *JobHandler) InitializeClients(pathToCfg string) error {
 
 	helperFunctions.FatalErrCheck(err, "initializeClients")
 
-	jobHandler.clientSet, err = kubernetes.NewForConfig(config)
-	println("inside: ", jobHandler.clientSet)
+	jobHandler.ClientSet, err = kubernetes.NewForConfig(config)
+	println("inside: ", jobHandler.ClientSet)
 
-	helperFunctions.FatalErrCheck(err, "initializeClients, clientSet")
+	helperFunctions.FatalErrCheck(err, "initializeClients, ClientSet")
 
 	return nil
 }
 
 func (jobHandler JobHandler) DeployableNumberOfFunctions(job Job, desiredNumberOfFunctions uint) uint {
-	nodes, err := jobHandler.clientSet.CoreV1().Nodes().List(context.Background(), v1.ListOptions{})
+	nodes, err := jobHandler.ClientSet.CoreV1().Nodes().List(context.Background(), v1.ListOptions{})
 	helperFunctions.FatalErrCheck(err, "deployableNumberOfFunctions: ")
 	if len(nodes.Items)*2 < int(desiredNumberOfFunctions) {
 		return uint(len(nodes.Items) * 2)
 	} else {
 		return desiredNumberOfFunctions
 	}
+}
+
+func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, timeout time.Duration) error {
+	hasStarted := false
+	for !hasStarted {
+		hasStarted = true
+		for functionId, _ := range job.FunctionIds {
+			podName := jobHandler.GetPodName(job, functionId)
+			err := helperFunctions.WaitForPodRunning(jobHandler.ClientSet, namespace, podName, timeout)
+			if err != nil {
+				hasStarted = false
+				println(err.Error())
+				time.Sleep(time.Second * 2)
+				break
+			}
+		}
+	}
+	return nil
 }

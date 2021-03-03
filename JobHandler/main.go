@@ -2,7 +2,7 @@ package main
 
 import (
 	"jobHandler/helperFunctions"
-	"jobHandler/jobHandler"
+	jb "jobHandler/jobHandler"
 	"log"
 	"math/rand"
 	"os"
@@ -17,20 +17,20 @@ func main() {
 		log.Fatalf("wrong input, needs arguments <jobPath> and optional <pathToCfg>")
 	}
 
-	var handler jobHandler.JobHandler
+	var jobHandler jb.JobHandler
 
 	var err error
 	if len(os.Args) > 2 {
-		handler = jobHandler.CreateJobHandler(os.Args[2])
+		jobHandler = jb.CreateJobHandler(os.Args[2])
 	} else {
-		handler = jobHandler.CreateJobHandler("")
+		jobHandler = jb.CreateJobHandler("")
 	}
 
 	helperFunctions.FatalErrCheck(err, "main: ")
 
 	// 2. Parse to Job Class
 	jobPath := os.Args[1]
-	job, err := jobHandler.ParseJson(jobPath)
+	job, err := jb.ParseJson(jobPath)
 	helperFunctions.FatalErrCheck(err, "main: ")
 
 	job.JobId = helperFunctions.GenerateId(10)
@@ -42,21 +42,22 @@ func main() {
 	desiredNumberOfFunctions := job.CalculateNumberOfFunctions()
 
 	// 5. Calculate number of functions we can invoke
-	numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
+	numberOfFunctionsToDeploy := jobHandler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
 	println(numberOfFunctionsToDeploy)
 
 	// 6. Invoke functions asynchronously
-	handler.DeployFunctions(job, numberOfFunctionsToDeploy)
+	jobHandler.DeployFunctions(job, numberOfFunctionsToDeploy)
 
 	// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
-	time.Sleep(time.Second * 4)
+	err = jobHandler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
+	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 
-	trainOneEpoch(handler, job, numberOfFunctionsToDeploy)
+	trainOneEpoch(jobHandler, job, numberOfFunctionsToDeploy)
 	//
 	//}
 }
 
-func trainOneEpoch(handler jobHandler.JobHandler, job jobHandler.Job, numberOfFunctionsToInvoke uint) {
+func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke uint) {
 	println("invoking functions")
 	handler.InvokeFunctions(job, int(numberOfFunctionsToInvoke))
 

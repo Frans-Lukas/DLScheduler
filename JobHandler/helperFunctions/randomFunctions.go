@@ -6,7 +6,7 @@ import (
 
 func GenerateId(idLength int) string {
 	id := make([]byte, idLength)
-	const charSet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	const charSet = "abcdefghijklmnopqrstuvwxyz0123456789"
 	for i := 0; i < idLength; i++ {
 		id[i] = charSet[rand.Int()%len(charSet)]
 	}
