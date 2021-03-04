@@ -171,3 +171,8 @@ func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, tim
 	}
 	return nil
 }
+
+func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job) {
+	stdout, stderr, err := helperFunctions.ExecuteFunction(constants.DELETE_FUNCTIONS_SUBSTRING_SCRIPT, job.JobId)
+	helperFunctions.FatalErrCheck(err, "deleteNuclioFunctionsInJob: "+ stdout.String()+"\n"+stderr.String())
+}

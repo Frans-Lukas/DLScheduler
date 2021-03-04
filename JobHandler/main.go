@@ -38,23 +38,32 @@ func main() {
 	// 3. If done, store gradients and remove job from queue.
 	//for !job.IsDone() {
 
-	// 4. Calculate number of functions we want to invoke
-	desiredNumberOfFunctions := job.CalculateNumberOfFunctions()
+	trainUntilConvergence(jobHandler, job)
+}
 
-	// 5. Calculate number of functions we can invoke
-	numberOfFunctionsToDeploy := jobHandler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
-	println(numberOfFunctionsToDeploy)
+func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
+	for job.History[len(job.History) - 1].Loss > job.TargetLoss{
+		// 4. Calculate number of functions we want to invoke
+		desiredNumberOfFunctions := job.CalculateNumberOfFunctions()
 
-	// 6. Invoke functions asynchronously
-	jobHandler.DeployFunctions(job, numberOfFunctionsToDeploy)
+		// 5. Calculate number of functions we can invoke
+		numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
+		println(numberOfFunctionsToDeploy)
 
-	// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
-	err = jobHandler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
+		// 6. Invoke functions asynchronously
+		handler.DeployFunctions(job, numberOfFunctionsToDeploy)
 
-	trainOneEpoch(jobHandler, job, numberOfFunctionsToDeploy)
-	//
-	//}
+		// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
+		err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
+		helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
+
+		trainOneEpoch(handler, job, numberOfFunctionsToDeploy)
+
+		// 7 undeploy functions ?????
+		// TODO check if this works
+		//handler.DeleteNuclioFunctionsInJob(job)
+		//if we do not include epoch in pod name we will have to wait for them to delete
+	}
 }
 
 func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke uint) {
