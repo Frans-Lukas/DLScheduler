@@ -50,11 +50,19 @@ func (job Job) IsDone() bool {
 }
 
 func (job Job) budgetSurpassed() bool {
-	return job.CurrentCost >= job.Budget
+	budgetSurpassed := job.CurrentCost >= job.Budget
+	if budgetSurpassed {
+		println("budget surpassed for job: ", job.JobId)
+	}
+	return budgetSurpassed
 }
 
 func (job Job) lossReached() bool {
-	return !job.historyIsEmpty() && job.History[len(job.History)-1].Loss <= job.TargetLoss
+	lossReached := !job.historyIsEmpty() && job.History[len(job.History)-1].Loss <= job.TargetLoss
+	if lossReached {
+		println("loss reached for job: ", job.JobId)
+	}
+	return lossReached
 }
 
 func (job Job) historyIsEmpty() bool {
