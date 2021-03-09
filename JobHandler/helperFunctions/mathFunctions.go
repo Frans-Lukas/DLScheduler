@@ -5,14 +5,13 @@ import (
 	"math"
 )
 
-func polynomialLeastSquares(x []float64, y []float64) [3]float64 {
+func PolynomialLeastSquares(x []float64, y []float64) [3]float64 {
 	r := len(x)
 	c := len(y)
 
-	if r == c {
+	if r != c {
 		FatalErrCheck(errors.New("rows != columns"), "polynomialLeastSquares: ")
 	}
-
 
 	const polDegConst = 2
 	n := polDegConst
@@ -61,6 +60,7 @@ func polynomialLeastSquares(x []float64, y []float64) [3]float64 {
 			}
 		}
 	}
+
 	for i := 0; i < n-1; i++ {
 		for k := i + 1; k < n; k++ {
 			t := B[k][i]/ B[i][i]
@@ -69,6 +69,7 @@ func polynomialLeastSquares(x []float64, y []float64) [3]float64 {
 			}
 		}
 	}
+
 	for i := n -1 ; i >= 0 ; i-- {
 		a[i]= B[i][n]
 		for j := 0 ; j < n ; j++ {
