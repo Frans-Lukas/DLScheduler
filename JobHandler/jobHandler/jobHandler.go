@@ -18,10 +18,15 @@ import (
 
 type JobHandler struct {
 	ClientSet *kubernetes.Clientset
+	InstancesPerJob *map[string]uint
 }
 
 func CreateJobHandler(pthToCfg string) JobHandler {
 	var handler JobHandler
+
+	instancesPerJob := make(map[string]uint, 0)
+	handler.InstancesPerJob = &instancesPerJob
+
 	err := handler.InitializeClients(pthToCfg)
 	println("handler ClientSet: ", handler.ClientSet)
 
@@ -172,7 +177,12 @@ func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, tim
 	return nil
 }
 
-func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job) {
-	stdout, stderr, err := helperFunctions.ExecuteFunction(constants.DELETE_FUNCTIONS_SUBSTRING_SCRIPT, job.JobId)
+func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, startRange int, endRange int) {
+	stdout, stderr, err := helperFunctions.ExecuteFunction(
+		constants.DELETE_FUNCTIONS_SUBSTRING_SCRIPT,
+		job.JobId,
+		strconv.Itoa(startRange),
+		strconv.Itoa(endRange),
+	)
 	helperFunctions.FatalErrCheck(err, "deleteNuclioFunctionsInJob: "+ stdout.String()+"\n"+stderr.String())
 }
