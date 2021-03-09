@@ -2,6 +2,7 @@ package jobHandler
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"jobHandler/helperFunctions"
 	"os"
@@ -14,9 +15,9 @@ type Job struct {
 	CurrentCost     float64
 	JobId           string
 	FunctionIds     map[int]bool
-	Epoch           int
+	Epoch           *int
 	FunctionChannel *chan int
-	History         []HistoryEvent
+	History         *[]HistoryEvent
 }
 
 func ParseJson(jsonPath string) (Job, error) {
@@ -30,9 +31,13 @@ func ParseJson(jsonPath string) (Job, error) {
 
 	var job Job
 
+	history := make([]HistoryEvent, 0)
+	epoch := 0
 	tmpChan := make(chan int)
 	job.FunctionChannel = &tmpChan
 	job.FunctionIds = make(map[int]bool, 0)
+	job.History = &history
+	job.Epoch = &epoch
 
 	err = json.Unmarshal(byteValue, &job)
 
@@ -58,7 +63,7 @@ func (job Job) budgetSurpassed() bool {
 }
 
 func (job Job) lossReached() bool {
-	lossReached := !job.historyIsEmpty() && job.History[len(job.History)-1].Loss <= job.TargetLoss
+	lossReached := !job.historyIsEmpty() && (*job.History)[len(*job.History)-1].Loss <= job.TargetLoss
 	if lossReached {
 		println("loss reached for job: ", job.JobId)
 	}
@@ -66,7 +71,7 @@ func (job Job) lossReached() bool {
 }
 
 func (job Job) historyIsEmpty() bool {
-	return len(job.History) == 0
+	return len(*job.History) == 0
 }
 
 func (job Job) CalculateNumberOfFunctions() uint {
@@ -84,4 +89,24 @@ func (job Job) FunctionsHaveFinished() bool {
 		}
 	}
 	return true
+}
+
+func (job Job) LeastSquaresTest() {
+	println("History log:")
+	x := make([]float64, 0)
+	y := make([]float64, 0)
+	for _, historyEvent := range *job.History {
+		fmt.Printf("epoch: %d, loss: %f, accuracy; %f\n", historyEvent.Epoch, historyEvent.Loss, historyEvent.Accuracy)
+		x = append(x, float64(historyEvent.Epoch))
+		y = append(y, historyEvent.Loss)
+	}
+	println("performing estimation")
+
+	function := helperFunctions.PolynomialLeastSquares(x, y)
+	fmt.Printf("y = %f + %fx + %fx^2\n", function[0], function[1], function[2])
+	for i := 0; i < 100; i++ {
+		helperFunctions.PerformEstimationWithFunctions(function, float64(i))
+	}
+
+
 }
