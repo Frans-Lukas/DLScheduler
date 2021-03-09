@@ -2,21 +2,52 @@ package helperFunctions
 
 import (
 	"errors"
+	"math"
 )
 
-func polynomialLeastSquares(matrix [][]float64) [3]float64 {
-	r := len(matrix)
-	c := len(matrix[0])
+func polynomialLeastSquares(x []float64, y []float64) [3]float64 {
+	r := len(x)
+	c := len(y)
 
 	if r == c {
 		FatalErrCheck(errors.New("rows != columns"), "polynomialLeastSquares: ")
 	}
 
+
 	const polDegConst = 2
 	n := polDegConst
 
+	var X [2 * polDegConst + 1]float64
+
+	for i := 0 ; i < 2*n+1 ; i++ {
+		X[i]=0
+		for j := 0 ; j < r ; j++ {
+			X[i]=X[i]+math.Pow(x[j],float64(i))
+		}
+	}
+
 	var B [polDegConst+1][polDegConst+2]float64
+
+	for i := 0 ; i <= n ; i++ {
+		for j := 0 ; j <= n ; j++ {
+			B[i][j] = X[i+j]
+		}
+	}
+
+	var Y [polDegConst + 1]float64
+
+	for i := 0 ; i < n+1 ; i++ {
+		Y[i] = 0
+		for j := 0 ; j < r ; j++ {
+			Y[i] = Y[i] + math.Pow(x[j], float64(i))*y[j]
+		}
+	}
+
 	var a [polDegConst+1]float64
+
+	for i := 0 ; i <= n ; i++ {
+		B[i][n+1] = Y[i]
+	}
 
 	n = n + 1
 	for i := 0; i < n; i++ {
