@@ -8,26 +8,28 @@ import (
 
 func EstimateValueInHyperbola(x float64, fit []float64) float64 {
 	y := fit[0] + x * fit[1]
-	return invertValue(y)
+	return InvertValue(y)
 }
 
 func HyperbolaLeastSquares(x []float64, y []float64) []float64 {
-	invertedXs := invertValues(x)
+	invertedXs := InvertValues(x)
 
 	fit := LinearLeastSquares(invertedXs, y)
 
 	return fit
 }
 
-func invertValues(values []float64) []float64 {
+func InvertValues(values []float64) []float64 {
+	invertedValues := make([]float64, len(values))
+
 	for i, f := range values {
-		values[i] = invertValue(f)
+		invertedValues[i] = InvertValue(f)
 	}
 
-	return values
+	return invertedValues
 }
 
-func invertValue(f float64) float64 {
+func InvertValue(f float64) float64 {
 	return 1 / f
 }
 
