@@ -7,34 +7,44 @@ import (
 )
 
 func EstimateValueInHyperbola(x float64, fit []float64) float64 {
-	y := fit[0] + x*fit[1]
-	return invertValue(y)
+	y := fit[0] + x * fit[1]
+	return InvertValue(y)
 }
 
 func HyperbolaLeastSquares(x []float64, y []float64) []float64 {
-	invertedXs := invertValues(x)
+	// x = epochs
+	// y = loss
+
+
+	invertedXs := InvertValues(x)
 
 	fit := LinearLeastSquares(invertedXs, y)
 
 	return fit
 }
 
-func invertValues(values []float64) []float64 {
+func InvertValues(values []float64) []float64 {
+	invertedValues := make([]float64, len(values))
+
 	for i, f := range values {
-		values[i] = invertValue(f)
+		invertedValues[i] = InvertValue(f)
 	}
 
-	return values
+	return invertedValues
 }
 
-func invertValue(f float64) float64 {
+func InvertValue(f float64) float64 {
+	if f == 0 {
+		println("trying to invert 0 value, will result in +inf")
+		return math.MaxFloat64 / 2.0
+	}
 	return 1 / f
 }
 
 func LinearLeastSquares(x []float64, y []float64) []float64 {
 	r := len(x)
 	c := len(y)
-	fmt.Printf("r: %d, c: %d", r, c)
+	fmt.Printf("r: %d, c: %d\n", r, c)
 
 	if r != c {
 		FatalErrCheck(errors.New("rows != columns"), "LinearLeastSquares: ")
@@ -49,7 +59,7 @@ func LinearLeastSquares(x []float64, y []float64) []float64 {
 		xVal := x[i]
 		yVal := y[i]
 
-		fmt.Printf("x: %f, y: %f", x[i], y[i])
+		fmt.Printf("x: %f, y: %f\n", x[i], y[i])
 
 		sumX += xVal
 		sumY += yVal
