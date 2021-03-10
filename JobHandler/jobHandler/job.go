@@ -107,6 +107,27 @@ func (job Job) LeastSquaresTest() {
 	for i := 0; i < 100; i++ {
 		helperFunctions.PerformEstimationWithFunctions(function, float64(i))
 	}
+}
 
+//TODO has not been checked if it works
+func (job Job) MarginalUtilityCheck(numWorkers float64) float64 {
+	println("History log:")
+	x := make([]float64, 0)
+	y := make([]float64, 0)
+	for _, historyEvent := range *job.History {
+		fmt.Printf("numFunctions: %d, loss: %f\n", historyEvent.NumWorkers, historyEvent.Time)
+		x = append(x, float64(historyEvent.NumWorkers))
+		y = append(y, historyEvent.Time)
+	}
+	println("performing estimation")
 
+	function := helperFunctions.HyperbolaLeastSquares(x, y)
+	fmt.Printf("y = %f + %fx", function[0], function[1])
+
+	oldWorkers := numWorkers - 1
+	oldTime := helperFunctions.EstimateValueInHyperbola(oldWorkers, function)
+
+	newTime := helperFunctions.EstimateValueInHyperbola(numWorkers, function)
+
+	return oldTime - newTime
 }
