@@ -5,12 +5,69 @@ import (
 	"math"
 )
 
+func EstimateValueInHyperbola(x float64, fit []float64) float64 {
+	y := fit[0] + x * fit[1]
+	return invertValue(y)
+}
+
+func HyperbolaLeastSquares(x []float64, y []float64) []float64 {
+	invertedXs := invertValues(x)
+
+	fit := LinearLeastSquares(invertedXs, y)
+
+	return fit
+}
+
+func invertValues(values []float64) []float64 {
+	for i, f := range values {
+		values[i] = invertValue(f)
+	}
+
+	return values
+}
+
+func invertValue(f float64) float64 {
+	return 1 / f
+}
+
+func LinearLeastSquares(x []float64, y []float64) []float64 {
+	r := len(x)
+	c := len(y)
+
+	if r != c {
+		FatalErrCheck(errors.New("rows != columns"), "LinearLeastSquares: ")
+	}
+
+	sumX := 0.0
+	sumY := 0.0
+	sumXY := 0.0
+	sumXX := 0.0
+
+	for i := 0; i < len(x); i++ {
+		xVal := x[i]
+		yVal := y[i]
+
+		sumX += xVal
+		sumY += yVal
+		sumXY += xVal * yVal
+		sumXX += xVal * xVal
+	}
+
+	base := float64(r) * sumXX - sumX * sumX
+	x1 := (float64(r) * sumXY - sumX * sumY) / base
+	x0 := (sumXX * sumY - sumXY * sumX) / base
+
+	res := []float64{x0, x1}
+
+	return res
+}
+
 func PolynomialLeastSquares(x []float64, y []float64) [3]float64 {
 	r := len(x)
 	c := len(y)
 
 	if r != c {
-		FatalErrCheck(errors.New("rows != columns"), "polynomialLeastSquares: ")
+		FatalErrCheck(errors.New("rows != columns"), "PolynomialLeastSquares: ")
 	}
 
 	const polDegConst = 2
