@@ -4,6 +4,7 @@ type HistoryEvent struct {
 	NumWorkers uint
 	WorkerId   int
 	Loss       float64
+	Accuracy   float64
 	Time       float64
 	Epoch      int
 }

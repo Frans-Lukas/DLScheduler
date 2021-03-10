@@ -49,6 +49,7 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 
 		// 5. Calculate number of functions we can invoke
 		numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
+		numberOfFunctionsToDeploy = 1
 		println(numberOfFunctionsToDeploy)
 
 		activeFunctions := (*handler.InstancesPerJob)[job.JobId]
@@ -62,6 +63,7 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 			startRange := numberOfFunctionsToDeploy
 			endRange := numberOfFunctionsToDeploy + numberOfVmsToKill - 1
 			handler.DeleteNuclioFunctionsInJob(job, int(startRange), int(endRange))
+			time.Sleep(time.Second * 1)
 		}
 
 		// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
@@ -82,11 +84,15 @@ func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke 
 
 	// 7. Await response from all invoked functions (loss)
 	println("waiting for invocation responses")
-	handler.AwaitResponse(job)
+	//handler.AwaitResponse(job)
+
+	// print history events and loss estimation function
+	job.LeastSquaresTest()
 
 	// 8. aggregate history, and repeat from step 3.
 	handler.InvokeAggregator(job, numberOfFunctionsToInvoke)
 
-	job.Epoch++
+	*job.Epoch++
+
 	println("job is done")
 }

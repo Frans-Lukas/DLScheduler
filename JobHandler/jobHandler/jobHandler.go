@@ -1,6 +1,7 @@
 package jobHandler
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 	"log"
 	"regexp"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -40,48 +43,77 @@ func (jobHandler JobHandler) InvokeAggregator(job Job, numFunctions uint) {
 	functionName := jobHandler.GetPodName(job, 0)
 	jobType := constants.AGGREGATE_JOB_TYPE
 
-	out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(0), strconv.Itoa(int(numFunctions)), jobType)
+	var out bytes.Buffer
+	for {
+		out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(0), strconv.Itoa(int(numFunctions)), jobType)
 
-	helperFunctions.FatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
+		helperFunctions.FatalErrCheck(err, "InvokeAggregator: "+out.String()+"\n"+stderr.String())
+		if !strings.Contains(out.String(), "503")  {
+			break
+		} else {
+			println("503 service unavailable error for aggregator")
+		}
+	}
 	println(out.String())
 	println("completed aggregation")
 }
 
 func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke int) {
+	var wg sync.WaitGroup
 	for i := 0; i < numberOfFunctionsToInvoke; i++ {
-		go jobHandler.InvokeFunction(job, i, numberOfFunctionsToInvoke)
+		wg.Add(1)
+		go jobHandler.InvokeFunction(job, i, numberOfFunctionsToInvoke, *job.Epoch, &wg)
 	}
+	wg.Wait()
 }
 
-func (jobHandler JobHandler) InvokeFunction(job Job, id int, maxId int) {
+func (jobHandler JobHandler) InvokeFunction(job Job, id int, maxId int, epoch int, wg *sync.WaitGroup) {
+	defer wg.Done()
 	println("running function: ", id)
+	job.FunctionIds[id] = false
 	start := time.Now()
 	functionName := jobHandler.GetPodName(job, id)
 
-	out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
-		functionName, strconv.Itoa(id), strconv.Itoa(maxId), constants.TRAIN_JOB_TYPE)
-
-	helperFunctions.FatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
-	//println(out.String())
-
-	findResponseBody := regexp.MustCompile("Response body:.*\n.*")
-	findJson := regexp.MustCompile("\\{(.*)\\}")
-	responseBody := findJson.Find(findResponseBody.Find(out.Bytes()))
-
 	var response FunctionResponse
-	err = json.Unmarshal(responseBody, &response)
-	helperFunctions.FatalErrCheck(err, "deployFunctions, regexp: ")
+	for {
+		out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
+			functionName, strconv.Itoa(id), strconv.Itoa(maxId), constants.TRAIN_JOB_TYPE)
+
+		if err != nil {
+			helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
+			return
+		}
+		//println(out.String())
+
+		findResponseBody := regexp.MustCompile("Response body:.*\n.*")
+		findJson := regexp.MustCompile("\\{(.*)\\}")
+		responseBody := findJson.Find(findResponseBody.Find(out.Bytes()))
+
+		println(out.String())
+		err = json.Unmarshal(responseBody, &response)
+		helperFunctions.NonFatalErrCheck(err, "InvokeFunction, regexp: ")
+		if err == nil {
+			break
+		} else {
+			time.Sleep(time.Second * 3)
+		}
+	}
 	fmt.Println("got response: ", response)
 
-	*job.FunctionChannel <- id
-	job.History = append(job.History, HistoryEvent{
+
+	println("job length: ", len(*job.History))
+	*job.History = append(*job.History, HistoryEvent{
 		NumWorkers: uint(maxId),
 		WorkerId:   response.WorkerId,
 		Loss:       response.Loss,
+		Accuracy: 	response.Accuracy,
 		Time:       time.Since(start).Seconds(),
-		Epoch:      job.Epoch,
+		Epoch:      epoch,
 	})
+	println("job length after: ", len(*job.History))
 	//println("completed function: ", id)
+
+	//*job.FunctionChannel <- id
 }
 
 func (jobHandler JobHandler) AwaitResponse(job Job) {
@@ -116,9 +148,11 @@ func (jobHandler JobHandler) DeployFunction(job Job, functionId int, channel cha
 
 	out, stderr, err := helperFunctions.ExecuteFunction(constants.DEPLOY_FUNCTION_SCRIPT, podName, imageUrl)
 
-	helperFunctions.FatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
-
-	job.FunctionIds[functionId] = false
+	for err != nil {
+		time.Sleep(time.Second * 1)
+		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
+		out, stderr, err = helperFunctions.ExecuteFunction(constants.DEPLOY_FUNCTION_SCRIPT, podName, imageUrl)
+	}
 
 	log.Println(out.String())
 
