@@ -63,7 +63,6 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 			startRange := numberOfFunctionsToDeploy
 			endRange := numberOfFunctionsToDeploy + numberOfVmsToKill - 1
 			handler.DeleteNuclioFunctionsInJob(job, int(startRange), int(endRange))
-			time.Sleep(time.Second * 1)
 		}
 
 		// TODO: wait until function is fully ready before invoking, sleep as a temp solution.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"jobHandler/constants"
 	"jobHandler/helperFunctions"
@@ -48,10 +49,11 @@ func (jobHandler JobHandler) InvokeAggregator(job Job, numFunctions uint) {
 		out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT, functionName, strconv.Itoa(0), strconv.Itoa(int(numFunctions)), jobType)
 
 		helperFunctions.FatalErrCheck(err, "InvokeAggregator: "+out.String()+"\n"+stderr.String())
-		if !strings.Contains(out.String(), "503")  {
+		if !strings.Contains(out.String(), "503") && !strings.Contains(out.String(), "500") {
 			break
 		} else {
 			println("503 service unavailable error for aggregator")
+			time.Sleep(2*time.Second)
 		}
 	}
 	println(out.String())
@@ -78,11 +80,7 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, maxId int, epoch in
 	for {
 		out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
 			functionName, strconv.Itoa(id), strconv.Itoa(maxId), constants.TRAIN_JOB_TYPE)
-
-		if err != nil {
-			helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
-			return
-		}
+		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 		//println(out.String())
 
 		findResponseBody := regexp.MustCompile("Response body:.*\n.*")
@@ -92,6 +90,10 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, maxId int, epoch in
 		println(out.String())
 		err = json.Unmarshal(responseBody, &response)
 		helperFunctions.NonFatalErrCheck(err, "InvokeFunction, regexp: ")
+
+		if strings.Contains(out.String(), "500"){
+			err = errors.New("500 internal server error")
+		}
 		if err == nil {
 			break
 		} else {
@@ -148,8 +150,12 @@ func (jobHandler JobHandler) DeployFunction(job Job, functionId int, channel cha
 
 	out, stderr, err := helperFunctions.ExecuteFunction(constants.DEPLOY_FUNCTION_SCRIPT, podName, imageUrl)
 
+	if strings.Contains(out.String(), "500"){
+		err = errors.New("500 internal server error")
+	}
+
 	for err != nil {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * 5)
 		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 		out, stderr, err = helperFunctions.ExecuteFunction(constants.DEPLOY_FUNCTION_SCRIPT, podName, imageUrl)
 	}

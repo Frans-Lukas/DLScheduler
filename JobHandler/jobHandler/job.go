@@ -102,10 +102,10 @@ func (job Job) LeastSquaresTest() {
 	}
 	println("performing estimation")
 
-	function := helperFunctions.PolynomialLeastSquares(x, y)
-	fmt.Printf("y = %f + %fx + %fx^2\n", function[0], function[1], function[2])
-	for i := 0; i < 100; i++ {
-		helperFunctions.PerformEstimationWithFunctions(function, float64(i))
+	function := helperFunctions.HyperbolaLeastSquares(x, y)
+	fmt.Printf("y = %f + %fx\n", function[0], function[1])
+	for i := 0; i < 10; i++ {
+		println(helperFunctions.EstimateValueInHyperbola(float64(i), function))
 	}
 
 
