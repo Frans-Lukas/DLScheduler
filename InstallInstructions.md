@@ -50,8 +50,8 @@
 11. Use the command `kubectl get pods --namespace nuclio` to verify both the controller and dashboard are running.
 12. Forward the Nuclio dashboard port `kubectl port-forward -n nuclio $(kubectl get pods -n nuclio -l nuclio.io/app=dashboard -o jsonpath='{.items[0].metadata.name}') 8070:8070`
 13. Browse to http://localhost:8070 or
-14. Deploy a function with the Nuclio CLI (nuctl) (for local repositories thr URL is `--registry $(minikube ip):5000 --run-registry localhost:5000`, if we use docker hub the URL is `--registry docker.io/<username>` with your dockerhub username) `sudo nuctl deploy helloworld -n nuclio -p https://raw.githubusercontent.com/nuclio/nuclio/master/hack/examples/golang/helloworld/helloworld.go <URL>`
-15. Get function info `sudo nuctl get function helloworld`, make sure to include sudo in both the creation and lookup of the nuclio functions. if NodePort is zero, go to 16, otherwise:
+14. Deploy a function with the Nuclio CLI (nuctl) (for local repositories thr URL is `--registry $(minikube ip):5000 --run-registry localhost:5000`, if we use docker hub the URL is `--registry docker.io/<username>` with your dockerhub username) `nuctl deploy helloworld -n nuclio -p https://raw.githubusercontent.com/nuclio/nuclio/master/hack/examples/golang/helloworld/helloworld.go --http-trigger-service-type=NodePort <URL>`
+15. Get function info `nuctl get function helloworld` if NodePort is zero, go to 16, otherwise:
 16. Invoke function with `nuctl invoke helloworld --method POST --body '{"hello":"world"}' --content-type "application/json"`
 17. (If nodeport is zero), `kubectl patch svc nuclio-helloworld -p '{"spec": {"type": "NodePort"}}' -n nuclio`
 18. (If nodeport is zero), Get the current nodeport of the service with `kubectl get svc -n nuclio` (Column PORT(s), with format PORT:NODEPORT/TCP)

@@ -1,0 +1,5 @@
+{
+  "budget": 1337.420,
+  "targetLoss": 0.01,
+  "imageUrl": "docker.io/franslukas/processor-lenet:latest"
+}
