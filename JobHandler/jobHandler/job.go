@@ -120,7 +120,11 @@ func (job Job) LeastSquaresTest() {
 }
 
 //TODO has not been checked if it works
-func (job Job) MarginalUtilityCheck(numWorkers float64) float64 {
+func (job Job) MarginalUtilityCheck(numWorkers uint, maxWorkers uint) float64 {
+	if numWorkers > maxWorkers {
+		return -1
+	}
+
 	x := make([]float64, 0)
 	y := make([]float64, 0)
 	for _, historyEvent := range *job.History {
@@ -132,10 +136,10 @@ func (job Job) MarginalUtilityCheck(numWorkers float64) float64 {
 	function := helperFunctions.HyperbolaLeastSquares(x, y)
 	fmt.Printf("y = %f + %fx", function[0], function[1])
 
-	oldWorkers := numWorkers - 1
+	oldWorkers := float64(numWorkers - 1)
 	oldTime := helperFunctions.EstimateYValueInHyperbola(oldWorkers, function)
 
-	newTime := helperFunctions.EstimateYValueInHyperbola(numWorkers, function)
+	newTime := helperFunctions.EstimateYValueInHyperbola(float64(numWorkers), function)
 
 	return oldTime - newTime
 }

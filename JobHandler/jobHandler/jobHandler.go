@@ -199,6 +199,41 @@ func (jobHandler JobHandler) DeployableNumberOfFunctions(job Job, desiredNumberO
 	}
 }
 
+func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job, maxFunctions []uint) []uint {
+	if len(jobs) != len(maxFunctions) {
+		log.Fatalf("GetDeploymentWithHighestMarginalUtility: len(jobs) != len(maxFunctions)")
+	}
+
+	deployment := make([]uint, len(jobs))
+
+	deploymentFinished := false
+
+	for !deploymentFinished {
+		marginalUtilities := make([]float64, len(jobs))
+
+		for i, job := range jobs {
+			marginalUtilities[i] = job.MarginalUtilityCheck(deployment[i] + 1, maxFunctions[i])
+		}
+
+		maxUtility := -1.0
+		maxUtilityJobIndex := -1
+		for i, utility := range marginalUtilities {
+			if utility > maxUtility {
+				maxUtility = utility
+				maxUtilityJobIndex = i
+			}
+		}
+
+		if maxUtilityJobIndex == -1 {
+			deploymentFinished = true
+		} else {
+			deployment[maxUtilityJobIndex]++
+		}
+	}
+
+	return deployment
+}
+
 func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, timeout time.Duration) error {
 	hasStarted := false
 	for !hasStarted {
