@@ -6,16 +6,17 @@ import (
 	"math"
 )
 
-func EstimateValueInHyperbola(x float64, fit []float64) float64 {
+func EstimateYValueInHyperbola(x float64, fit []float64) float64 {
 	y := fit[0] + x * fit[1]
 	return InvertValue(y)
 }
 
+func EstimateXValueInHyperbola(y float64, fit []float64) float64 {
+	x := (InvertValue(y) - fit[0]) / fit[1]
+	return x
+}
+
 func HyperbolaLeastSquares(x []float64, y []float64) []float64 {
-	// x = epochs
-	// y = loss
-
-
 	invertedXs := InvertValues(x)
 
 	fit := LinearLeastSquares(invertedXs, y)
@@ -44,7 +45,6 @@ func InvertValue(f float64) float64 {
 func LinearLeastSquares(x []float64, y []float64) []float64 {
 	r := len(x)
 	c := len(y)
-	fmt.Printf("r: %d, c: %d\n", r, c)
 
 	if r != c {
 		FatalErrCheck(errors.New("rows != columns"), "LinearLeastSquares: ")
@@ -58,8 +58,6 @@ func LinearLeastSquares(x []float64, y []float64) []float64 {
 	for i := 0; i < len(x); i++ {
 		xVal := x[i]
 		yVal := y[i]
-
-		fmt.Printf("x: %f, y: %f\n", x[i], y[i])
 
 		sumX += xVal
 		sumY += yVal

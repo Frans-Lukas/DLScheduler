@@ -6,3 +6,8 @@ dload
 numpy
 tensorflow
 hdfs
+setuptools-scm
+jinja2
+colorama
+docrep
+spectrochempy
