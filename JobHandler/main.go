@@ -100,8 +100,12 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		desiredNumberOfFunctions := job.CalculateNumberOfFunctions()
 
 		// 5. Calculate number of functions we can invoke
-		numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
-		numberOfFunctionsToDeploy = 1
+		jobs := []jb.Job{job}
+		maxFuncs := []uint{desiredNumberOfFunctions}
+		deployment := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs)
+
+		//numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
+		numberOfFunctionsToDeploy := deployment[0]
 		println(numberOfFunctionsToDeploy)
 
 		activeFunctions := (*handler.InstancesPerJob)[job.JobId]
