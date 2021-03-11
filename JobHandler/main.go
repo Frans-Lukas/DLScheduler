@@ -58,7 +58,7 @@ func main() {
 	//job.LeastSquaresTest()
 
 
-	println(&jobHandler)
+	jobHandler.TestReasonableBatchSize(job)
 	//
 	//
 	//job.JobId = helperFunctions.GenerateId(10)

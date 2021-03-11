@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"log"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -64,13 +65,17 @@ func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke 
 	var wg sync.WaitGroup
 	for i := 0; i < numberOfFunctionsToInvoke; i++ {
 		wg.Add(1)
-		go jobHandler.InvokeFunction(job, i, numberOfFunctionsToInvoke, *job.Epoch, &wg)
+		go jobHandler.InvokeWGFunctions(job, i, numberOfFunctionsToInvoke, *job.Epoch, &wg)
 	}
 	wg.Wait()
 }
 
-func (jobHandler JobHandler) InvokeFunction(job Job, id int, maxId int, epoch int, wg *sync.WaitGroup) {
+func (jobHandler JobHandler) InvokeWGFunctions(job Job, id int, maxId int, epoch int, wg *sync.WaitGroup)  {
 	defer wg.Done()
+	jobHandler.InvokeFunction(job, id, maxId, epoch)
+}
+
+func (jobHandler JobHandler) InvokeFunction(job Job, id int, maxId int, epoch int) {
 	println("running function: ", id)
 	job.FunctionIds[id] = false
 	start := time.Now()
@@ -135,14 +140,18 @@ func (jobHandler JobHandler) DeployFunctions(job Job, numberOfFunctionsToDeploy 
 	var finishedChannel chan int
 	finishedChannel = make(chan int)
 	for i := 0; i < int(numberOfFunctionsToDeploy); i++ {
-		go jobHandler.DeployFunction(job, i, finishedChannel)
+		go jobHandler.DeployChannelFunction(job, i, finishedChannel)
 	}
 	for i := 0; i < int(numberOfFunctionsToDeploy); i++ {
 		println("pod with id: ", <-finishedChannel, " deployed")
 	}
 }
+func (jobHandler JobHandler) DeployChannelFunction(job Job, functionId int, channel chan int) {
+	jobHandler.DeployFunction(job, functionId)
+	channel <- functionId
+}
 
-func (jobHandler JobHandler) DeployFunction(job Job, functionId int, channel chan int) {
+func (jobHandler JobHandler) DeployFunction(job Job, functionId int) {
 	//TODO
 	imageUrl := job.ImageUrl
 	podName := jobHandler.GetPodName(job, functionId)
@@ -161,8 +170,6 @@ func (jobHandler JobHandler) DeployFunction(job Job, functionId int, channel cha
 	}
 
 	log.Println(out.String())
-
-	channel <- functionId
 }
 
 func (jobHandler JobHandler) GetPodName(job Job, functionId int) string {
@@ -225,4 +232,50 @@ func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, startRange int,
 		strconv.Itoa(endRange),
 	)
 	helperFunctions.FatalErrCheck(err, "deleteNuclioFunctionsInJob: "+ stdout.String()+"\n"+stderr.String())
+}
+
+
+func (jobHandler JobHandler) TestReasonableBatchSize(job Job) int {
+	datasetSize := job.DataSetSize
+
+	batchSize := 10
+	minTimeInSeconds := 50.0
+	maxTimeInSeconds := 120.0
+	midPointInSeconds := minTimeInSeconds + (maxTimeInSeconds - minTimeInSeconds) // 80
+	timeTaken := 0.0
+
+	maxBatchSizeBeforeMinTime := 0
+	minBatchSizeBeforeMaxTime := datasetSize
+
+	for timeTaken < minTimeInSeconds || timeTaken > maxTimeInSeconds{
+		timeTaken = jobHandler.deployAndRunWithBatchSize(job, batchSize)
+		fmt.Printf("took %f seconds with dataset size %d, trying to reach interval %f-%f\n",
+			timeTaken, batchSize, minTimeInSeconds, maxTimeInSeconds)
+
+		if timeTaken < minTimeInSeconds {
+			if batchSize == datasetSize {
+				break
+			}
+			numTimeTakensToReachInterval := midPointInSeconds / timeTaken
+			batchSize = int(math.Min(float64(batchSize)*numTimeTakensToReachInterval, float64(minBatchSizeBeforeMaxTime)))
+		} else if timeTaken > maxTimeInSeconds{
+			if batchSize == 1 {
+				 break
+			}
+			batchSize = int(math.Max(float64(batchSize) / 2.0, float64(maxBatchSizeBeforeMinTime)))
+			if batchSize <= 1 {
+				batchSize = 1
+			}
+		}
+	}
+	fmt.Printf("Found reasonable batch size %d", batchSize)
+	return batchSize
+}
+
+func (jobHandler JobHandler) deployAndRunWithBatchSize(job Job, batchSize int) float64 {
+	numberOfWorkers := job.DataSetSize / batchSize
+	jobHandler.DeployFunction(job, 0)
+	jobHandler.InvokeFunction(job, 0, numberOfWorkers, 1)
+
+	return (*job.History)[len(*job.History) - 1].Time
 }
