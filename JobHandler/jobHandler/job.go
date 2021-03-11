@@ -129,6 +129,10 @@ func (job Job) MarginalUtilityCheck(numWorkers uint, maxWorkers uint) float64 {
 		return -1
 	}
 
+	if job.historyIsEmpty() {
+		return 1 //TODO find better solution for this
+	}
+
 	x := make([]float64, 0)
 	y := make([]float64, 0)
 	for _, historyEvent := range *job.History {
