@@ -33,12 +33,40 @@ func main() {
 	job, err := jb.ParseJson(jobPath)
 	helperFunctions.FatalErrCheck(err, "main: ")
 
-	job.JobId = helperFunctions.GenerateId(10)
+	//TODO: check add one one
+	*job.History = append(*job.History, jb.HistoryEvent{Loss: 1.0, Epoch: 1})
+	*job.Epoch++
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.508112, Epoch: 2})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.367166, Epoch: 3})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.327031, Epoch: 4})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.300430, Epoch: 5})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.280054, Epoch: 6})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.262924, Epoch: 7})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.248206, Epoch: 8})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.234580, Epoch: 9})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.221567, Epoch: 10})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.209484, Epoch: 11})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.199290, Epoch: 12})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.190342, Epoch: 13})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.180169, Epoch: 14})
+	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.171137, Epoch: 15})
+	//for i, _ := range *job.History {
+	//	//v.Loss *= 100
+	//	(*job.History)[i].Epoch--
+	//	//fmt.Printf("%d, %f\n",v.Epoch, v.Loss)
+	//}
+	//job.LeastSquaresTest()
 
-	// 3. If done, store gradients and remove job from queue.
-	//for !job.IsDone() {
-	println("train until convergence")
-	trainUntilConvergence(jobHandler, job)
+
+	println(&jobHandler)
+	//
+	//
+	//job.JobId = helperFunctions.GenerateId(10)
+	//
+	//// 3. If done, store gradients and remove job from queue.
+	////for !job.IsDone() {
+	//println("train until convergence")
+	//trainUntilConvergence(jobHandler, job)
 }
 
 func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
@@ -63,7 +91,6 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 			startRange := numberOfFunctionsToDeploy
 			endRange := numberOfFunctionsToDeploy + numberOfVmsToKill - 1
 			handler.DeleteNuclioFunctionsInJob(job, int(startRange), int(endRange))
-			time.Sleep(time.Second * 1)
 		}
 
 		// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
