@@ -94,7 +94,10 @@ def train_one_epoch(helper: DistributedHelper):
     print("saving to hdfs")
     helper.upload_model_to_hdfs(MODEL_WEIGHTS_PATH)
 
-    return "training successful: " + str(history.history['accuracy'][0])
+    loss = str(history.history['loss'][0])
+    accuracy = str(history.history['accuracy'][0])
+    jsonReturn = "{\"loss\":" + loss + ", \"accuracy\":" + accuracy + ", \"worker_id\":" + str(helper.worker_id) + "}"
+    return jsonReturn
 
 
 def LeNet(shape=(28, 28, 1), num_classes=10):

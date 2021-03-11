@@ -190,13 +190,15 @@ def init_context(context):
     #     download_images()
 
 
-def train_epoch(context, event):
-    context.logger.info_with('Got invoked',
-                             trigger_kind=event.trigger.kind,
-                             event_body=event.body)
-    body = event.body.decode('utf-8')
+def run(context, event):
+    body = json.loads(event.body)
+    worker_id = body['worker_id']
+    number_of_workers = body['max_id']
+    job_type = body['job_type']
+
     hdfs_client = getattr(context.user_data, HDFS_CONNECTION)
-    node_id = getattr(context.user_data, NODE_ID)
+
+    helper = DistributedHelper(hdfs_client, worker_id, number_of_workers, AVERAGED_MODEL_NAME)
     if body == "train":
         return train_one_epoch(node_id, hdfs_client)
     elif body == "average":
