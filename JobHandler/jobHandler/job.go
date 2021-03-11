@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"jobHandler/helperFunctions"
+	"math"
 	"os"
 )
 
@@ -78,7 +79,16 @@ func (job Job) CalculateNumberOfFunctions() uint {
 	if job.historyIsEmpty() {
 		return 1
 	}
-	return 5
+
+	epochsTillConvergence := job.CalculateEpochsTillConvergence()
+
+	println(epochsTillConvergence)
+
+	maxFunctions := job.maxFunctionsWithRemainingBudget()
+
+	functions := job.functionsForNextEpoch(maxFunctions, epochsTillConvergence)
+
+	return functions
 }
 
 func (job Job) FunctionsHaveFinished() bool {
@@ -105,13 +115,12 @@ func (job Job) LeastSquaresTest() {
 	function := helperFunctions.HyperbolaLeastSquares(x, y)
 	fmt.Printf("y = %f + %fx\n", function[0], function[1])
 	for i := 1; i <= 100; i++ {
-		fmt.Printf("%f\n", helperFunctions.EstimateValueInHyperbola(float64(i), function))
+		fmt.Printf("%f\n", helperFunctions.EstimateYValueInHyperbola(float64(i), function))
 	}
 }
 
 //TODO has not been checked if it works
 func (job Job) MarginalUtilityCheck(numWorkers float64) float64 {
-	println("History log:")
 	x := make([]float64, 0)
 	y := make([]float64, 0)
 	for _, historyEvent := range *job.History {
@@ -119,15 +128,43 @@ func (job Job) MarginalUtilityCheck(numWorkers float64) float64 {
 		x = append(x, float64(historyEvent.NumWorkers))
 		y = append(y, historyEvent.Time)
 	}
-	println("performing estimation")
 
 	function := helperFunctions.HyperbolaLeastSquares(x, y)
 	fmt.Printf("y = %f + %fx", function[0], function[1])
 
 	oldWorkers := numWorkers - 1
-	oldTime := helperFunctions.EstimateValueInHyperbola(oldWorkers, function)
+	oldTime := helperFunctions.EstimateYValueInHyperbola(oldWorkers, function)
 
-	newTime := helperFunctions.EstimateValueInHyperbola(numWorkers, function)
+	newTime := helperFunctions.EstimateYValueInHyperbola(numWorkers, function)
 
 	return oldTime - newTime
+}
+
+func (job Job) CalculateEpochsTillConvergence() uint {
+	x := make([]float64, 0)
+	y := make([]float64, 0)
+	for _, historyEvent := range *job.History {
+		x = append(x, float64(historyEvent.Epoch))
+		y = append(y, historyEvent.Loss)
+	}
+
+	function := helperFunctions.HyperbolaLeastSquares(x, y)
+
+	convergenceEpoch := helperFunctions.EstimateXValueInHyperbola(job.TargetLoss, function)
+
+	return uint(int(math.Ceil(convergenceEpoch)) - *job.Epoch) //TODO should we have some sort of "optimism" deterrent (ex. multiply by 1.1)
+}
+
+func (job Job) maxFunctionsWithRemainingBudget() uint {
+	currentBudget := job.Budget - job.CurrentCost
+
+	return uint(currentBudget / job.costPerFunction())
+}
+
+func (job Job) costPerFunction() float64 {
+	return job.Budget / 100 //TODO make this based on something real, this is just to limit number of functions right now
+}
+
+func (job Job) functionsForNextEpoch(functions uint, epochs uint) uint {
+	return functions / epochs //TODO make this take into account that fewer functions are used for later epochs
 }
