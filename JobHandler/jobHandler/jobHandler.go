@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"jobHandler/CostCalculator"
 	"jobHandler/constants"
 	"jobHandler/helperFunctions"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -318,6 +319,8 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job Job, batchSize int) f
 	numberOfWorkers := job.DataSetSize / batchSize
 	jobHandler.DeployFunction(job, 0)
 	jobHandler.InvokeFunction(job, 0, numberOfWorkers, 1)
+	cost := CostCalculator.CalculateCostForPods(job.JobId, jobHandler.ClientSet, jobHandler.MetricsClientSet)
+	job.UpdateAverageFunctionCost(cost)
 
 	return (*job.History)[len(*job.History) - 1].Time
 }

@@ -11,7 +11,42 @@ import (
 	"time"
 )
 
+func testHyperbolaEstimation() {
+	x := []float64{2, 4, 6, 8, 10, 12, 14, 16, 18, 20}
+	y := []float64{0.25, 0.63, 0.89, 0.91, 1.0, 1.05, 1.08, 1.0, 1.05, 1.0}
+
+	fit := helperFunctions.HyperbolaLeastSquares(x, y)
+
+
+	for i, f := range x {
+		res := helperFunctions.EstimateYValueInHyperbolaFunction(f, fit)
+		println("x: ", f, " y: ", y[i], "est: ", res)
+	}
+	println("done\n\n")
+
+	fit2 := helperFunctions.PolynomialLeastSquares(x, y)
+
+	for i, f := range x {
+		res := helperFunctions.EstimateYValueInFunction(f, fit2)
+		println("x: ", f, " y: ", y[i], "est: ", res)
+	}
+	println("done\n\n")
+
+	x = []float64{2, 4, 6, 8, 10, 12, 14, 16, 18}
+	y = []float64{0.23, 0.33, 0.49, 0.55, 0.64, 0.74, 0.88, 0.91, 0.92}
+
+
+	fit2 = helperFunctions.PolynomialLeastSquares(x, y)
+
+	for i, f := range x {
+		res := helperFunctions.EstimateYValueInFunction(f, fit2)
+		println("x: ", f, " y: ", y[i], "est: ", res)
+	}
+	println("done\n\n")
+}
+
 func main() {
+	testHyperbolaEstimation()
 	rand.Seed(time.Now().UnixNano())
 
 	// 1. receive job

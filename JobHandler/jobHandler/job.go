@@ -121,7 +121,7 @@ func (job Job) LeastSquaresTest() {
 	function := helperFunctions.HyperbolaLeastSquares(x, y)
 	fmt.Printf("y = %f + %fx\n", function[0], function[1])
 	for i := 1; i <= 100; i++ {
-		fmt.Printf("%f\n", helperFunctions.EstimateYValueInHyperbola(float64(i), function))
+		fmt.Printf("%f\n", helperFunctions.EstimateYValueInHyperbolaFunction(float64(i), function))
 	}
 }
 
@@ -138,20 +138,20 @@ func (job Job) MarginalUtilityCheck(numWorkers uint, maxWorkers uint) float64 {
 	x := make([]float64, 0)
 	y := make([]float64, 0)
 	for _, historyEvent := range *job.History {
-		fmt.Printf("numFunctions: %d, loss: %f\n", historyEvent.NumWorkers, historyEvent.Time)
+		fmt.Printf("numFunctions: %d, steps/s: %f\n", historyEvent.NumWorkers, 1 / historyEvent.Time)
 		x = append(x, float64(historyEvent.NumWorkers))
 		y = append(y, historyEvent.Time)
 	}
 
-	function := helperFunctions.HyperbolaLeastSquares(x, y) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
+	function := helperFunctions.PolynomialLeastSquares(x, y) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
 	fmt.Printf("y = %f + %fx", function[0], function[1])
 
 	oldWorkers := float64(numWorkers - 1)
-	oldTime := helperFunctions.EstimateYValueInHyperbola(oldWorkers, function)
+	oldStepsPerSec := helperFunctions.EstimateYValueInFunction(oldWorkers, function)
 
-	newTime := helperFunctions.EstimateYValueInHyperbola(float64(numWorkers), function)
+	newStepsPerSec := helperFunctions.EstimateYValueInFunction(float64(numWorkers), function)
 
-	return oldTime - newTime
+	return newStepsPerSec - oldStepsPerSec
 }
 
 func (job Job) CalculateEpochsTillConvergence() uint {
@@ -164,7 +164,7 @@ func (job Job) CalculateEpochsTillConvergence() uint {
 
 	function := helperFunctions.HyperbolaLeastSquares(x, y)
 
-	convergenceEpoch := helperFunctions.EstimateXValueInHyperbola(job.TargetLoss, function)
+	convergenceEpoch := helperFunctions.EstimateXValueInHyperbolaFunction(job.TargetLoss, function)
 
 	return uint(int(math.Ceil(convergenceEpoch)) - *job.Epoch) //TODO should we have some sort of "optimism" deterrent (ex. multiply by 1.1)
 }
