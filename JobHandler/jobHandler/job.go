@@ -10,16 +10,18 @@ import (
 )
 
 type Job struct {
-	Budget          float64 `json:"budget"`
-	TargetLoss      float64 `json:"targetLoss"`
-	ImageUrl        string  `json:"imageUrl"`
-	DataSetSize     int `json:"dataSetSize"`
-	CurrentCost     float64
-	JobId           string
-	FunctionIds     map[int]bool
-	Epoch           *int
-	FunctionChannel *chan int
-	History         *[]HistoryEvent
+	Budget          		float64 `json:"budget"`
+	TargetLoss      		float64 `json:"targetLoss"`
+	ImageUrl        		string  `json:"imageUrl"`
+	DataSetSize     		int `json:"dataSetSize"`
+	CurrentCost     		float64
+	JobId           		string
+	FunctionIds     		map[int]bool
+	Epoch           		*int
+	FunctionChannel 	  	*chan int
+	AverageFunctionCost   	float64
+	NumberOfFunctionsUsed 	uint
+	History         		*[]HistoryEvent
 }
 
 func ParseJson(jsonPath string) (Job, error) {
@@ -171,9 +173,18 @@ func (job Job) maxFunctionsWithRemainingBudget() uint {
 }
 
 func (job Job) costPerFunction() float64 {
-	return job.Budget / 100 //TODO make this based on something real, this is just to limit number of functions right now
+	if job.AverageFunctionCost == 0 {
+		println("job does not have an average function cost yet")
+		return 10
+	} else {
+		return job.AverageFunctionCost
+	}
 }
 
 func (job Job) functionsForNextEpoch(functions uint, epochs uint) uint {
 	return functions / epochs //TODO make this take into account that fewer functions are used for later epochs
+}
+
+func (job Job) UpdateAverageFunctionCost(cost float64) {
+	job.AverageFunctionCost = ((job.AverageFunctionCost * float64(job.NumberOfFunctionsUsed)) + cost) / float64(job.NumberOfFunctionsUsed+(*job.History)[len(*job.History)].NumWorkers)
 }

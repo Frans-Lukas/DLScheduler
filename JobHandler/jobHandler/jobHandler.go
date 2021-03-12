@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 	"log"
 	"math"
 	"regexp"
@@ -22,8 +23,9 @@ import (
 )
 
 type JobHandler struct {
-	ClientSet *kubernetes.Clientset
-	InstancesPerJob *map[string]uint
+	ClientSet        *kubernetes.Clientset
+	InstancesPerJob  *map[string]uint
+	MetricsClientSet *metricsv.Clientset
 }
 
 func CreateJobHandler(pthToCfg string) JobHandler {
@@ -192,6 +194,11 @@ func (jobHandler *JobHandler) InitializeClients(pathToCfg string) error {
 	println("inside: ", jobHandler.ClientSet)
 
 	helperFunctions.FatalErrCheck(err, "initializeClients, ClientSet")
+
+	jobHandler.MetricsClientSet, err = metricsv.NewForConfig(config)
+
+	helperFunctions.FatalErrCheck(err, "initializeClients, MetricsClientSet")
+
 
 	return nil
 }

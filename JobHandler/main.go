@@ -1,6 +1,7 @@
 package main
 
 import (
+	"jobHandler/CostCalculator"
 	"jobHandler/helperFunctions"
 	jb "jobHandler/jobHandler"
 	"log"
@@ -9,31 +10,7 @@ import (
 	"time"
 )
 
-func testHyperbolaEstimation() {
-	x := []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
-	y := []float64{0.508112, 0.367166, 0.327031, 0.300430, 0.280054, 0.262924, 0.248206, 0.234580, 0.221567, 0.209484, 0.199290, 0.190342}
-
-	fit := helperFunctions.HyperbolaLeastSquares(x, y)
-
-
-	for i, f := range x {
-		res := helperFunctions.EstimateYValueInHyperbola(f, fit)
-		println("x: ", f, " y: ", y[i], "est: ", res)
-	}
-	println("done\n\n")
-
-	//fit2 := helperFunctions.HyperbolaLeastSquares(y, x)
-
-
-	for i, f := range y {
-		res := helperFunctions.EstimateXValueInHyperbola(f, fit)
-		println("y: ", f, " x: ", x[i], "est: ", res)
-	}
-	println("done\n\n")
-}
-
 func main() {
-	testHyperbolaEstimation()
 	rand.Seed(time.Now().UnixNano())
 
 	// 1. receive job
@@ -148,6 +125,10 @@ func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke 
 	handler.InvokeAggregator(job, numberOfFunctionsToInvoke)
 
 	*job.Epoch++
+
+	// update costs for functions
+	cost := CostCalculator.CalculateCostForPods(job.JobId, handler.ClientSet, handler.MetricsClientSet)
+	job.UpdateAverageFunctionCost(cost)
 
 	println("job is done")
 }
