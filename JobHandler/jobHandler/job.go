@@ -13,6 +13,7 @@ type Job struct {
 	Budget          float64 `json:"budget"`
 	TargetLoss      float64 `json:"targetLoss"`
 	ImageUrl        string  `json:"imageUrl"`
+	DataSetSize     int `json:"dataSetSize"`
 	CurrentCost     float64
 	JobId           string
 	FunctionIds     map[int]bool
@@ -32,8 +33,9 @@ func ParseJson(jsonPath string) (Job, error) {
 
 	var job Job
 
-	history := make([]HistoryEvent, 0)
-	epoch := 1
+	history := make([]HistoryEvent, 1)
+	history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
+	epoch := 2
 	tmpChan := make(chan int)
 	job.FunctionChannel = &tmpChan
 	job.FunctionIds = make(map[int]bool, 0)
@@ -72,7 +74,8 @@ func (job Job) lossReached() bool {
 }
 
 func (job Job) historyIsEmpty() bool {
-	return len(*job.History) == 0
+	// always contains (loss = 1, epoch = 1)
+	return len(*job.History) <= 1
 }
 
 func (job Job) CalculateNumberOfFunctions() uint {
@@ -81,12 +84,13 @@ func (job Job) CalculateNumberOfFunctions() uint {
 	}
 
 	epochsTillConvergence := job.CalculateEpochsTillConvergence()
-
-	println(epochsTillConvergence)
+	fmt.Printf("epochs until convergence: %d\n", epochsTillConvergence)
 
 	maxFunctions := job.maxFunctionsWithRemainingBudget()
+	fmt.Printf("maxFunctions: %d\n", maxFunctions)
 
 	functions := job.functionsForNextEpoch(maxFunctions, epochsTillConvergence)
+	fmt.Printf("functions: %d\n", functions)
 
 	return functions
 }
@@ -123,6 +127,10 @@ func (job Job) LeastSquaresTest() {
 func (job Job) MarginalUtilityCheck(numWorkers uint, maxWorkers uint) float64 {
 	if numWorkers > maxWorkers {
 		return -1
+	}
+
+	if job.historyIsEmpty() {
+		return 1 //TODO find better solution for this
 	}
 
 	x := make([]float64, 0)
@@ -170,5 +178,6 @@ func (job Job) costPerFunction() float64 {
 }
 
 func (job Job) functionsForNextEpoch(functions uint, epochs uint) uint {
-	return functions / epochs //TODO make this take into account that fewer functions are used for later epochs
+	suggestedNumber := float64(functions/epochs)
+	return uint(math.Max(suggestedNumber, 1)) //TODO make this take into account that fewer functions are used for later epochs
 }

@@ -7,11 +7,14 @@ import dload as dload
 import keras
 import numpy as np
 from hdfs import Client, Config, HdfsError
+import tensorflow as tf
 
 # Get a ResNet50 model
 from tensorflow.python.keras.callbacks import History
 
-AVERAGED_MODEL_NAME = "averaged_model.h5"
+from MXNetImplementations.LeNet.TensorFlow.distributed_lib import DistributedHelper
+
+AVERAGED_MODEL_NAME = "resnet50_averaged_model.h5"
 
 HDFS_CONNECTION = 'hdfs_connection'
 NODE_ID = 'node_id'
@@ -142,6 +145,9 @@ def train(steps_per_epoch, batch_size, model):
         color_mode='rgb',
         shuffle=True,
         class_mode='categorical')
+    # CHECKOUT https://www.tensorflow.org/api_docs/python/tf/data/experimental/choose_from_datasets
+    # choice = tf.data.Dataset.range()
+    # tf.data.experimental.choose_from_datasets(train_generator, choice)
     # Create a test generator
     # validation_generator = validation_data_generator.flow_from_directory(
     #     TEST_PATH,
@@ -194,15 +200,16 @@ def run(context, event):
     body = json.loads(event.body)
     worker_id = body['worker_id']
     number_of_workers = body['max_id']
+    job_id = body['job_id']
     job_type = body['job_type']
 
     hdfs_client = getattr(context.user_data, HDFS_CONNECTION)
 
     helper = DistributedHelper(hdfs_client, worker_id, number_of_workers, AVERAGED_MODEL_NAME)
     if body == "train":
-        return train_one_epoch(node_id, hdfs_client)
+        return train_one_epoch(helper)
     elif body == "average":
-        average_current_weights(node_id, hdfs_client)
+        helper.aggregate_weights(fresh_resnet50_model())
         return "averaging successful"
     else:
         return "invalid command"
@@ -217,13 +224,32 @@ def average_current_weights(node_id, hdfs_client):
     save_average_model(node_id, hdfs_client)
 
 
-def train_one_epoch(node_id, hdfs_client):
+def train_one_epoch(helper: DistributedHelper):
+    print("downloading average model")
+    helper.download_averaged_model()
+
     download_images()
-    download_averaged_model(hdfs_client)
-    model = load_model()
+    # x_train, y_train = load_data(num_classes)
+    # x_train = helper.split_data(x_train)
+    # y_train = helper.split_data(y_train)
+    #
+    # model = load_model()
     history = train(steps_per_epoch=1, batch_size=32, model=model)
-    save_model_to_hdfs(hdfs_client, node_id)
-    return history.history['loss'][0]
+    # save_model_to_hdfs(hdfs_client, node_id)
+    # return history.history['loss'][0]
+
+
+# def load_data(num_classes):
+#     (x_train, y_train), (x_test, y_test) =
+#     x_train = x_train[:, :, :, np.newaxis]
+#     x_test = x_test[:, :, :, np.newaxis]
+#     y_train = to_categorical(y_train, num_classes)
+#     y_test = to_categorical(y_test, num_classes)
+#     x_train = x_train.astype('float32')
+#     x_test = x_test.astype('float32')
+#     x_train /= 255
+#     x_test /= 255
+#     return x_train, y_train
 
 
 def save_average_model(node_id, hdfs_client):
@@ -275,7 +301,7 @@ def main():
     hdfs_client = Config().get_client('dev')
     save_model_to_hdfs(hdfs_client, "1245", name=AVERAGED_MODEL_NAME)
     while True:
-        print(train_one_epoch("5", hdfs_client))
+        print(train_one_epoch(DistributedHelper(hdfs_client, 0, 1, AVERAGED_MODEL_NAME)))
 
 
 def load_models_from_storage(client: Client):
