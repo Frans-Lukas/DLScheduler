@@ -17,7 +17,7 @@ while IFS= read -r line; do
     # FunctionId is an integer && is between inarg 2 and 3.
     if [[ $functionId =~ ^-?[0-9]+$ && $functionId -ge $2 && $functionId -le $3 ]]; then
       echo "deleting $functionId"
-      sudo nuctl delete function $line -n nuclio
+      nuctl delete function $line -n nuclio
     fi
   fi
 done <<<"$x"

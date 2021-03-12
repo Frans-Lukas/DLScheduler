@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"jobHandler/CostCalculator"
 	"jobHandler/helperFunctions"
 	jb "jobHandler/jobHandler"
@@ -35,8 +36,6 @@ func main() {
 	helperFunctions.FatalErrCheck(err, "main: ")
 
 	//TODO: check add one one
-	*job.History = append(*job.History, jb.HistoryEvent{Loss: 1.0, Epoch: 1})
-	*job.Epoch++
 	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.508112, Epoch: 2})
 	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.367166, Epoch: 3})
 	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.327031, Epoch: 4})
@@ -59,15 +58,15 @@ func main() {
 	//job.LeastSquaresTest()
 
 
-	jobHandler.TestReasonableBatchSize(job)
+	//jobHandler.TestReasonableBatchSize(job)
 	//
 	//
-	//job.JobId = helperFunctions.GenerateId(10)
-	//
-	//// 3. If done, store gradients and remove job from queue.
-	////for !job.IsDone() {
-	//println("train until convergence")
-	//trainUntilConvergence(jobHandler, job)
+	job.JobId = helperFunctions.GenerateId(10)
+
+	// 3. If done, store gradients and remove job from queue.
+	//for !job.IsDone() {
+	println("train until convergence")
+	trainUntilConvergence(jobHandler, job)
 }
 
 func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
@@ -75,7 +74,7 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 	for !job.IsDone() {
 		// 4. Calculate number of functions we want to invoke
 		desiredNumberOfFunctions := job.CalculateNumberOfFunctions()
-
+		fmt.Printf("desired number of funcs: %d\n", desiredNumberOfFunctions)
 		// 5. Calculate number of functions we can invoke
 		jobs := []jb.Job{job}
 		maxFuncs := []uint{desiredNumberOfFunctions}
@@ -83,7 +82,7 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 
 		//numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
 		numberOfFunctionsToDeploy := deployment[0]
-		println(numberOfFunctionsToDeploy)
+		fmt.Printf("actual number of funcs: %d\n", numberOfFunctionsToDeploy)
 
 		activeFunctions := (*handler.InstancesPerJob)[job.JobId]
 
