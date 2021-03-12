@@ -138,7 +138,7 @@ func (job Job) MarginalUtilityCheck(numWorkers uint, maxWorkers uint) float64 {
 		y = append(y, historyEvent.Time)
 	}
 
-	function := helperFunctions.HyperbolaLeastSquares(x, y)
+	function := helperFunctions.HyperbolaLeastSquares(x, y) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
 	fmt.Printf("y = %f + %fx", function[0], function[1])
 
 	oldWorkers := float64(numWorkers - 1)
