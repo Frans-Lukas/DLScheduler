@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"jobHandler/CostCalculator"
 	"jobHandler/helperFunctions"
 	jb "jobHandler/jobHandler"
 	"log"
@@ -11,24 +12,35 @@ import (
 )
 
 func testHyperbolaEstimation() {
-	x := []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
-	y := []float64{0.508112, 0.367166, 0.327031, 0.300430, 0.280054, 0.262924, 0.248206, 0.234580, 0.221567, 0.209484, 0.199290, 0.190342}
+	x := []float64{2, 4, 6, 8, 10, 12, 14, 16, 18, 20}
+	y := []float64{0.25, 0.63, 0.89, 0.91, 1.0, 1.05, 1.08, 1.0, 1.05, 1.0}
 
 	fit := helperFunctions.HyperbolaLeastSquares(x, y)
 
 
 	for i, f := range x {
-		res := helperFunctions.EstimateYValueInHyperbola(f, fit)
+		res := helperFunctions.EstimateYValueInHyperbolaFunction(f, fit)
 		println("x: ", f, " y: ", y[i], "est: ", res)
 	}
 	println("done\n\n")
 
-	//fit2 := helperFunctions.HyperbolaLeastSquares(y, x)
+	fit2 := helperFunctions.PolynomialLeastSquares(x, y)
+
+	for i, f := range x {
+		res := helperFunctions.EstimateYValueInFunction(f, fit2)
+		println("x: ", f, " y: ", y[i], "est: ", res)
+	}
+	println("done\n\n")
+
+	x = []float64{2, 4, 6, 8, 10, 12, 14, 16, 18}
+	y = []float64{0.23, 0.33, 0.49, 0.55, 0.64, 0.74, 0.88, 0.91, 0.92}
 
 
-	for i, f := range y {
-		res := helperFunctions.EstimateXValueInHyperbola(f, fit)
-		println("y: ", f, " x: ", x[i], "est: ", res)
+	fit2 = helperFunctions.PolynomialLeastSquares(x, y)
+
+	for i, f := range x {
+		res := helperFunctions.EstimateYValueInFunction(f, fit2)
+		println("x: ", f, " y: ", y[i], "est: ", res)
 	}
 	println("done\n\n")
 }
@@ -147,6 +159,10 @@ func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke 
 	handler.InvokeAggregator(job, numberOfFunctionsToInvoke)
 
 	*job.Epoch++
+
+	// update costs for functions
+	cost := CostCalculator.CalculateCostForPods(job.JobId, handler.ClientSet, handler.MetricsClientSet)
+	job.UpdateAverageFunctionCost(cost)
 
 	println("job is done")
 }
