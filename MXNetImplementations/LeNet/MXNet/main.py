@@ -50,7 +50,7 @@ def main():
 
 
 def start_lenet(client: Client):
-    kv = mxnet.kv.create('dist_sync')
+    kv = mxnet.kv.create('dist_async')
     mx.random.seed(42)
     batch_size = 100
     train_data, val_data = get_mnist_iterator(batch_size, (1, 28, 28), num_parts=kv.num_workers, part_index=kv.rank)
@@ -108,7 +108,7 @@ def start_from_nuclio(context, event):
     context.logger.info_with('Got invoked',
                              trigger_kind=event.trigger.kind,
                              event_body=event.body)
-    os.environ["DMLC_ROLE"] = "TensorFlow"
+    os.environ["DMLC_ROLE"] = "worker"
     client = getattr(context.user_data, HDFS_CONNECTION)
     acc = start_lenet(client)
     return "training successful, acc: " + str(acc)

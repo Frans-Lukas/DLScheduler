@@ -1,0 +1,11 @@
+{
+	"cluster": {
+		"worker": ["localhost:1337"],
+		"ps": ["localhost:1338"],
+        "chief": ["localhost:1339"]
+	},
+	"task": {
+		"type": "ps",
+		"index": 0
+	}
+}

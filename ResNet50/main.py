@@ -1,18 +1,16 @@
 import json
 import os
-import pickle
 from random import randint
 
 import dload as dload
 import keras
 import numpy as np
-from hdfs import Client, Config, HdfsError
 import tensorflow as tf
-
-# Get a ResNet50 model
-from tensorflow.python.keras.callbacks import History
+from hdfs import Client, Config, HdfsError
 
 from MXNetImplementations.LeNet.TensorFlow.distributed_lib import DistributedHelper
+
+# Get a ResNet50 model
 
 AVERAGED_MODEL_NAME = "resnet50_averaged_model.h5"
 
@@ -29,7 +27,7 @@ TRAIN_PATH = '/tmp/CIFAR-10-images/train'
 # Thanks to @annytab https://www.annytab.com/
 # https://www.annytab.com/resnet50-image-classification-in-python/
 
-def fresh_resnet50_model(classes=1000, *args, **kwargs):
+def fresh_resnet50_model(classes=10, *args, **kwargs):
     # Load a model if we have saved one
     # Create an input layer 
     input = keras.layers.Input(shape=(None, None, 3))
@@ -117,66 +115,34 @@ def conv_block(input, kernel_size, filters, stage, block, strides=(2, 2)):
 
 
 # Train a model
-def train(steps_per_epoch, batch_size, model):
-    # Variables, 25 epochs so far
+def train(batch_size, model, worker_id, max_worker_id):
     epochs = 1
-    batch_size = 32
-    train_samples = 10 * 5000  # 10 categories with 5000 images in each category
-    validation_samples = 10 * 1000  # 10 categories with 1000 images in each category
     img_width, img_height = 32, 32
-    # Get the model (10 categories)
-    # Create a data generator for training
-    train_data_generator = keras.preprocessing.image.ImageDataGenerator(
-        rescale=1. / 255,
-        shear_range=0.2,
-        zoom_range=0.2,
-        horizontal_flip=True)
-    # Create a data generator for validation
-    # validation_data_generator = keras.preprocessing.image.ImageDataGenerator(
-    #     rescale=1. / 255,
-    #     shear_range=0.2,
-    #     zoom_range=0.2,
-    #     horizontal_flip=True)
-    # Create a train generator
-    train_generator = train_data_generator.flow_from_directory(
+
+    full_dataset = tf.keras.preprocessing.image_dataset_from_directory(
         TRAIN_PATH,
-        target_size=(img_width, img_height),
-        batch_size=batch_size,
         color_mode='rgb',
+        batch_size=batch_size,
+        image_size=(img_width, img_height),
+        labels='inferred',
+        label_mode='categorical',
         shuffle=True,
-        class_mode='categorical')
-    # CHECKOUT https://www.tensorflow.org/api_docs/python/tf/data/experimental/choose_from_datasets
-    # choice = tf.data.Dataset.range()
-    # tf.data.experimental.choose_from_datasets(train_generator, choice)
-    # Create a test generator
-    # validation_generator = validation_data_generator.flow_from_directory(
-    #     TEST_PATH,
-    #     target_size=(img_width, img_height),
-    #     batch_size=batch_size,
-    #     color_mode='rgb',
-    #     shuffle=True,
-    #     class_mode='categorical')
-    # Start training, fit the model
-    history = model.fit_generator(
-        train_generator,
-        steps_per_epoch=steps_per_epoch,
-        # validation_data=validation_generator,
-        # validation_steps=validation_samples // batch_size,
-        epochs=epochs)
-    # Save model to disk
-    # print(model.weights)
-    model.save(MODEL_WEIGHTS_PATH)
+        seed=1337
+    )
+
+    dataset_size = full_dataset.cardinality()
+
+    print(dataset_size)
+    range_size = int(dataset_size / max_worker_id)
+    start_range = int(worker_id * range_size)
+    end_range = int(min(dataset_size, start_range + range_size))
+    print("using range ", start_range, " to ", end_range)
+
+    train_dataset = full_dataset.skip(start_range).take(range_size)
+
+    history = model.fit(train_dataset, epochs=epochs)
+    model.save_weights(MODEL_WEIGHTS_PATH)
     print('Saved model to disk!')
-    # Get labels
-    # labels = train_generator.class_indices
-    # Invert labels
-    # classes = {}
-    # for key, value in labels.items():
-    #     classes[value] = key.capitalize()
-    # Save classes to file
-    # with open(CIFAR_CLASSES_PATH, 'wb') as file:
-    #     pickle.dump(classes, file)
-    # print('Saved classes to disk!')
     return history
 
 
@@ -220,7 +186,7 @@ def average_current_weights(node_id, hdfs_client):
     model = load_model()
     model.set_weights(weights)
     # save model locally so that it can be stored in hdfs
-    model.save(MODEL_WEIGHTS_PATH)
+    model.save_weights(MODEL_WEIGHTS_PATH)
     save_average_model(node_id, hdfs_client)
 
 
@@ -229,27 +195,14 @@ def train_one_epoch(helper: DistributedHelper):
     helper.download_averaged_model()
 
     download_images()
-    # x_train, y_train = load_data(num_classes)
-    # x_train = helper.split_data(x_train)
-    # y_train = helper.split_data(y_train)
-    #
-    # model = load_model()
-    history = train(steps_per_epoch=1, batch_size=32, model=model)
-    # save_model_to_hdfs(hdfs_client, node_id)
-    # return history.history['loss'][0]
+    model = load_model()
+    history = train(batch_size=32, model=model, worker_id=helper.worker_id, max_worker_id=helper.max_id)
+    helper.upload_weights_to_hdfs(MODEL_WEIGHTS_PATH)
 
-
-# def load_data(num_classes):
-#     (x_train, y_train), (x_test, y_test) =
-#     x_train = x_train[:, :, :, np.newaxis]
-#     x_test = x_test[:, :, :, np.newaxis]
-#     y_train = to_categorical(y_train, num_classes)
-#     y_test = to_categorical(y_test, num_classes)
-#     x_train = x_train.astype('float32')
-#     x_test = x_test.astype('float32')
-#     x_train /= 255
-#     x_test /= 255
-#     return x_train, y_train
+    loss = str(history.history['loss'][0])
+    accuracy = str(history.history['accuracy'][0])
+    jsonReturn = "{\"loss\":" + loss + ", \"accuracy\":" + accuracy + ", \"worker_id\":" + str(helper.worker_id) + "}"
+    return jsonReturn
 
 
 def save_average_model(node_id, hdfs_client):
@@ -299,9 +252,11 @@ def save_model_to_hdfs(client: Client, node_id: str, name=""):
 def main():
     body = "average"
     hdfs_client = Config().get_client('dev')
-    save_model_to_hdfs(hdfs_client, "1245", name=AVERAGED_MODEL_NAME)
+
+    helper = DistributedHelper(hdfs_client, 0, 100, AVERAGED_MODEL_NAME, "resnet50")
     while True:
-        print(train_one_epoch(DistributedHelper(hdfs_client, 0, 1, AVERAGED_MODEL_NAME)))
+        print(train_one_epoch(helper))
+        helper.aggregate_weights(fresh_resnet50_model())
 
 
 def load_models_from_storage(client: Client):
