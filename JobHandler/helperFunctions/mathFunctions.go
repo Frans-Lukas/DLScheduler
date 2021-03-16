@@ -6,12 +6,12 @@ import (
 	"math"
 )
 
-func EstimateYValueInHyperbola(x float64, fit []float64) float64 {
+func EstimateYValueInHyperbolaFunction(x float64, fit []float64) float64 {
 	y := fit[0] + x * fit[1]
 	return InvertValue(y)
 }
 
-func EstimateXValueInHyperbola(y float64, fit []float64) float64 {
+func EstimateXValueInHyperbolaFunction(y float64, fit []float64) float64 {
 	x := (InvertValue(y) - fit[0]) / fit[1]
 	return x
 }
@@ -74,11 +74,15 @@ func LinearLeastSquares(x []float64, y []float64) []float64 {
 	return res
 }
 
-func PerformEstimationWithFunctions(f [3]float64, x float64) float64 {
-	return f[0] + f[1]*x + f[2]*(x*x)
+func EstimateYValueInFunction(x float64, f []float64) float64 {
+	res := 0.0
+	for i := 0; i < len(f); i++ {
+		res += f[i] * math.Pow(x, float64(i))
+	}
+	return res
 }
 
-func PolynomialLeastSquares(x []float64, y []float64) [3]float64 {
+func PolynomialLeastSquares(x []float64, y []float64) []float64 {
 	r := len(x)
 	c := len(y)
 
@@ -117,7 +121,7 @@ func PolynomialLeastSquares(x []float64, y []float64) [3]float64 {
 		}
 	}
 
-	var a [polDegConst + 1]float64
+	a := make([]float64, polDegConst + 1)
 
 	for i := 0; i <= n; i++ {
 		B[i][n+1] = Y[i]

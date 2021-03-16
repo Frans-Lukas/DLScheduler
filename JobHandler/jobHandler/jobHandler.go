@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"jobHandler/CostCalculator"
 	"jobHandler/constants"
 	"jobHandler/helperFunctions"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 	"log"
 	"math"
 	"regexp"
@@ -22,8 +24,9 @@ import (
 )
 
 type JobHandler struct {
-	ClientSet *kubernetes.Clientset
-	InstancesPerJob *map[string]uint
+	ClientSet        *kubernetes.Clientset
+	InstancesPerJob  *map[string]uint
+	MetricsClientSet *metricsv.Clientset
 }
 
 func CreateJobHandler(pthToCfg string) JobHandler {
@@ -199,6 +202,11 @@ func (jobHandler *JobHandler) InitializeClients(pathToCfg string) error {
 
 	helperFunctions.FatalErrCheck(err, "initializeClients, ClientSet")
 
+	jobHandler.MetricsClientSet, err = metricsv.NewForConfig(config)
+
+	helperFunctions.FatalErrCheck(err, "initializeClients, MetricsClientSet")
+
+
 	return nil
 }
 
@@ -317,6 +325,8 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job Job, batchSize int) f
 	numberOfWorkers := job.DataSetSize / batchSize
 	jobHandler.DeployFunction(job, 0)
 	jobHandler.InvokeFunction(job, 0, numberOfWorkers, 1)
+	cost := CostCalculator.CalculateCostForPods(job.JobId, jobHandler.ClientSet, jobHandler.MetricsClientSet)
+	job.UpdateAverageFunctionCost(cost)
 
 	return (*job.History)[len(*job.History) - 1].Time
 }
