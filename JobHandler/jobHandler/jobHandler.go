@@ -69,14 +69,20 @@ func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke 
 	numServers := job.NumberOfServers
 	//invoke scheduler
 	wg.Add(1)
+	functionName := jobHandler.GetPodName(job, 0, constants.JOB_TYPE_SCHEDULER)
+	job.PodNames[functionName] = false
 	go jobHandler.InvokeWGFunctions(job, 0, *job.Epoch, constants.JOB_TYPE_SCHEDULER, numWorkers, numServers, &wg)
-	//invoke servers
 	for i := 0; i < job.NumberOfServers; i++ {
+		//invoke servers
+		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_SERVER)
+		job.PodNames[functionName] = false
 		wg.Add(1)
 		go jobHandler.InvokeWGFunctions(job, i, *job.Epoch, constants.JOB_TYPE_SERVER, numWorkers, numServers,  &wg)
 	}
 	//invoke workers
 	for i := 0; i < job.NumberOfWorkers; i++ {
+		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_WORKER)
+		job.PodNames[functionName] = false
 		wg.Add(1)
 		go jobHandler.InvokeWGFunctions(job, i, *job.Epoch, constants.JOB_TYPE_WORKER, numWorkers, numServers,  &wg)
 	}
@@ -93,7 +99,6 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 	println("running function: ", id)
 	start := time.Now()
 	functionName := jobHandler.GetPodName(job, id, jobType)
-	job.PodNames[functionName] = false
 	schedulerIp := *job.SchedulerIp
 	var response FunctionResponse
 	for {
@@ -120,9 +125,9 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 			time.Sleep(time.Second * 3)
 		}
 	}
-	fmt.Println("got response: ", response)
 
 	if jobType == constants.JOB_TYPE_WORKER {
+		fmt.Println("got response: ", response)
 		println("job length: ", len(*job.History))
 		*job.History = append(*job.History, HistoryEvent{
 			NumWorkers: uint(numWorkers),
