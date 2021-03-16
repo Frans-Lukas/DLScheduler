@@ -1,0 +1,35 @@
+apiVersion: "nuclio.io/v1"
+kind: "NuclioFunction"
+metadata:
+  name: mxnet
+  namespace: nuclio
+spec:
+  runtime: python
+  handler: python_executioner:start_from_nuclio
+  env:
+    - name: DMLC_PS_ROOT_URI
+      value: 127.0.0.1
+      #value: 192.168.10.205
+    - name: DMLC_PS_ROOT_PORT
+      value: 9092
+    - name: PS_VERBOSE
+      value: 1
+    - name: DMLC_NUM_SERVER
+      value: 1
+    - name: DMLC_NUM_WORKER
+      value: 1
+    - name: DMLC_ROLE
+      value: worker
+    - name: HDFSCLI_CONFIG
+      value: /tmp/.hdfscli.cfg
+    - name: HADOOP_USER_NAME
+      value: franslukas
+  build:
+    commands:
+      - echo "[global]" >> /tmp/.hdfscli.cfg
+      - echo "default.alias = dev" >> /tmp/.hdfscli.cfg
+      - echo "[dev.alias]" >> /tmp/.hdfscli.cfg
+      - echo "url = http://192.168.10.205:9870" >> /tmp/.hdfscli.cfg
+      - echo "user = franslukas" >> /tmp/.hdfscli.cfg
+      - git clone https://github.com/Frans-Lukas/DLScheduler.git
+      - "pip install mxnet pillow keras dload numpy tensorflow hdfs"
