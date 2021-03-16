@@ -62,11 +62,10 @@ def start_lenet(client: Client):
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
     epoch = 1
-    train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer)
+    loss, accuracy = train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer)
 
     save_model_to_hdfs(net, client)
-    acc = evaluate(ctx, net, val_data)
-    return acc
+    print("regexpresultstart{\"loss\":" + loss + ", \"accuracy\":" + accuracy + ", \"worker_id\":0}regexpresultend")
 
 
 def load_model_from_hdfs(client: Client):
@@ -115,6 +114,8 @@ def start_from_nuclio(context, event):
 
 
 def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer):
+    loss = any
+    accuracy = any
     for i in range(epoch):
         # Reset the train data iterator.
         train_data.reset()
@@ -142,9 +143,10 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
             # batch size of data to normalize the gradient by 1/batch_size.
             trainer.step(batch.data[0].shape[0])
         # Gets the evaluation result.
-        name, acc = metric.get()
+        name, accuracy = metric.get()
         # Reset evaluation result to initial state.
         metric.reset()
+    return loss, accuracy
 
 
 def evaluate(ctx, net, val_data):

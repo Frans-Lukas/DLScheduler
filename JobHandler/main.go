@@ -105,7 +105,6 @@ func main() {
 }
 
 func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
-
 	for !job.IsDone() {
 		// 4. Calculate number of functions we want to invoke
 		desiredNumberOfFunctions := job.CalculateNumberOfFunctions()
