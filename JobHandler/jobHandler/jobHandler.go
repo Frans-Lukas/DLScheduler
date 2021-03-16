@@ -140,6 +140,12 @@ func (jobHandler JobHandler) GetCompletedFunctionId(job Job) int {
 }
 
 func (jobHandler JobHandler) DeployFunctions(job Job, numberOfFunctionsToDeploy uint) {
+	// deploy scheduler
+	// deploy x workers
+	// deploy y servers
+
+
+
 	var finishedChannel chan int
 	finishedChannel = make(chan int)
 	for i := 0; i < int(numberOfFunctionsToDeploy); i++ {
