@@ -1,12 +1,25 @@
 apiVersion: "nuclio.io/v1"
 kind: "NuclioFunction"
 metadata:
-  name: res-net-50
+  name: mxnet
   namespace: nuclio
 spec:
   runtime: python
-  handler: main:train_epoch
+  handler: python_executioner:start_from_nuclio
   env:
+    - name: DMLC_PS_ROOT_URI
+      value: 127.0.0.1
+      #value: 192.168.10.205
+    - name: DMLC_PS_ROOT_PORT
+      value: 9092
+    - name: PS_VERBOSE
+      value: 1
+    - name: DMLC_NUM_SERVER
+      value: 1
+    - name: DMLC_NUM_WORKER
+      value: 1
+    - name: DMLC_ROLE
+      value: worker
     - name: HDFSCLI_CONFIG
       value: /tmp/.hdfscli.cfg
     - name: HADOOP_USER_NAME
@@ -18,11 +31,5 @@ spec:
       - echo "[dev.alias]" >> /tmp/.hdfscli.cfg
       - echo "url = http://192.168.10.205:9870" >> /tmp/.hdfscli.cfg
       - echo "user = franslukas" >> /tmp/.hdfscli.cfg
-      - echo "{}" >> /tmp/model.json
-      - apt-get install wget
-      - apt-get install unzip
-      - wget "https://github.com/YoongiKim/CIFAR-10-images/archive/master.zip" -O temp.zip
-      - unzip temp.zip
-      - mv CIFAR-10-images-master /tmp/CIFAR-10-images
-      - "mkdir -p /tmp/resnetmodel"
-      - "pip install dload hdfs pillow keras numpy tensorflow"
+      - git clone https://github.com/Frans-Lukas/DLScheduler.git
+      - "pip install mxnet pillow keras dload numpy tensorflow hdfs"

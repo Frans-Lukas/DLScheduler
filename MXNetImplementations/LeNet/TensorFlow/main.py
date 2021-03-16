@@ -92,7 +92,7 @@ def train_one_epoch(helper: DistributedHelper):
     print("saving locally")
     model.save_weights(MODEL_WEIGHTS_PATH)
     print("saving to hdfs")
-    helper.upload_model_to_hdfs(MODEL_WEIGHTS_PATH)
+    helper.upload_weights_to_hdfs(MODEL_WEIGHTS_PATH)
 
     loss = str(history.history['loss'][0])
     accuracy = str(history.history['accuracy'][0])

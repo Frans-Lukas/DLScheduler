@@ -11,14 +11,15 @@ class DistributedHelper:
     MODEL_WEIGHTS_PATH = ""
     AVERAGED_MODEL_NAME = ""
 
-    def __init__(self, client: Client, worker_id: int, max_id: int, average_model_name: str):
+    def __init__(self, client: Client, worker_id: int, max_id: int, average_model_name: str, job_id: str):
         self.client = client
         self.worker_id = int(worker_id)
+        self.job_id = job_id
         self.max_id = max_id
         self.MODEL_WEIGHTS_PATH = "model-" + str(worker_id) + ".h5"
         self.AVERAGED_MODEL_NAME = average_model_name
 
-    def download_models_from_hdfs(self, path: str) -> []:
+    def download_weights_from_hdfs(self, path: str) -> []:
         """
          Downloads all models from hdfs storage
          Returns: a list of the file names of the downloaded models
@@ -27,17 +28,22 @@ class DistributedHelper:
         files = self.client.list('models')
         # models = list()
         for file in files:
-            print("downloading: " + file)
-            self.client.download('models/' + file, path + "/" + file, overwrite=True)
+            if self.__is_weights_file(file):
+                print("downloading: " + file)
+                self.client.download('models/' + file, path + "/" + file, overwrite=True)
             # models.append(keras.models.load_model(path + "/" + file))
         # with self.client.read('models/' + file) as reader:
 
         return files
 
-    def upload_model_to_hdfs(self, file: str, name="") -> bool:
+    def __is_weights_file(self, file):
+        return "weights" in file and self.job_id in file
+
+    def upload_weights_to_hdfs(self, file: str, name="") -> bool:
         if os.path.exists(file):
             if name == "":
                 name = 'weights-' + str(self.worker_id) + '.h5'
+            name = self.job_id + name
             print("saving trained model to hdfs: " + name)
             with open(file, 'rb') as model, self.client.write('models/' + name, overwrite=True) as writer:
                 writer.write(model.read())
@@ -88,14 +94,14 @@ class DistributedHelper:
 
     def __save_average_model(self):
         print("saving average model to storage with name: ", self.AVERAGED_MODEL_NAME)
-        self.upload_model_to_hdfs(self.AVERAGED_MODEL_NAME, name=self.AVERAGED_MODEL_NAME)
+        self.upload_weights_to_hdfs(self.AVERAGED_MODEL_NAME, name=self.AVERAGED_MODEL_NAME)
 
     def __local_model(self, model: Model):
         return model.load_weights(self.MODEL_WEIGHTS_PATH)
 
     def __calculate_average_weights(self, model: Model):
         print("downloading models from hdfs")
-        files = self.download_models_from_hdfs("/tmp")
+        files = self.download_weights_from_hdfs("/tmp")
         print("retrieving weights from downloaded models")
         weights = self.__get_weights_from_models("/tmp", files, model)
         new_weights = list()
@@ -115,9 +121,10 @@ class DistributedHelper:
     def __get_weights_from_models(self, path, files, model: Model):
         weights = []
         for file in files:
-            print("reading file: " + file)
-            if str.startswith(file, "weights"):
-                print("file is weightsfile")
+            # print("reading file: " + file)
+            print("checking if " + self.job_id + " is in file " + file)
+            if self.__is_weights_file(file):
+                print(file + " is weightsfile")
                 filePath = path + "/" + file
                 if os.path.exists(filePath):
                     model.load_weights(filePath)
