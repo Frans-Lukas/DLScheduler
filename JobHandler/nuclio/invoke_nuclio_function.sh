@@ -1,5 +1,6 @@
 #!/bin/bash
 
-echo '{"worker_id": '$2', "max_id": '$3', "job_type": "'$4'"}'
+echo '{"ip": "'$2'", "role": "'$3'", "num_workers": '$4', "num_servers": '$5'}'
 
-nuctl invoke $1 -n nuclio -b '{"worker_id": '$2', "max_id": '$3', "job_type": "'$4'"}'
+
+nuctl invoke $1 -n nuclio -b '{"ip": "'$2'", "role": "'$3'", "num_workers": '$4', "num_servers": '$5'}'

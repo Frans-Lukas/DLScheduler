@@ -122,7 +122,7 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		activeFunctions := (*handler.InstancesPerJob)[job.JobId]
 
 		if activeFunctions < numberOfFunctionsToDeploy {
-			handler.DeployFunctions(job, numberOfFunctionsToDeploy)
+			handler.DeployFunctions(job)
 			(*handler.InstancesPerJob)[job.JobId] = numberOfFunctionsToDeploy
 		} else if activeFunctions > numberOfFunctionsToDeploy {
 			numberOfVmsToKill := activeFunctions - numberOfFunctionsToDeploy
@@ -148,15 +148,8 @@ func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke 
 	println("invoking functions")
 	handler.InvokeFunctions(job, int(numberOfFunctionsToInvoke))
 
-	// 7. Await response from all invoked functions (loss)
-	println("waiting for invocation responses")
-	//handler.AwaitResponse(job)
-
 	// print history events and loss estimation function
 	job.LeastSquaresTest()
-
-	// 8. aggregate history, and repeat from step 3.
-	handler.InvokeAggregator(job, numberOfFunctionsToInvoke)
 
 	*job.Epoch++
 

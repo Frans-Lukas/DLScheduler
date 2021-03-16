@@ -10,18 +10,21 @@ import (
 )
 
 type Job struct {
-	Budget          		float64 `json:"budget"`
-	TargetLoss      		float64 `json:"targetLoss"`
-	ImageUrl        		string  `json:"imageUrl"`
-	DataSetSize     		int `json:"dataSetSize"`
-	CurrentCost     		float64
-	JobId           		string
-	FunctionIds     		map[int]bool
-	Epoch           		*int
-	FunctionChannel 	  	*chan int
-	AverageFunctionCost   	float64
-	NumberOfFunctionsUsed 	uint
-	History         		*[]HistoryEvent
+	Budget                float64 `json:"budget"`
+	TargetLoss            float64 `json:"targetLoss"`
+	ImageUrl              string  `json:"imageUrl"`
+	DataSetSize           int     `json:"dataSetSize"`
+	CurrentCost           float64
+	JobId                 string
+	PodNames              map[string]bool
+	Epoch                 *int
+	FunctionChannel       *chan string
+	AverageFunctionCost   float64
+	NumberOfFunctionsUsed uint
+	NumberOfWorkers       int
+	NumberOfServers       int
+	SchedulerIp           *string
+	History               *[]HistoryEvent
 }
 
 func ParseJson(jsonPath string) (Job, error) {
@@ -35,14 +38,19 @@ func ParseJson(jsonPath string) (Job, error) {
 
 	var job Job
 
+	ipString := ""
+
 	history := make([]HistoryEvent, 1)
 	history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
 	epoch := 2
-	tmpChan := make(chan int)
+	tmpChan := make(chan string)
 	job.FunctionChannel = &tmpChan
-	job.FunctionIds = make(map[int]bool, 0)
+	job.PodNames = make(map[string]bool, 0)
 	job.History = &history
 	job.Epoch = &epoch
+	job.NumberOfWorkers = 1
+	job.NumberOfServers = 1
+	job.SchedulerIp = &ipString
 
 	err = json.Unmarshal(byteValue, &job)
 
@@ -98,7 +106,7 @@ func (job Job) CalculateNumberOfFunctions() uint {
 }
 
 func (job Job) FunctionsHaveFinished() bool {
-	for _, functionIsDone := range job.FunctionIds {
+	for _, functionIsDone := range job.PodNames {
 		println(functionIsDone)
 		if functionIsDone == false {
 			return false
@@ -138,7 +146,7 @@ func (job Job) MarginalUtilityCheck(numWorkers uint, maxWorkers uint) float64 {
 	x := make([]float64, 0)
 	y := make([]float64, 0)
 	for _, historyEvent := range *job.History {
-		fmt.Printf("numFunctions: %d, steps/s: %f\n", historyEvent.NumWorkers, 1 / historyEvent.Time)
+		fmt.Printf("numFunctions: %d, steps/s: %f\n", historyEvent.NumWorkers, 1/historyEvent.Time)
 		x = append(x, float64(historyEvent.NumWorkers))
 		y = append(y, historyEvent.Time)
 	}
@@ -185,7 +193,7 @@ func (job Job) costPerFunction() float64 {
 }
 
 func (job Job) functionsForNextEpoch(functions uint, epochs uint) uint {
-	suggestedNumber := float64(functions/epochs)
+	suggestedNumber := float64(functions / epochs)
 	return uint(math.Max(suggestedNumber, 1)) //TODO make this take into account that fewer functions are used for later epochs
 }
 
