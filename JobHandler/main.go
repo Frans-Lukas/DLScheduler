@@ -77,10 +77,10 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		// 5. Calculate number of functions we can invoke
 		jobs := []jb.Job{job}
 		maxFuncs := []uint{desiredNumberOfFunctions}
-		deployment := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs)
+		workerDeployment, _ := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs)
 
 		//numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
-		numberOfFunctionsToDeploy := deployment[0]
+		numberOfFunctionsToDeploy := workerDeployment[0]
 		fmt.Printf("actual number of funcs: %d\n", numberOfFunctionsToDeploy)
 
 		// delete all excess workers and servers
@@ -104,6 +104,9 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 
 func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke uint) {
 	println("invoking functions")
+
+	epochStartTime := time.Now()
+
 	handler.InvokeFunctions(job, int(numberOfFunctionsToInvoke))
 
 	// print history events and loss estimation function
@@ -112,7 +115,7 @@ func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke 
 	*job.Epoch++
 
 	// update costs for functions
-	cost := CostCalculator.CalculateCostForPods(job.JobId, handler.ClientSet, handler.MetricsClientSet)
+	cost := CostCalculator.CalculateCostForPods(job.JobId, handler.ClientSet, handler.MetricsClientSet, epochStartTime)
 	job.UpdateAverageFunctionCost(cost)
 
 	println("job is done")
