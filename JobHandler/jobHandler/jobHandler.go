@@ -268,6 +268,10 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 		log.Fatalf("GetDeploymentWithHighestMarginalUtility: len(jobs) != len(maxFunctions)")
 	}
 
+	for _, job := range jobs {
+		job.UpdateMarginalUtilityFunc()
+	}
+
 	deployment := make([]uint, len(jobs))
 
 	deploymentFinished := false

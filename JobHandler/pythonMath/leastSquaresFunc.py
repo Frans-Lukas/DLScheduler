@@ -33,7 +33,9 @@ if __name__ == '__main__':
     hInput = sys.argv[3]
     hs = np.fromstring(hInput, dtype=float, sep=' ')
 
-    theta0 = [0, 0, 1, 2]
+    guess = sys.argv[4]
+    theta0 = np.fromstring(guess, dtype=float, sep=' ')
+
     res3 = least_squares(fun, theta0)
     thetaRes = res3.get("x")
 
