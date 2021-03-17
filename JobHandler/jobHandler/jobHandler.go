@@ -108,11 +108,11 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 		//println(out.String())
 
-		findJson := regexp.MustCompile("regexpresultstart(.*)regexpresultend")
-		responseBody := findJson.Find(out.Bytes())
-
 		if jobType == constants.JOB_TYPE_WORKER {
+			findJson := regexp.MustCompile("regexpresultstart(.*)regexpresultend")
+			responseBody := findJson.FindSubmatch(out.Bytes())[1]
 			println(out.String())
+			println(responseBody)
 			err = json.Unmarshal(responseBody, &response)
 			helperFunctions.NonFatalErrCheck(err, "InvokeFunction, regexp: ")
 		}

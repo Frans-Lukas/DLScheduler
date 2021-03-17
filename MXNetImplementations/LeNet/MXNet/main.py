@@ -69,7 +69,9 @@ def start_lenet(client: Client):
     save_model_to_hdfs(net, client)
     print("printing works!")
     print(accuracy)
-    print("regexpresultstart{\"loss\":" + re.search('\[(.*)\]',str(loss)).group(1) + ", \"accuracy\":" + accuracy + ", \"worker_id\":0}regexpresultend")
+    loss = re.search('\[(.*)\]', str(loss)).group(1)
+    print(
+        "regexpresultstart{\"loss\":" + loss + ", \"accuracy\":" + str(accuracy) + ", \"worker_id\":0}regexpresultend")
 
 
 def load_model_from_hdfs(client: Client):
