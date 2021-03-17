@@ -2,12 +2,12 @@ package jobHandler
 
 type HistoryEvent struct {
 	NumWorkers uint
+	NumServers uint
 	WorkerId   int
 	Loss       float64
 	Accuracy   float64
 	Time       float64
 	Epoch      int
-	NumServers uint
 }
 
 type FunctionResponse struct {
