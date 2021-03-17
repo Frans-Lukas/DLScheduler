@@ -32,4 +32,6 @@ spec:
       - echo "url = http://192.168.10.205:9870" >> /tmp/.hdfscli.cfg
       - echo "user = franslukas" >> /tmp/.hdfscli.cfg
       - git clone https://github.com/Frans-Lukas/DLScheduler.git
+      - cd DLScheduler
+      - git pull
       - "pip install mxnet pillow keras dload numpy tensorflow hdfs"
