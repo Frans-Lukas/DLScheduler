@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from random import randint
 
@@ -67,7 +68,8 @@ def start_lenet(client: Client):
 
     save_model_to_hdfs(net, client)
     print("printing works!")
-    # print("regexpresultstart{\"loss\":" + loss + ", \"accuracy\":" + accuracy + ", \"worker_id\":0}regexpresultend")
+    print(accuracy)
+    print("regexpresultstart{\"loss\":" + re.search('\[(.*)\]',str(loss)).group(1) + ", \"accuracy\":" + accuracy + ", \"worker_id\":0}regexpresultend")
 
 
 def load_model_from_hdfs(client: Client):
@@ -148,6 +150,7 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
         name, accuracy = metric.get()
         # Reset evaluation result to initial state.
         metric.reset()
+    loss = loss.mean()
     return loss, accuracy
 
 
