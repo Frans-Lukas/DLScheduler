@@ -25,6 +25,7 @@ type Job struct {
 	NumberOfServers       int
 	SchedulerIp           *string
 	History               *[]HistoryEvent
+	MarginalUtilityFunc   []float64
 }
 
 func ParseJson(jsonPath string) (Job, error) {
@@ -133,8 +134,32 @@ func (job Job) LeastSquaresTest() {
 	}
 }
 
+func (job Job)UpdateMarginalUtilityFunc() {
+	if job.historyIsEmpty() {
+		return //TODO find better solution for this
+	}
+
+	x := make([]float64, 0)
+	y := make([]float64, 0)
+	h := make([]float64, 0)
+	for _, historyEvent := range *job.History {
+		fmt.Printf("numFunctions: %d, steps/s: %f\n", historyEvent.NumWorkers, 1/historyEvent.Time)
+		x = append(x, float64(historyEvent.NumWorkers))
+		y = append(y, float64(historyEvent.NumServers))
+		h = append(y, historyEvent.Time)
+	}
+
+	previousEstimation := job.MarginalUtilityFunc
+	if len(previousEstimation) < 4 {
+		previousEstimation = []float64{0, 0, 1, 2}
+	}
+
+	job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
+	fmt.Printf("y = %f + %fx", job.MarginalUtilityFunc[0], job.MarginalUtilityFunc[1])
+}
+
 //TODO has not been checked if it works
-func (job Job) MarginalUtilityCheck(numWorkers uint, maxWorkers uint) float64 {
+func (job Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, maxWorkers uint) float64 {
 	if numWorkers > maxWorkers {
 		return -1
 	}
@@ -143,21 +168,12 @@ func (job Job) MarginalUtilityCheck(numWorkers uint, maxWorkers uint) float64 {
 		return 1 //TODO find better solution for this
 	}
 
-	x := make([]float64, 0)
-	y := make([]float64, 0)
-	for _, historyEvent := range *job.History {
-		fmt.Printf("numFunctions: %d, steps/s: %f\n", historyEvent.NumWorkers, 1/historyEvent.Time)
-		x = append(x, float64(historyEvent.NumWorkers))
-		y = append(y, historyEvent.Time)
+	if len(job.MarginalUtilityFunc) == 0 {
+		job.UpdateMarginalUtilityFunc()
 	}
+	oldStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), job.MarginalUtilityFunc)
 
-	function := helperFunctions.PolynomialLeastSquares(x, y) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
-	fmt.Printf("y = %f + %fx", function[0], function[1])
-
-	oldWorkers := float64(numWorkers - 1)
-	oldStepsPerSec := helperFunctions.EstimateYValueInFunction(oldWorkers, function)
-
-	newStepsPerSec := helperFunctions.EstimateYValueInFunction(float64(numWorkers), function)
+	newStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(numWorkers), float64(numServers), job.MarginalUtilityFunc)
 
 	return newStepsPerSec - oldStepsPerSec
 }

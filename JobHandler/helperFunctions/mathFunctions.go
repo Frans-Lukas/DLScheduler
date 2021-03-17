@@ -3,7 +3,10 @@ package helperFunctions
 import (
 	"errors"
 	"fmt"
+	"jobHandler/constants"
 	"math"
+	"regexp"
+	"strconv"
 )
 
 func EstimateYValueInHyperbolaFunction(x float64, fit []float64) float64 {
@@ -160,4 +163,83 @@ func PolynomialLeastSquares(x []float64, y []float64) []float64 {
 	}
 
 	return a
+}
+
+//example input []float64{-1., -0.89473684, -0.78947368, -0.68421053, -0.57894737, -0.47368421, -0.36842105, -0.26315789, -0.15789474, -0.05263158, 0.05263158, 0.15789474, 0.26315789, 0.36842105, 0.47368421, 0.57894737, 0.68421053, 0.78947368, 0.89473684, 1.}, []float64{-1., -0.89473684, -0.78947368, -0.68421053, -0.57894737, -0.47368421, -0.36842105, -0.26315789, -0.15789474, -0.05263158, 0.05263158, 0.15789474, 0.26315789, 0.36842105, 0.47368421, 0.57894737, 0.68421053, 0.78947368, 0.89473684, 1.}, []float64{2.655, 2.09876731, 1.60901662, 1.18574792, 0.82896122, 0.53865651, 0.3148338, 0.15749307, 0.06663435, 0.04225762, 0.08436288, 0.19295014, 0.36801939, 0.60957064, 0.91760388, 1.29211911, 1.73311634, 2.24059557, 2.81455679, 3.455}, []float64{0, 0, 1, 2}
+func Python3DParabolaLeastSquares(xs []float64, ys []float64, hs []float64, initialGuess []float64) []float64 {
+	var xString string
+	for _, x := range xs {
+		tmp := fmt.Sprintf("%f", x)
+		if len(xString) == 0 {
+			xString = tmp
+		} else {
+			xString = xString + " " + tmp
+		}
+	}
+
+	var yString string
+	for _, y := range ys {
+		tmp := fmt.Sprintf("%f", y)
+		if len(yString) == 0 {
+			yString = tmp
+		} else {
+			yString = yString + " " + tmp
+		}
+	}
+
+	var hString string
+	for _, h := range hs {
+		tmp := fmt.Sprintf("%f", h)
+		if len(hString) == 0 {
+			hString = tmp
+		} else {
+			hString = hString + " " + tmp
+		}
+	}
+
+	var guess string
+	for _, g := range initialGuess {
+		tmp := fmt.Sprintf("%f", g)
+		if len(guess) == 0 {
+			guess = tmp
+		} else {
+			guess = guess + " " + tmp
+		}
+	}
+
+	out, stderr, err := ExecuteFunction(constants.PYTHON, constants.PYTHON_LEAST_SQUARES, xString, yString, hString, guess)
+
+	FatalErrCheck(err, "Python3DParabolaLeastSquares: " + stderr.String())
+
+	outString := out.String()
+
+	re := regexp.MustCompile("\\[")
+	splitString := re.Split(outString, -1)
+
+	re = regexp.MustCompile("]")
+	splitString = re.Split(splitString[1], -1)
+
+	re = regexp.MustCompile("[ ]+")
+	splitString = re.Split(splitString[0], -1)
+
+	output := make([]float64, 4)
+
+	currPos := 0
+	for _, s := range splitString {
+		tmp, err := strconv.ParseFloat(s, 64)
+		if err == nil {
+			output[currPos] = tmp
+			currPos++
+		}
+	}
+
+	if currPos != 4 {
+		FatalErrCheck(errors.New("too few variables returned, need 4 got: " + outString), "Python3DParabolaLeastSquares: ")
+	}
+
+	return output
+}
+
+func Python3DParabolaLeastSquaresEstimateH(x float64, y float64, f []float64) float64 {
+	return f[2] * math.Pow(x - f[0], 2) + f[3] * math.Pow(y - f[1], 2)
 }
