@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"jobHandler/CostCalculator"
+	"jobHandler/constants"
 	"jobHandler/helperFunctions"
 	jb "jobHandler/jobHandler"
 	"log"
@@ -57,7 +58,6 @@ func main() {
 	//}
 	//job.LeastSquaresTest()
 
-
 	//jobHandler.TestReasonableBatchSize(job)
 	//
 	//
@@ -83,18 +83,12 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		numberOfFunctionsToDeploy := deployment[0]
 		fmt.Printf("actual number of funcs: %d\n", numberOfFunctionsToDeploy)
 
-		activeFunctions := (*handler.InstancesPerJob)[job.JobId]
+		// delete all excess workers and servers
+		handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_WORKER, job.NumberOfWorkers)
+		handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_SERVER, job.NumberOfServers)
 
-		if activeFunctions < numberOfFunctionsToDeploy {
-			handler.DeployFunctions(job)
-			(*handler.InstancesPerJob)[job.JobId] = numberOfFunctionsToDeploy
-		} else if activeFunctions > numberOfFunctionsToDeploy {
-			numberOfVmsToKill := activeFunctions - numberOfFunctionsToDeploy
-			//kill functions from numberOfFunctionsToDeploy to numberOfFunctionsToDeploy + activeFunctions
-			startRange := numberOfFunctionsToDeploy
-			endRange := numberOfFunctionsToDeploy + numberOfVmsToKill - 1
-			handler.DeleteNuclioFunctionsInJob(job, int(startRange), int(endRange))
-		}
+		// redploy all workers and servers, if they exist, they are kept and not redeployed.
+		handler.DeployFunctions(job)
 
 		// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
 		err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)

@@ -110,7 +110,14 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 
 		if jobType == constants.JOB_TYPE_WORKER {
 			findJson := regexp.MustCompile("regexpresultstart(.*)regexpresultend")
-			responseBody := findJson.FindSubmatch(out.Bytes())[1]
+			tmpResponseBody := findJson.FindSubmatch(out.Bytes())
+			var responseBody []byte
+			if len(tmpResponseBody) > 1 {
+				responseBody = tmpResponseBody[1]
+			} else {
+				println(out.String())
+				break
+			}
 			println(out.String())
 			println(responseBody)
 			err = json.Unmarshal(responseBody, &response)
@@ -166,25 +173,27 @@ func (jobHandler JobHandler) DeployFunctions(job Job) {
 
 	go jobHandler.DeployChannelFunction(job, 0, finishedChannel, constants.JOB_TYPE_SCHEDULER)
 
-	for i := 0; i < int(job.NumberOfWorkers); i++ {
+	for i := 0; i < job.NumberOfWorkers; i++ {
 		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_WORKER)
 	}
-	for i := 0; i < int(job.NumberOfServers); i++ {
+	for i := 0; i < job.NumberOfServers; i++ {
 		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_SERVER)
 	}
-	for i := 0; i < int(job.NumberOfServers + job.NumberOfWorkers + 1); i++ {
+	for i := 0; i < job.NumberOfServers+job.NumberOfWorkers+1; i++ {
 		println("pod with id: ", <-finishedChannel, " deployed")
 	}
 }
 func (jobHandler JobHandler) DeployChannelFunction(job Job, functionId int, channel chan string, jobType string) {
 	jobHandler.DeployFunction(job, functionId, jobType)
-	channel <- jobType + strconv.Itoa(functionId)
+	channel <- jobHandler.GetPodName(job, functionId, jobType)
 }
 
 func (jobHandler JobHandler) DeployFunction(job Job, functionId int, jobType string) {
-	//TODO
-	imageUrl := job.ImageUrl
 	podName := jobHandler.GetPodName(job, functionId, jobType)
+	if jobHandler.podExists(podName){
+		return
+	}
+	imageUrl := job.ImageUrl
 	println("Deploying function: ", podName, " with imageUrl: ", imageUrl)
 
 	out, stderr, err := jobHandler.executeDeployFunction(podName, imageUrl)
@@ -319,12 +328,12 @@ func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, tim
 	return nil
 }
 
-func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, startRange int, endRange int) {
+func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, jobType string, numberOf int) {
+	fmt.Printf("deleting all funcitons starting with %s and greater or equal to %d\n", job.JobId + jobType, numberOf)
 	stdout, stderr, err := helperFunctions.ExecuteFunction(
 		constants.DELETE_FUNCTIONS_SUBSTRING_SCRIPT,
-		job.JobId,
-		strconv.Itoa(startRange),
-		strconv.Itoa(endRange),
+		job.JobId + jobType,
+		strconv.Itoa(numberOf),
 	)
 	helperFunctions.FatalErrCheck(err, "deleteNuclioFunctionsInJob: "+ stdout.String()+"\n"+stderr.String())
 }
@@ -375,4 +384,16 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job Job, batchSize int) f
 	//job.UpdateAverageFunctionCost(cost)
 
 	return (*job.History)[len(*job.History) - 1].Time
+}
+
+func (jobHandler JobHandler) podExists(name string) bool {
+	pods, err := jobHandler.ClientSet.CoreV1().Pods(constants.KUBERNETES_NAMESPACE).List(context.Background(), v1.ListOptions{})
+	if err == nil {
+		for _, v := range pods.Items {
+			if strings.Contains(v.Name, name) {
+				return true
+			}
+		}
+	}
+	return false
 }

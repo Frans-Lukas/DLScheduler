@@ -136,7 +136,7 @@ func (job Job) LeastSquaresTest() {
 	}
 }
 
-func (job Job)UpdateMarginalUtilityFunc() {
+func (job Job) UpdateMarginalUtilityFunc() {
 	if job.historyIsEmpty() {
 		return //TODO find better solution for this
 	}
@@ -216,5 +216,5 @@ func (job Job) functionsForNextEpoch(functions uint, epochs uint) uint {
 }
 
 func (job Job) UpdateAverageFunctionCost(cost float64) {
-	job.AverageFunctionCost = ((job.AverageFunctionCost * float64(job.NumberOfFunctionsUsed)) + cost) / float64(job.NumberOfFunctionsUsed+(*job.History)[len(*job.History) - 1].NumWorkers)
+	job.AverageFunctionCost = ((job.AverageFunctionCost * float64(job.NumberOfFunctionsUsed)) + cost) / float64(job.NumberOfFunctionsUsed+(*job.History)[len(*job.History)-1].NumWorkers)
 }
