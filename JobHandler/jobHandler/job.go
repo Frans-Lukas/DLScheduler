@@ -149,7 +149,12 @@ func (job Job)UpdateMarginalUtilityFunc() {
 		h = append(y, historyEvent.Time)
 	}
 
-	job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
+	previousEstimation := job.MarginalUtilityFunc
+	if len(previousEstimation) < 4 {
+		previousEstimation = []float64{0, 0, 1, 2}
+	}
+
+	job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
 	fmt.Printf("y = %f + %fx", job.MarginalUtilityFunc[0], job.MarginalUtilityFunc[1])
 }
 
