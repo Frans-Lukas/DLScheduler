@@ -263,7 +263,7 @@ func (jobHandler JobHandler) DeployableNumberOfFunctions(job Job, desiredNumberO
 	}
 }
 
-func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job, maxFunctions []uint) []uint {
+func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job, maxFunctions []uint) ([]uint, []uint) {
 	if len(jobs) != len(maxFunctions) {
 		log.Fatalf("GetDeploymentWithHighestMarginalUtility: len(jobs) != len(maxFunctions)")
 	}
@@ -272,15 +272,33 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 		job.UpdateMarginalUtilityFunc()
 	}
 
-	deployment := make([]uint, len(jobs))
+	workerDeployment := make([]uint, len(jobs))
+	serverDeployment := make([]uint, len(jobs))
 
 	deploymentFinished := false
 
 	for !deploymentFinished {
 		marginalUtilities := make([]float64, len(jobs))
+		deploymentType    := make([]byte, len(jobs))
 
 		for i, job := range jobs {
-			marginalUtilities[i] = job.MarginalUtilityCheck(deployment[i] + 1, 1, deployment[i], 1, maxFunctions[i])
+			// so that no deployment has 1 worker and 0 servers, or 0 servers and 1 worker
+			if workerDeployment[i] == 0 {
+				utility := job.MarginalUtilityCheck(1, 1, 0, 0, maxFunctions[i])
+				marginalUtilities[i] = utility
+				deploymentType[i]    = 'f'
+			} else {
+				workerUtility := job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], maxFunctions[i])
+				serverUtility := job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], maxFunctions[i])
+
+				if workerUtility >= serverUtility {
+					marginalUtilities[i] = workerUtility
+					deploymentType[i]    = 'w'
+				} else {
+					marginalUtilities[i] = serverUtility
+					deploymentType[i]    = 's'
+				}
+			}
 		}
 
 		maxUtility := -1.0
@@ -295,11 +313,22 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 		if maxUtilityJobIndex == -1 {
 			deploymentFinished = true
 		} else {
-			deployment[maxUtilityJobIndex]++
+			switch deploymentType[maxUtilityJobIndex] {
+			case 'w':
+				workerDeployment[maxUtilityJobIndex]++
+				break
+			case 's':
+				serverDeployment[maxUtilityJobIndex]++
+				break
+			case 'f':
+				workerDeployment[maxUtilityJobIndex]++
+				serverDeployment[maxUtilityJobIndex]++
+				break
+			}
 		}
 	}
 
-	return deployment
+	return workerDeployment, serverDeployment
 }
 
 func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, timeout time.Duration) error {
