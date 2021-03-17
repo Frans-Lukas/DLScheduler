@@ -65,7 +65,8 @@ def start_lenet(client: Client):
     loss, accuracy = train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer)
 
     save_model_to_hdfs(net, client)
-    print("regexpresultstart{\"loss\":" + loss + ", \"accuracy\":" + accuracy + ", \"worker_id\":0}regexpresultend")
+    print("printing works!")
+    # print("regexpresultstart{\"loss\":" + loss + ", \"accuracy\":" + accuracy + ", \"worker_id\":0}regexpresultend")
 
 
 def load_model_from_hdfs(client: Client):
