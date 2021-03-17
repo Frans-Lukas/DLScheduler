@@ -3,7 +3,10 @@ package helperFunctions
 import (
 	"errors"
 	"fmt"
+	"jobHandler/constants"
 	"math"
+	"strconv"
+	"strings"
 )
 
 func EstimateYValueInHyperbolaFunction(x float64, fit []float64) float64 {
@@ -160,4 +163,62 @@ func PolynomialLeastSquares(x []float64, y []float64) []float64 {
 	}
 
 	return a
+}
+
+func Python3DParabolaLeastSquares(xs []float64, ys []float64, hs []float64) []float64 {
+	var xString string
+	for _, x := range xs {
+		if len(xString) == 0 {
+			xString = strconv.Itoa(int(x))
+		} else {
+			xString = xString + " " + strconv.Itoa(int(x))
+		}
+	}
+
+	var yString string
+	for _, y := range ys {
+		if len(yString) == 0 {
+			yString = strconv.Itoa(int(y))
+		} else {
+			yString = yString + " " + strconv.Itoa(int(y))
+		}
+	}
+
+	var hString string
+	for _, h := range hs {
+		if len(hString) == 0 {
+			hString = strconv.Itoa(int(h))
+		} else {
+			hString = hString + " " + strconv.Itoa(int(h))
+		}
+	}
+
+	out, stderr, err := ExecuteFunction(constants.PYTHON, constants.PYTHON_LEAST_SQUARES, xString, yString, hString)
+
+	FatalErrCheck(err, "Python3DParabolaLeastSquares: " + stderr.String())
+
+	outString := out.String()
+
+	splitString := strings.Split(outString, "  ")
+
+	if len(splitString) < 4 {
+		FatalErrCheck(errors.New("too few variables returned, need 4 got: " + outString), "Python3DParabolaLeastSquares: ")
+	}
+
+	output := make([]float64, 4)
+
+	output[0], err = strconv.ParseFloat(strings.Split(splitString[0], " ")[1], 64)
+	FatalErrCheck(err, "Python3DParabolaLeastSquares: ")
+	output[1], err = strconv.ParseFloat(splitString[1], 64)
+	FatalErrCheck(err, "Python3DParabolaLeastSquares: ")
+	output[2], err = strconv.ParseFloat(splitString[2], 64)
+	FatalErrCheck(err, "Python3DParabolaLeastSquares: ")
+	output[3], err = strconv.ParseFloat(strings.Split(splitString[3], " ")[0], 64)
+	FatalErrCheck(err, "Python3DParabolaLeastSquares: ")
+
+	return output
+}
+
+func Python3DParabolaLeastSquaresEstimateH(x float64, y float64, f []float64) float64 {
+	return f[2] * math.Pow(x - f[0], 2) + f[3] * math.Pow(y - f[1], 2)
 }
