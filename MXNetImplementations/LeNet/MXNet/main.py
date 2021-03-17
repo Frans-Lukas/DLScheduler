@@ -45,6 +45,7 @@ class Net(gluon.Block):
 
 def main():
     # os.environ["DMLC_ROLE"] = sys.argv[1]
+    print("test print in main to see if its updating on push")
     print("role: " + os.getenv("DMLC_ROLE"))
     start_lenet(Config().get_client('dev'))
 
