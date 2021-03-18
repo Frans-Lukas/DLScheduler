@@ -2,5 +2,6 @@
   "budget": 1337.420,
   "targetLoss": 0.01,
   "dataSetSize": 60000,
-  "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest"
+  "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
+  "scriptPath": "/DLScheduler/MXNetImplementations/Simple/main.py"
 }

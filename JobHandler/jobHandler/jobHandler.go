@@ -71,26 +71,26 @@ func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke 
 	wg.Add(1)
 	functionName := jobHandler.GetPodName(job, 0, constants.JOB_TYPE_SCHEDULER)
 	job.PodNames[functionName] = false
-	go jobHandler.InvokeWGFunctions(job, 0, *job.Epoch, constants.JOB_TYPE_SCHEDULER, numWorkers, numServers, &wg)
+	go jobHandler.InvokeWGFunction(job, 0, *job.Epoch, constants.JOB_TYPE_SCHEDULER, numWorkers, numServers, &wg)
 	for i := 0; i < job.NumberOfServers; i++ {
 		//invoke servers
 		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_SERVER)
 		job.PodNames[functionName] = false
 		wg.Add(1)
-		go jobHandler.InvokeWGFunctions(job, i, *job.Epoch, constants.JOB_TYPE_SERVER, numWorkers, numServers,  &wg)
+		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_SERVER, numWorkers, numServers,  &wg)
 	}
 	//invoke workers
 	for i := 0; i < job.NumberOfWorkers; i++ {
 		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_WORKER)
 		job.PodNames[functionName] = false
 		wg.Add(1)
-		go jobHandler.InvokeWGFunctions(job, i, *job.Epoch, constants.JOB_TYPE_WORKER, numWorkers, numServers,  &wg)
+		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_WORKER, numWorkers, numServers,  &wg)
 	}
 	//wait for all to complete
 	wg.Wait()
 }
 
-func (jobHandler JobHandler) InvokeWGFunctions(job Job, id int, epoch int, jobType string, numWorkers int, numServers int, wg *sync.WaitGroup)  {
+func (jobHandler JobHandler) InvokeWGFunction(job Job, id int, epoch int, jobType string, numWorkers int, numServers int, wg *sync.WaitGroup)  {
 	defer wg.Done()
 	jobHandler.InvokeFunction(job, id, epoch, jobType, numWorkers, numServers)
 }
@@ -104,7 +104,7 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 	for {
 		//'{"ip": "'$2'", "role": "'$3'", "num_workers": '$4', "num_servers": '$5'}'
 		out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
-			functionName, schedulerIp, jobType, strconv.Itoa(numWorkers), strconv.Itoa(numServers))
+			functionName, schedulerIp, jobType, strconv.Itoa(numWorkers), strconv.Itoa(numServers), job.ScriptPath)
 		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 		//println(out.String())
 
