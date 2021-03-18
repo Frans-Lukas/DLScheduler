@@ -207,6 +207,8 @@ func Python3DParabolaLeastSquares(xs []float64, ys []float64, hs []float64, init
 		}
 	}
 
+	fmt.Printf("xstring: %s, ystring: %s, hstring: %s, guess: %s\n", xString, yString, hString, guess)
+
 	out, stderr, err := ExecuteFunction(constants.PYTHON, constants.PYTHON_LEAST_SQUARES, xString, yString, hString, guess)
 
 	FatalErrCheck(err, "Python3DParabolaLeastSquares: " + stderr.String())

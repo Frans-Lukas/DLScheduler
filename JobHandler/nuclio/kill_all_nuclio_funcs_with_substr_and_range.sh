@@ -7,17 +7,18 @@ echo "attempting to delete all pods with substring: '$1'"
 x=$(nuctl get functions -n nuclio | grep -o -P '(?<=nuclio).*(?=default)' | awk '{gsub(/^[ \t \|]+| \|[ \t]+$/,""); print $0}')
 while IFS= read -r line; do
   if [[ $line == *$1* ]]; then
-
+    echo $line
     # split on job word TODO: what if a function is randomly given the name job? nvm, since we take last element it should work..
-    splitArray=($(echo "$line" | tr "job" ' '))
-#    echo "$line"
-#    echo "${splitArray[-1]}"
-    functionId="${splitArray[-1]}"
+    functionId=${line#"$1"}
+
+    #    ($(echo "$line" | tr $1 ' '))
+    #    echo "$line"
+    echo $functionId
 
     # FunctionId is an integer && is between inarg 2 and 3.
-    if [[ $functionId =~ ^-?[0-9]+$ && $functionId -ge $2 && $functionId -le $3 ]]; then
-      echo "deleting $functionId"
-      nuctl delete function $line -n nuclio
+    if [[ $functionId -ge $2 ]]; then
+      echo "deleting $line"
+      #      nuctl delete function $line -n nuclio
     fi
   fi
 done <<<"$x"

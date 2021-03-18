@@ -25,7 +25,7 @@ type Job struct {
 	NumberOfServers       int
 	SchedulerIp           *string
 	History               *[]HistoryEvent
-	MarginalUtilityFunc   []float64
+	MarginalUtilityFunc   *[]float64
 }
 
 func ParseJson(jsonPath string) (Job, error) {
@@ -42,6 +42,7 @@ func ParseJson(jsonPath string) (Job, error) {
 	ipString := ""
 
 	history := make([]HistoryEvent, 1)
+	marginalUtilityFunc := make([]float64, 1)
 	history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
 	epoch := 2
 	tmpChan := make(chan string)
@@ -52,6 +53,7 @@ func ParseJson(jsonPath string) (Job, error) {
 	job.NumberOfWorkers = 1
 	job.NumberOfServers = 1
 	job.SchedulerIp = &ipString
+	job.MarginalUtilityFunc = &marginalUtilityFunc
 
 	err = json.Unmarshal(byteValue, &job)
 
@@ -134,7 +136,7 @@ func (job Job) LeastSquaresTest() {
 	}
 }
 
-func (job Job)UpdateMarginalUtilityFunc() {
+func (job Job) UpdateMarginalUtilityFunc() {
 	if job.historyIsEmpty() {
 		return //TODO find better solution for this
 	}
@@ -146,16 +148,16 @@ func (job Job)UpdateMarginalUtilityFunc() {
 		fmt.Printf("numFunctions: %d, steps/s: %f\n", historyEvent.NumWorkers, 1/historyEvent.Time)
 		x = append(x, float64(historyEvent.NumWorkers))
 		y = append(y, float64(historyEvent.NumServers))
-		h = append(y, historyEvent.Time)
+		h = append(h, historyEvent.Time)
 	}
 
-	previousEstimation := job.MarginalUtilityFunc
+	previousEstimation := *job.MarginalUtilityFunc
 	if len(previousEstimation) < 4 {
 		previousEstimation = []float64{0, 0, 1, 2}
 	}
 
-	job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
-	fmt.Printf("y = %f + %fx", job.MarginalUtilityFunc[0], job.MarginalUtilityFunc[1])
+	*job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
+	fmt.Printf("y = %f + %fx", (*job.MarginalUtilityFunc)[0], (*job.MarginalUtilityFunc)[1])
 }
 
 //TODO has not been checked if it works
@@ -168,12 +170,12 @@ func (job Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers
 		return 1 //TODO find better solution for this
 	}
 
-	if len(job.MarginalUtilityFunc) == 0 {
+	if len(*job.MarginalUtilityFunc) == 0 {
 		job.UpdateMarginalUtilityFunc()
 	}
-	oldStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), job.MarginalUtilityFunc)
+	oldStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), *job.MarginalUtilityFunc)
 
-	newStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(numWorkers), float64(numServers), job.MarginalUtilityFunc)
+	newStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(numWorkers), float64(numServers), *job.MarginalUtilityFunc)
 
 	return newStepsPerSec - oldStepsPerSec
 }
@@ -214,5 +216,5 @@ func (job Job) functionsForNextEpoch(functions uint, epochs uint) uint {
 }
 
 func (job Job) UpdateAverageFunctionCost(cost float64) {
-	job.AverageFunctionCost = ((job.AverageFunctionCost * float64(job.NumberOfFunctionsUsed)) + cost) / float64(job.NumberOfFunctionsUsed+(*job.History)[len(*job.History)].NumWorkers)
+	job.AverageFunctionCost = ((job.AverageFunctionCost * float64(job.NumberOfFunctionsUsed)) + cost) / float64(job.NumberOfFunctionsUsed+(*job.History)[len(*job.History)-1].NumWorkers)
 }

@@ -18,19 +18,19 @@ var fixedCost = 0.1
 var memoryCost = 0.0001
 var CPUCost = 10000.0
 
-func CalculateCostForPods(subString string, clientSet *kubernetes.Clientset, metricsClientSet *metricsv.Clientset) float64 {
+func CalculateCostForPods(subString string, clientSet *kubernetes.Clientset, metricsClientSet *metricsv.Clientset, jobStartTime time.Time) float64 {
 	pods := getNuclioPods(clientSet)
 	metricPods := getNuclioPodsMetrics(metricsClientSet)
 
 	currentTime := time.Now()
-	cost := getTotalCostOfPods(subString, pods, metricPods, currentTime)
+	cost := getTotalCostOfPods(subString, pods, metricPods, currentTime, jobStartTime)
 
 	println("Cost is: ", int(cost))
 
 	return cost
 }
 
-func getTotalCostOfPods(subString string, pods *v12.PodList, metricPods *v1beta1.PodMetricsList, currentTime time.Time) float64 {
+func getTotalCostOfPods(subString string, pods *v12.PodList, metricPods *v1beta1.PodMetricsList, currentTime time.Time, jobStartTime time.Time) float64 {
 	cost := float64(0)
 
 	for _, pod := range pods.Items {
@@ -39,9 +39,9 @@ func getTotalCostOfPods(subString string, pods *v12.PodList, metricPods *v1beta1
 			nonFatalErrorCheck(err, "getTotalCostOfPods")
 			println("pod: ", pod.Name)
 			if memoryPodIndex != -1 {
-				cost += getTotalCostOfpod(pod, metricPods.Items[memoryPodIndex], currentTime)
+				cost += getTotalCostOfpod(pod, metricPods.Items[memoryPodIndex], currentTime, jobStartTime)
 			} else {
-				cost += getTotalCostOfpodWithoutMetricPod(pod, currentTime)
+				cost += getTotalCostOfpodWithoutMetricPod(pod, currentTime, jobStartTime)
 			}
 		}
 	}
@@ -62,12 +62,12 @@ func findMetricsPodIndex(name string, pods *v1beta1.PodMetricsList) (int, error)
 	return -1, errors.New("findMetricsPod: could not find corresponding metric pod")
 }
 
-func getTotalCostOfpodWithoutMetricPod(pod v12.Pod, currentTime time.Time) float64 {
-	return fixedCost + getDurationCostOfpod(pod, currentTime) + getMemoryCostOfPod(pod) + getMemoryTransferCostOfpod(pod)
+func getTotalCostOfpodWithoutMetricPod(pod v12.Pod, currentTime time.Time, jobStartTime time.Time) float64 {
+	return fixedCost + getDurationCostOfpod(pod, currentTime, jobStartTime) + getMemoryCostOfPod(pod) + getMemoryTransferCostOfpod(pod)
 }
 
-func getTotalCostOfpod(pod v12.Pod, metricsPod v1beta1.PodMetrics, currentTime time.Time) float64 {
-	return getTotalCostOfpodWithoutMetricPod(pod, currentTime) + getCPUCostOfPod(metricsPod) + getGPUCostOfPod()
+func getTotalCostOfpod(pod v12.Pod, metricsPod v1beta1.PodMetrics, currentTime time.Time, jobStartTime time.Time) float64 {
+	return getTotalCostOfpodWithoutMetricPod(pod, currentTime, jobStartTime) + getCPUCostOfPod(metricsPod) + getGPUCostOfPod()
 }
 
 func getGPUCostOfPod() float64 {
@@ -99,9 +99,14 @@ func getMemoryCostOfPod(pod v12.Pod) float64 {
 	return totalMemoryAllocated * memoryCost
 }
 
-func getDurationCostOfpod(pod v12.Pod, currentTime time.Time) float64 {
+func getDurationCostOfpod(pod v12.Pod, currentTime time.Time, jobStartTime time.Time) float64 {
 	println("  durationCost: ", int64(currentTime.Sub(pod.CreationTimestamp.Time).Seconds() *costPerSec))
-	return currentTime.Sub(pod.CreationTimestamp.Time).Seconds() * costPerSec
+
+	if pod.CreationTimestamp.Time.Before(jobStartTime) {
+		return currentTime.Sub(jobStartTime).Seconds() * costPerSec
+	} else {
+		return currentTime.Sub(pod.CreationTimestamp.Time).Seconds() * costPerSec
+	}
 }
 
 func getMemoryTransferCostOfpod(pod v12.Pod) float64 {
