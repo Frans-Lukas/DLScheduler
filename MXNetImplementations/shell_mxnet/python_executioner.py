@@ -12,14 +12,16 @@ def start_from_nuclio(context, event):
     os.environ['DMLC_ROLE'] = body['role']
     os.environ['DMLC_NUM_SERVER'] = body['num_server']
     os.environ['DMLC_NUM_WORKER'] = body['num_worker']
-    return start_real_nuclio()
+    script_path = body['script_path']
+    return start_real_nuclio(script_path)
 
 
-def start_real_nuclio():
+def start_real_nuclio(script_path: str):
     # python /DLScheduler/MXNetImplementations/LeNet/MXNet/main.py input_args
     # return subprocess.check_output(["python", "/opt/nuclio/python_executioner.py"], env=os.environ)
+    #"/DLScheduler/MXNetImplementations/LeNet/MXNet/main.py"
     try:
-        return subprocess.check_output(["python", "/DLScheduler/MXNetImplementations/LeNet/MXNet/main.py"], env=os.environ)
+        return subprocess.check_output(["python", script_path], env=os.environ)
     except subprocess.CalledProcessError as e:
         return e.output
 

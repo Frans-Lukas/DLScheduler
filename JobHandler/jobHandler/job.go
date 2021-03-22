@@ -14,6 +14,7 @@ type Job struct {
 	TargetLoss            float64 `json:"targetLoss"`
 	ImageUrl              string  `json:"imageUrl"`
 	DataSetSize           int     `json:"dataSetSize"`
+	ScriptPath            string  `json:"scriptPath"`
 	CurrentCost           float64
 	JobId                 string
 	PodNames              map[string]bool
