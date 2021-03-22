@@ -72,7 +72,7 @@ func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke 
 	functionName := jobHandler.GetPodName(job, 0, constants.JOB_TYPE_SCHEDULER)
 	job.PodNames[functionName] = false
 	go jobHandler.InvokeWGFunction(job, 0, *job.Epoch, constants.JOB_TYPE_SCHEDULER, numWorkers, numServers, &wg)
-	for i := 0; i < job.NumberOfServers; i++ {
+	for i := 0; i < int(job.NumberOfServers); i++ {
 		//invoke servers
 		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_SERVER)
 		job.PodNames[functionName] = false
@@ -80,7 +80,7 @@ func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke 
 		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_SERVER, numWorkers, numServers,  &wg)
 	}
 	//invoke workers
-	for i := 0; i < job.NumberOfWorkers; i++ {
+	for i := 0; i < int(job.NumberOfWorkers); i++ {
 		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_WORKER)
 		job.PodNames[functionName] = false
 		wg.Add(1)
@@ -90,12 +90,12 @@ func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke 
 	wg.Wait()
 }
 
-func (jobHandler JobHandler) InvokeWGFunction(job Job, id int, epoch int, jobType string, numWorkers int, numServers int, wg *sync.WaitGroup)  {
+func (jobHandler JobHandler) InvokeWGFunction(job Job, id int, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {
 	defer wg.Done()
 	jobHandler.InvokeFunction(job, id, epoch, jobType, numWorkers, numServers)
 }
 
-func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType string, numWorkers int, numServers int) {
+func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType string, numWorkers uint, numServers uint) {
 	println("running function: ", id)
 	start := time.Now()
 	functionName := jobHandler.GetPodName(job, id, jobType)
@@ -104,7 +104,7 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 	for {
 		//'{"ip": "'$2'", "role": "'$3'", "num_workers": '$4', "num_servers": '$5'}'
 		out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
-			functionName, schedulerIp, jobType, strconv.Itoa(numWorkers), strconv.Itoa(numServers), job.ScriptPath)
+			functionName, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath)
 		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 		//println(out.String())
 
@@ -173,13 +173,13 @@ func (jobHandler JobHandler) DeployFunctions(job Job) {
 
 	go jobHandler.DeployChannelFunction(job, 0, finishedChannel, constants.JOB_TYPE_SCHEDULER)
 
-	for i := 0; i < job.NumberOfWorkers; i++ {
+	for i := 0; i < int(job.NumberOfWorkers); i++ {
 		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_WORKER)
 	}
-	for i := 0; i < job.NumberOfServers; i++ {
+	for i := 0; i < int(job.NumberOfServers); i++ {
 		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_SERVER)
 	}
-	for i := 0; i < job.NumberOfServers+job.NumberOfWorkers+1; i++ {
+	for i := 0; i < int(job.NumberOfServers+job.NumberOfWorkers+1); i++ {
 		println("pod with id: ", <-finishedChannel, " deployed")
 	}
 }
@@ -325,14 +325,11 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 			switch deploymentType[maxUtilityJobIndex] {
 			case 'w':
 				workerDeployment[maxUtilityJobIndex]++
-				break
 			case 's':
 				serverDeployment[maxUtilityJobIndex]++
-				break
 			case 'f':
 				workerDeployment[maxUtilityJobIndex]++
 				serverDeployment[maxUtilityJobIndex]++
-				break
 			}
 		}
 	}
@@ -357,12 +354,12 @@ func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, tim
 	return nil
 }
 
-func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, jobType string, numberOf int) {
+func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, jobType string, numberOf uint) {
 	fmt.Printf("deleting all funcitons starting with %s and greater or equal to %d\n", job.JobId + jobType, numberOf)
 	stdout, stderr, err := helperFunctions.ExecuteFunction(
 		constants.DELETE_FUNCTIONS_SUBSTRING_SCRIPT,
 		job.JobId + jobType,
-		strconv.Itoa(numberOf),
+		strconv.Itoa(int(numberOf)),
 	)
 	helperFunctions.FatalErrCheck(err, "deleteNuclioFunctionsInJob: "+ stdout.String()+"\n"+stderr.String())
 }

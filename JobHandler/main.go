@@ -77,11 +77,17 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		// 5. Calculate number of functions we can invoke
 		jobs := []jb.Job{job}
 		maxFuncs := []uint{desiredNumberOfFunctions}
-		workerDeployment, _ := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs)
+		workerDeployment, serverDeployment := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs)
 
 		//numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
 		numberOfFunctionsToDeploy := workerDeployment[0]
-		fmt.Printf("actual number of funcs: %d\n", numberOfFunctionsToDeploy)
+		fmt.Printf("actual number of workers: %d\n", numberOfFunctionsToDeploy)
+
+		numberOfServersToDeploy := serverDeployment[0]
+		fmt.Printf("actual number of servers: %d\n", numberOfServersToDeploy)
+
+		job.NumberOfWorkers = numberOfFunctionsToDeploy
+		job.NumberOfServers = numberOfServersToDeploy
 
 		// delete all excess workers and servers
 		handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_WORKER, job.NumberOfWorkers)
