@@ -57,6 +57,10 @@ def main():
             cumulative_loss += nd.mean(loss).asscalar()
         print("Epoch %s, loss: %s" % (e, cumulative_loss / num_examples))
         loss_sequence.append(cumulative_loss)
+    rank = kv.rank
+    print(
+        "regexpresultstart{\"loss\":" + str(
+            cumulative_loss / num_examples) + ", \"accuracy\":0" + ", \"worker_id\":" + str(rank) + "}regexpresultend")
 
 
 if __name__ == '__main__': main()
