@@ -14,7 +14,6 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-
 	// 1. receive job
 	if len(os.Args) < 2 {
 		log.Fatalf("wrong input, needs arguments <jobPath> and optional <pathToCfg>")
@@ -35,6 +34,11 @@ func main() {
 	jobPath := os.Args[1]
 	job, err := jb.ParseJson(jobPath)
 	helperFunctions.FatalErrCheck(err, "main: ")
+
+	for _,v := range os.Environ() {
+		println(v)
+	}
+	//println(os.Environ())
 
 	//TODO: check add one one
 	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.508112, Epoch: 2})
@@ -123,7 +127,7 @@ func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke 
 	handler.InvokeFunctions(job)
 
 	// print history events and loss estimation function
-	job.LeastSquaresTest()
+	//job.LeastSquaresTest()
 
 	*job.Epoch++
 

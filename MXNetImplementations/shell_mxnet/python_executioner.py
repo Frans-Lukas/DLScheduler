@@ -21,8 +21,7 @@ def start_real_nuclio(script_path: str):
     # return subprocess.check_output(["python", "/opt/nuclio/python_executioner.py"], env=os.environ)
     # "/DLScheduler/MXNetImplementations/LeNet/MXNet/main.py"
     try:
-        out = subprocess.check_output(["python", script_path], env=os.environ)
-        return "gooooooooooooooooot soooooooooooooooooome coooooooooooooooool output " + out
+        return subprocess.check_output(["python", script_path], env=os.environ)
     except subprocess.CalledProcessError as e:
         return e.output
 
