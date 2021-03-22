@@ -22,8 +22,8 @@ type Job struct {
 	FunctionChannel       *chan string
 	AverageFunctionCost   float64
 	NumberOfFunctionsUsed uint
-	NumberOfWorkers       int
-	NumberOfServers       int
+	NumberOfWorkers       uint
+	NumberOfServers       uint
 	SchedulerIp           *string
 	History               *[]HistoryEvent
 	MarginalUtilityFunc   *[]float64
@@ -82,6 +82,8 @@ func (job Job) budgetSurpassed() bool {
 func (job Job) lossReached() bool {
 	lossReached := !job.historyIsEmpty() && (*job.History)[len(*job.History)-1].Loss <= job.TargetLoss
 	if lossReached {
+		println("target loss: ", job.TargetLoss)
+		println("latest loss: ", (*job.History)[len(*job.History)-1].Loss)
 		println("loss reached for job: ", job.JobId)
 	}
 	return lossReached
@@ -94,7 +96,7 @@ func (job Job) historyIsEmpty() bool {
 
 func (job Job) CalculateNumberOfFunctions() uint {
 	if job.historyIsEmpty() {
-		return 1
+		return 2
 	}
 
 	epochsTillConvergence := job.CalculateEpochsTillConvergence()
@@ -162,8 +164,8 @@ func (job Job) UpdateMarginalUtilityFunc() {
 }
 
 //TODO has not been checked if it works
-func (job Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, maxWorkers uint) float64 {
-	if numWorkers > maxWorkers {
+func (job Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, maxFunctions uint) float64 {
+	if numWorkers + numServers > maxFunctions {
 		return -1
 	}
 

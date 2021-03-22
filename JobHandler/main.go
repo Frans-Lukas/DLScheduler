@@ -77,15 +77,20 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		// 5. Calculate number of functions we can invoke
 		jobs := []jb.Job{job}
 		maxFuncs := []uint{desiredNumberOfFunctions}
-		workerDeployment, _ := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs)
+		workerDeployment, serverDeployment := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs)
 
 		//numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
 		numberOfFunctionsToDeploy := workerDeployment[0]
-		fmt.Printf("actual number of funcs: %d\n", numberOfFunctionsToDeploy)
+		fmt.Printf("actual number of workers: %d\n", numberOfFunctionsToDeploy)
 
-		// delete all excess workers and servers
-		handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_WORKER, job.NumberOfWorkers)
-		handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_SERVER, job.NumberOfServers)
+		numberOfServersToDeploy := serverDeployment[0]
+		fmt.Printf("actual number of servers: %d\n", numberOfServersToDeploy)
+
+		job.NumberOfWorkers = numberOfFunctionsToDeploy
+		job.NumberOfServers = numberOfServersToDeploy
+
+		deleteExcessWorkers(handler, job)
+		deleteExcessParameterServers(handler, job)
 
 		// redploy all workers and servers, if they exist, they are kept and not redeployed.
 		handler.DeployFunctions(job)
@@ -100,6 +105,14 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		//handler.DeleteNuclioFunctionsInJob(job)
 		//if we do not include epoch in pod name we will have to wait for them to delete
 	}
+}
+
+func deleteExcessWorkers(handler jb.JobHandler, job jb.Job) {
+	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_WORKER, job.NumberOfWorkers)
+}
+
+func deleteExcessParameterServers(handler jb.JobHandler, job jb.Job) {
+	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_SERVER, job.NumberOfServers)
 }
 
 func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke uint) {
