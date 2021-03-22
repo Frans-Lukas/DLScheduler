@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jobHandler/constants"
 	"math"
+	"os"
 	"regexp"
 	"strconv"
 )
@@ -209,7 +210,11 @@ func Python3DParabolaLeastSquares(xs []float64, ys []float64, hs []float64, init
 
 	fmt.Printf("xstring: %s, ystring: %s, hstring: %s, guess: %s\n", xString, yString, hString, guess)
 
-	out, stderr, err := ExecuteFunction(constants.PYTHON, constants.PYTHON_LEAST_SQUARES, xString, yString, hString, guess)
+	if os.Getenv(constants.PY_PATH_ENV_NAME) == "" {
+		FatalErrCheck(errors.New(constants.PY_PATH_ENV_NAME + " not set"), "get py path")
+	}
+	
+	out, stderr, err := ExecuteFunction(os.Getenv(constants.PY_PATH_ENV_NAME), constants.PYTHON_LEAST_SQUARES, xString, yString, hString, guess)
 
 	FatalErrCheck(err, "Python3DParabolaLeastSquares: " + stderr.String())
 
