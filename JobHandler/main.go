@@ -120,7 +120,7 @@ func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke 
 
 	epochStartTime := time.Now()
 
-	handler.InvokeFunctions(job, int(numberOfFunctionsToInvoke))
+	handler.InvokeFunctions(job)
 
 	// print history events and loss estimation function
 	job.LeastSquaresTest()

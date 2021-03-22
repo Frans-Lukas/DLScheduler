@@ -25,7 +25,7 @@ spec:
     - name: HADOOP_USER_NAME
       value: franslukas
   build:
-    noCache: true
+    #    noCache: true
     commands:
       - echo "[global]" >> /tmp/.hdfscli.cfg
       - echo "default.alias = dev" >> /tmp/.hdfscli.cfg

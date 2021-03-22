@@ -63,7 +63,7 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 //	println("completed aggregation")
 //}
 
-func (jobHandler JobHandler) InvokeFunctions(job Job, numberOfFunctionsToInvoke int) {
+func (jobHandler JobHandler) InvokeFunctions(job Job) {
 	var wg sync.WaitGroup
 	numWorkers := job.NumberOfWorkers
 	numServers := job.NumberOfServers
@@ -96,7 +96,7 @@ func (jobHandler JobHandler) InvokeWGFunction(job Job, id int, epoch int, jobTyp
 }
 
 func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType string, numWorkers uint, numServers uint) {
-	println("running function: ", id)
+	println("running function: ", jobHandler.GetPodName(job, id, jobType))
 	start := time.Now()
 	functionName := jobHandler.GetPodName(job, id, jobType)
 	schedulerIp := *job.SchedulerIp
