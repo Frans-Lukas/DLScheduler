@@ -1,8 +1,23 @@
+import os
+import re
+import sys
+from random import randint
+
+import mxnet
+import mxnet as mx
+import mxnet.autograd as ag
+import mxnet.metric
 import mxnet.ndarray as F
+from hdfs import Config, Client
 from mxnet import gluon
 from mxnet.gluon import nn
-import mxnet.autograd as ag
-import mxnet as mx
+from mxnet.test_utils import get_mnist_iterator
+
+MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
+
+NODE_ID = 'node_id'
+HDFS_CONNECTION = 'hdfs_connection'
+INT_MAX = sys.maxsize
 
 
 class Net(gluon.Block):
@@ -30,23 +45,81 @@ class Net(gluon.Block):
 
 
 def main():
-    print("hello,world")
+    # os.environ["DMLC_ROLE"] = sys.argv[1]
+    start_lenet(Config().get_client('dev'))
 
+
+def start_lenet(client: Client):
+    kv = mxnet.kv.create('dist_async')
     mx.random.seed(42)
-
-    mnist = mx.test_utils.get_mnist()
-
     batch_size = 100
-    train_data = mx.io.NDArrayIter(mnist['train_data'], mnist['train_label'], batch_size, shuffle=True)
-    val_data = mx.io.NDArrayIter(mnist['test_data'], mnist['test_label'], batch_size)
-
+    train_data, val_data = get_mnist_iterator(batch_size, (1, 28, 28), num_parts=kv.num_workers, part_index=kv.rank)
     net = Net()
+    net = load_model(net, client)
     ctx = [mx.gpu() if mx.test_utils.list_gpus() else mx.cpu()]
     net.initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
-    trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.03})
+    trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.03}, kvstore=kv)
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
-    epoch = 10
+    epoch = 1
+    loss, accuracy = train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer)
+
+    save_model_to_hdfs(net, client)
+    print("printing works!")
+    print(accuracy)
+    loss = re.search('\[(.*)\]', str(loss)).group(1)
+    print(
+        "regexpresultstart{\"loss\":" + loss + ", \"accuracy\":" + str(accuracy) + ", \"worker_id\":0}regexpresultend")
+
+
+def load_model_from_hdfs(client: Client):
+    files = client.list('models')
+    models = list()
+    for file in files:
+        client.download('models/' + file, MODEL_WEIGHTS_PATH, overwrite=True)
+    # with client.read('models/' + file) as reader:
+    # models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
+    return models
+
+
+def load_model(net: Net, client: Client):
+    load_model_from_hdfs(client)
+    if os.path.isfile(MODEL_WEIGHTS_PATH):
+        net.load_params(MODEL_WEIGHTS_PATH)
+    return net
+
+
+def save_model_to_hdfs(net: Net, client: Client, node_id="0", name=""):
+    net.save_params(MODEL_WEIGHTS_PATH)
+    if os.path.exists(MODEL_WEIGHTS_PATH):
+        if name == "":
+            name = 'weights-' + str(node_id) + '.json'
+        print("saving trained model to hdfs: " + name)
+        try:
+            with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('models/' + name, overwrite=True) as writer:
+                writer.write(model.read())
+        except:
+            exit(-1)
+
+
+def init_context(context):
+    setattr(context.user_data, HDFS_CONNECTION, Config().get_client('dev'))
+    setattr(context.user_data, NODE_ID, randint(1, INT_MAX))
+
+
+def start_from_nuclio(context, event):
+    context.logger.info_with('Got invoked',
+                             trigger_kind=event.trigger.kind,
+                             event_body=event.body)
+    os.environ["DMLC_ROLE"] = "worker"
+    client = getattr(context.user_data, HDFS_CONNECTION)
+    acc = start_lenet(client)
+    return "training successful, acc: " + str(acc)
+
+
+def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer):
+    loss = any
+    accuracy = any
     for i in range(epoch):
         # Reset the train data iterator.
         train_data.reset()
@@ -74,11 +147,11 @@ def main():
             # batch size of data to normalize the gradient by 1/batch_size.
             trainer.step(batch.data[0].shape[0])
         # Gets the evaluation result.
-        name, acc = metric.get()
+        name, accuracy = metric.get()
         # Reset evaluation result to initial state.
         metric.reset()
-        print('training acc at epoch %d: %s=%f' % (i, name, acc))
-    evaluate(ctx, net, val_data)
+    loss = loss.mean()
+    return loss, accuracy
 
 
 def evaluate(ctx, net, val_data):
@@ -100,7 +173,7 @@ def evaluate(ctx, net, val_data):
         # Updates internal evaluation
         metric.update(label, outputs)
     print('validation acc: %s=%f' % metric.get())
-    # assert metric.get()[1] > 0.98
+    return metric.get()
 
 
 if __name__ == '__main__': main()

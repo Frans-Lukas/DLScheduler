@@ -1,6 +1,0 @@
-pillow
-keras
-dload
-numpy
-tensorflow
-hdfs
