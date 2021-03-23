@@ -42,9 +42,9 @@ func ParseJson(jsonPath string) (Job, error) {
 
 	ipString := ""
 
-	history := make([]HistoryEvent, 1)
+	history := make([]HistoryEvent, 0)
 	marginalUtilityFunc := make([]float64, 1)
-	history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
+	//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
 	epoch := 2
 	tmpChan := make(chan string)
 	job.FunctionChannel = &tmpChan
@@ -108,6 +108,9 @@ func (job Job) CalculateNumberOfFunctions() uint {
 	functions := job.functionsForNextEpoch(maxFunctions, epochsTillConvergence)
 	fmt.Printf("functions: %d\n", functions)
 
+	if functions < 2 {
+		return 2
+	}
 	return functions
 }
 
@@ -159,7 +162,7 @@ func (job Job) UpdateMarginalUtilityFunc() {
 		previousEstimation = []float64{0, 0, 1, 2}
 	}
 
-	*job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation) //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
+	*job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation, "marginalUtil") //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
 	fmt.Printf("y = %f + %fx", (*job.MarginalUtilityFunc)[0], (*job.MarginalUtilityFunc)[1])
 }
 
@@ -191,10 +194,15 @@ func (job Job) CalculateEpochsTillConvergence() uint {
 		y = append(y, historyEvent.Loss)
 	}
 
-	function := helperFunctions.HyperbolaLeastSquares(x, y)
+	startingGuess := []float64{1, 1, 1}
 
-	convergenceEpoch := helperFunctions.EstimateXValueInHyperbolaFunction(job.TargetLoss, function)
+	function := helperFunctions.Python3DParabolaLeastSquares(x, y, make([]float64, 1), startingGuess, "convergence")
 
+	convergenceEpoch := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, function)
+
+	println(int(math.Ceil(convergenceEpoch)))
+	println(int(math.Ceil(convergenceEpoch)) - *job.Epoch)
+	println(uint(int(math.Ceil(convergenceEpoch)) - *job.Epoch))
 	return uint(int(math.Ceil(convergenceEpoch)) - *job.Epoch) //TODO should we have some sort of "optimism" deterrent (ex. multiply by 1.1)
 }
 

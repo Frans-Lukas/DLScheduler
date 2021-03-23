@@ -167,56 +167,24 @@ func PolynomialLeastSquares(x []float64, y []float64) []float64 {
 }
 
 //example input []float64{-1., -0.89473684, -0.78947368, -0.68421053, -0.57894737, -0.47368421, -0.36842105, -0.26315789, -0.15789474, -0.05263158, 0.05263158, 0.15789474, 0.26315789, 0.36842105, 0.47368421, 0.57894737, 0.68421053, 0.78947368, 0.89473684, 1.}, []float64{-1., -0.89473684, -0.78947368, -0.68421053, -0.57894737, -0.47368421, -0.36842105, -0.26315789, -0.15789474, -0.05263158, 0.05263158, 0.15789474, 0.26315789, 0.36842105, 0.47368421, 0.57894737, 0.68421053, 0.78947368, 0.89473684, 1.}, []float64{2.655, 2.09876731, 1.60901662, 1.18574792, 0.82896122, 0.53865651, 0.3148338, 0.15749307, 0.06663435, 0.04225762, 0.08436288, 0.19295014, 0.36801939, 0.60957064, 0.91760388, 1.29211911, 1.73311634, 2.24059557, 2.81455679, 3.455}, []float64{0, 0, 1, 2}
-func Python3DParabolaLeastSquares(xs []float64, ys []float64, hs []float64, initialGuess []float64) []float64 {
-	var xString string
-	for _, x := range xs {
-		tmp := fmt.Sprintf("%f", x)
-		if len(xString) == 0 {
-			xString = tmp
-		} else {
-			xString = xString + " " + tmp
-		}
-	}
+func Python3DParabolaLeastSquares(xs []float64, ys []float64, hs []float64, initialGuess []float64, functionType string) []float64 {
+	xString := preparePythonString(xs)
 
-	var yString string
-	for _, y := range ys {
-		tmp := fmt.Sprintf("%f", y)
-		if len(yString) == 0 {
-			yString = tmp
-		} else {
-			yString = yString + " " + tmp
-		}
-	}
+	yString := preparePythonString(ys)
 
-	var hString string
-	for _, h := range hs {
-		tmp := fmt.Sprintf("%f", h)
-		if len(hString) == 0 {
-			hString = tmp
-		} else {
-			hString = hString + " " + tmp
-		}
-	}
+	hString := preparePythonString(hs)
 
-	var guess string
-	for _, g := range initialGuess {
-		tmp := fmt.Sprintf("%f", g)
-		if len(guess) == 0 {
-			guess = tmp
-		} else {
-			guess = guess + " " + tmp
-		}
-	}
+	guess := preparePythonString(initialGuess)
 
 	fmt.Printf("xstring: %s, ystring: %s, hstring: %s, guess: %s\n", xString, yString, hString, guess)
 
 	if os.Getenv(constants.PY_PATH_ENV_NAME) == "" {
-		FatalErrCheck(errors.New(constants.PY_PATH_ENV_NAME + " not set"), "get py path")
+		FatalErrCheck(errors.New(constants.PY_PATH_ENV_NAME+" not set"), "get py path")
 	}
-	
-	out, stderr, err := ExecuteFunction(os.Getenv(constants.PY_PATH_ENV_NAME), constants.PYTHON_LEAST_SQUARES, xString, yString, hString, guess)
 
-	FatalErrCheck(err, "Python3DParabolaLeastSquares: " + stderr.String())
+	out, stderr, err := ExecuteFunction(os.Getenv(constants.PY_PATH_ENV_NAME), constants.PYTHON_LEAST_SQUARES, functionType, xString, yString, hString, guess)
+
+	FatalErrCheck(err, "Python3DParabolaLeastSquares: "+stderr.String())
 
 	outString := out.String()
 
@@ -240,13 +208,30 @@ func Python3DParabolaLeastSquares(xs []float64, ys []float64, hs []float64, init
 		}
 	}
 
-	if currPos != 4 {
-		FatalErrCheck(errors.New("too few variables returned, need 4 got: " + outString), "Python3DParabolaLeastSquares: ")
-	}
-
 	return output
+}
+
+func preparePythonString(variables []float64) string {
+	var pythonString string
+	for _, g := range variables {
+		tmp := fmt.Sprintf("%f", g)
+		if len(pythonString) == 0 {
+			pythonString = tmp
+		} else {
+			pythonString = pythonString + " " + tmp
+		}
+	}
+	return pythonString
 }
 
 func Python3DParabolaLeastSquaresEstimateH(x float64, y float64, f []float64) float64 {
 	return f[2] * math.Pow(x - f[0], 2) + f[3] * math.Pow(y - f[1], 2)
+}
+
+func PythonParabolicLeastSquaresEstimateY(x float64, f []float64) float64 {
+	return 1 / (f[0] * x + f[1]) + f[2]
+}
+
+func PythonParabolicLeastSquaresEstimateX(y float64, f []float64) float64 {
+	return (1 / (y - f[2]) - f[1]) / f[0]
 }

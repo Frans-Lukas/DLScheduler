@@ -140,7 +140,7 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 			NumWorkers: uint(numWorkers),
 			NumServers: uint(numServers),
 			WorkerId:   response.WorkerId,
-			Loss:       response.Loss,
+			Loss:       response.Loss * 2 / float64(epoch),
 			Accuracy:   response.Accuracy,
 			Time:       time.Since(start).Seconds(),
 			Epoch:      epoch,
