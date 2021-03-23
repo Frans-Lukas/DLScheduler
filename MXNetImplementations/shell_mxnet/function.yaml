@@ -25,12 +25,15 @@ spec:
     - name: HADOOP_USER_NAME
       value: franslukas
   build:
-    noCache: true
+    #    noCache: true
     commands:
       - echo "[global]" >> /tmp/.hdfscli.cfg
       - echo "default.alias = dev" >> /tmp/.hdfscli.cfg
       - echo "[dev.alias]" >> /tmp/.hdfscli.cfg
       - echo "url = http://192.168.10.205:9870" >> /tmp/.hdfscli.cfg
       - echo "user = franslukas" >> /tmp/.hdfscli.cfg
+      - rm -rf DLScheduler
       - git clone https://github.com/Frans-Lukas/DLScheduler.git
+      - apt-get update
+      - apt-get -y install libopenblas-dev
       - "pip install mxnet pillow keras dload numpy tensorflow hdfs"

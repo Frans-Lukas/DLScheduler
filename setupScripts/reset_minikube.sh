@@ -8,3 +8,4 @@ kubectl apply -f https://raw.githubusercontent.com/nuclio/nuclio/master/hack/k8s
 kubectl apply -f https://raw.githubusercontent.com/nuclio/nuclio/master/hack/k8s/resources/nuclio.yaml
 sleep 5
 kubectl get pods --namespace nuclio
+minikube addons enable metrics-server

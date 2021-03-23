@@ -19,7 +19,7 @@ def start_from_nuclio(context, event):
 def start_real_nuclio(script_path: str):
     # python /DLScheduler/MXNetImplementations/LeNet/MXNet/main.py input_args
     # return subprocess.check_output(["python", "/opt/nuclio/python_executioner.py"], env=os.environ)
-    #"/DLScheduler/MXNetImplementations/LeNet/MXNet/main.py"
+    # "/DLScheduler/MXNetImplementations/LeNet/MXNet/main.py"
     try:
         return subprocess.check_output(["python", script_path], env=os.environ)
     except subprocess.CalledProcessError as e:
@@ -27,4 +27,5 @@ def start_real_nuclio(script_path: str):
 
 
 if __name__ == '__main__':
-    print("teeest")
+    script_path = "../Simple/main.py"
+    print(subprocess.check_output(["python3", script_path], env=os.environ))
