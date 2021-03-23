@@ -26,6 +26,7 @@ type JobHandler struct {
 	ClientSet        *kubernetes.Clientset
 	InstancesPerJob  *map[string]uint
 	MetricsClientSet *metricsv.Clientset
+	cm               *helperFunctions.ClusterManager
 }
 
 func CreateJobHandler(pthToCfg string) JobHandler {
@@ -38,6 +39,11 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 	println("handler ClientSet: ", handler.ClientSet)
 
 	helperFunctions.FatalErrCheck(err, "CreateJobHandler: ")
+
+	//TODO these numbers are nonsense
+	cm := helperFunctions.CreateClusterManager(handler.ClientSet, handler.MetricsClientSet, 2, 5)
+	handler.cm = &cm
+	handler.cm.UpdateClusterInfo()
 
 	return handler
 }
@@ -281,8 +287,13 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 		job.UpdateMarginalUtilityFunc()
 	}
 
+	JobHandler.cm.UpdateClusterInfo()
+
 	workerDeployment := make([]uint, len(jobs))
 	serverDeployment := make([]uint, len(jobs))
+
+	workerDeploymentTotal := uint(0)
+	serverDeploymentTotal := uint(0)
 
 	deploymentFinished := false
 
@@ -290,15 +301,28 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 		marginalUtilities := make([]float64, len(jobs))
 		deploymentType    := make([]byte, len(jobs))
 
+		roomForServer := JobHandler.cm.CheckDeploymentValidity(workerDeploymentTotal, serverDeploymentTotal + 1)
+		roomForWorker := JobHandler.cm.CheckDeploymentValidity(workerDeploymentTotal + 1, serverDeploymentTotal)
+
 		for i, job := range jobs {
-			// so that no deployment has 1 worker and 0 servers, or 0 servers and 1 worker
 			if workerDeployment[i] == 0 {
-				utility := job.MarginalUtilityCheck(1, 1, 0, 0, maxFunctions[i])
+				utility := -1.0
+				// so that no deployment has 1 worker and 0 servers, or 0 servers and 1 worker
+				if roomForServer && roomForWorker {
+					utility = job.MarginalUtilityCheck(1, 1, 0, 0, maxFunctions[i])
+				}
 				marginalUtilities[i] = utility
 				deploymentType[i]    = 'f'
 			} else {
-				workerUtility := job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], maxFunctions[i])
-				serverUtility := job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], maxFunctions[i])
+				workerUtility := -1.0
+				if roomForWorker {
+					workerUtility = job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], maxFunctions[i])
+				}
+
+				serverUtility := -1.0
+				if roomForServer {
+					serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], maxFunctions[i])
+				}
 
 				if workerUtility >= serverUtility {
 					marginalUtilities[i] = workerUtility
@@ -325,11 +349,15 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 			switch deploymentType[maxUtilityJobIndex] {
 			case 'w':
 				workerDeployment[maxUtilityJobIndex]++
+				workerDeploymentTotal++
 			case 's':
 				serverDeployment[maxUtilityJobIndex]++
+				serverDeploymentTotal++
 			case 'f':
 				workerDeployment[maxUtilityJobIndex]++
+				workerDeploymentTotal++
 				serverDeployment[maxUtilityJobIndex]++
+				serverDeploymentTotal++
 			}
 		}
 	}
