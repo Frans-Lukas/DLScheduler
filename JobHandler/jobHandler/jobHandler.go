@@ -41,7 +41,7 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 	helperFunctions.FatalErrCheck(err, "CreateJobHandler: ")
 
 	//TODO these numbers are nonsense
-	cm := helperFunctions.CreateClusterManager(handler.ClientSet, handler.MetricsClientSet, 2, 5)
+	cm := helperFunctions.CreateClusterManager(handler.ClientSet, handler.MetricsClientSet, constants.MAX_SERVERS_PER_NODE, constants.MAX_WORKERS_PER_NODE)
 	handler.cm = &cm
 	handler.cm.UpdateClusterInfo()
 
