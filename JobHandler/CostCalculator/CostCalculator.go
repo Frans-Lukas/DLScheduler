@@ -76,26 +76,14 @@ func getGPUCostOfPod() float64 {
 }
 
 func getCPUCostOfPod(pod v1beta1.PodMetrics) float64 {
-	totalCPUUsed := float64(0)
-	for _, container := range pod.Containers {
-		for metric, value := range container.Usage {
-			if metric == "cpu" {
-				val := value.AsApproximateFloat64()
-				totalCPUUsed += val
-			}
-		}
-	}
-	println("  CPUCost: ", totalCPUUsed *CPUCost)
+	totalCPUUsed := PodCpuUsage(pod)
+	println("  CPUCost: ", totalCPUUsed*CPUCost)
 	return (totalCPUUsed) * CPUCost
 }
 
 func getMemoryCostOfPod(pod v12.Pod) float64 {
-	totalMemoryAllocated := float64(0)
-	for _, container := range pod.Spec.Containers {
-		// TODO decide if we should go by 'limit' or 'request'
-		totalMemoryAllocated += container.Resources.Limits.Memory().AsApproximateFloat64()
-	}
-	println("  memoryCost: ", totalMemoryAllocated *memoryCost)
+	totalMemoryAllocated := PodMemoryUsage(pod)
+	println("  memoryCost: ", totalMemoryAllocated*memoryCost)
 	return totalMemoryAllocated * memoryCost
 }
 
