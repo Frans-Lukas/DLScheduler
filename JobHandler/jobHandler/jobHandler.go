@@ -71,27 +71,35 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 
 func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 	var wg sync.WaitGroup
-	numWorkers := job.NumberOfWorkers
-	numServers := job.NumberOfServers
+	numWorkers := job.GetNumberOfWorkers()
+	numServers := job.GetNumberOfServers()
+
+	if numWorkers == 0 && numServers == 0 {
+		println("No worker or servers for job: ", job.JobId)
+		return
+	}
+
 	//invoke scheduler
 	wg.Add(1)
 	functionName := jobHandler.GetPodName(job, 0, constants.JOB_TYPE_SCHEDULER)
 	job.PodNames[functionName] = false
 	go jobHandler.InvokeWGFunction(job, 0, *job.Epoch, constants.JOB_TYPE_SCHEDULER, numWorkers, numServers, &wg)
-	for i := 0; i < int(job.NumberOfServers); i++ {
+	for i := 0; i < int(numServers); i++ {
 		//invoke servers
 		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_SERVER)
 		job.PodNames[functionName] = false
 		wg.Add(1)
 		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_SERVER, numWorkers, numServers,  &wg)
 	}
+
 	//invoke workers
-	for i := 0; i < int(job.NumberOfWorkers); i++ {
+	for i := 0; i < int(numWorkers); i++ {
 		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_WORKER)
 		job.PodNames[functionName] = false
 		wg.Add(1)
 		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_WORKER, numWorkers, numServers,  &wg)
 	}
+
 	//wait for all to complete
 	wg.Wait()
 	println("test")
@@ -178,15 +186,22 @@ func (jobHandler JobHandler) DeployFunctions(job *Job) {
 	// deploy y servers
 	finishedChannel := make(chan string)
 
+	numServers := job.GetNumberOfServers()
+	numWorkers := job.GetNumberOfWorkers()
+
+	if numServers == 0 && numWorkers == 0 {
+		return // so that the scheduler isnt deployed
+	}
+
 	go jobHandler.DeployChannelFunction(job, 0, finishedChannel, constants.JOB_TYPE_SCHEDULER)
 
-	for i := 0; i < int(job.NumberOfWorkers); i++ {
+	for i := 0; i < int(numWorkers); i++ {
 		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_WORKER)
 	}
-	for i := 0; i < int(job.NumberOfServers); i++ {
+	for i := 0; i < int(numServers); i++ {
 		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_SERVER)
 	}
-	for i := 0; i < int(job.NumberOfServers+job.NumberOfWorkers+1); i++ {
+	for i := 0; i < int(numServers+numWorkers+1); i++ {
 		println("pod with id: ", <-finishedChannel, " deployed")
 	}
 }
@@ -279,7 +294,7 @@ func (jobHandler JobHandler) DeployableNumberOfFunctions(job Job, desiredNumberO
 	}
 }
 
-func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job, maxFunctions []uint) ([]uint, []uint) {
+func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job, maxFunctions []uint, outsideWorkers uint, outsideServers uint) ([]uint, []uint) {
 	if len(jobs) != len(maxFunctions) {
 		log.Fatalf("GetDeploymentWithHighestMarginalUtility: len(jobs) != len(maxFunctions)")
 	}
@@ -293,8 +308,9 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 	workerDeployment := make([]uint, len(jobs))
 	serverDeployment := make([]uint, len(jobs))
 
-	workerDeploymentTotal := uint(0)
-	serverDeploymentTotal := uint(0)
+	// So that we take into account already existing workers/servers
+	workerDeploymentTotal := outsideWorkers
+	serverDeploymentTotal := outsideServers
 
 	deploymentFinished := false
 

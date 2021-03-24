@@ -78,12 +78,16 @@ func LinearLeastSquares(x []float64, y []float64) []float64 {
 	return res
 }
 
-func EstimateYValueInFunction(x float64, f []float64) float64 {
+func EstimateYValueInFunction(x float64, f []float64) (float64, error) {
+	if len(f) == 0 {
+		return -1, errors.New("empty function")
+	}
+
 	res := 0.0
 	for i := 0; i < len(f); i++ {
 		res += f[i] * math.Pow(x, float64(i))
 	}
-	return res
+	return res, nil
 }
 
 func PolynomialLeastSquares(x []float64, y []float64) []float64 {
@@ -224,14 +228,23 @@ func preparePythonString(variables []float64) string {
 	return pythonString
 }
 
-func Python3DParabolaLeastSquaresEstimateH(x float64, y float64, f []float64) float64 {
-	return f[2] * math.Pow(x - f[0], 2) + f[3] * math.Pow(y - f[1], 2)
+func Python3DParabolaLeastSquaresEstimateH(x float64, y float64, f []float64) (float64, error) {
+	if len(f) == 0 {
+		return -1, errors.New("empty function")
+	}
+	return f[2]*math.Pow(x-f[0], 2) + f[3]*math.Pow(y-f[1], 2), nil
 }
 
-func PythonParabolicLeastSquaresEstimateY(x float64, f []float64) float64 {
-	return 1 / (f[0] * x + f[1]) + f[2]
+func PythonParabolicLeastSquaresEstimateY(x float64, f []float64) (float64, error) {
+	if len(f) == 0 {
+		return -1, errors.New("empty function")
+	}
+	return 1/(f[0]*x+f[1]) + f[2], nil
 }
 
-func PythonParabolicLeastSquaresEstimateX(y float64, f []float64) float64 {
-	return (1 / (y - f[2]) - f[1]) / f[0]
+func PythonParabolicLeastSquaresEstimateX(y float64, f []float64) (float64, error) {
+	if len(f) == 0 {
+		return -1, errors.New("empty function")
+	}
+	return (1/(y-f[2]) - f[1]) / f[0], nil
 }

@@ -80,19 +80,22 @@ func trainUntilConvergence(handler jb.JobHandler, jobs []*jb.Job) {
 
 	for !allJobsDone {
 		jobsReadyForDeployment := make([]*jb.Job, 0)
+		outsideServers := uint(0)
+		outsideWorkers := uint(0)
 
 		allJobsDone = true
 		for _, job := range jobs {
 			if !job.CheckIsTraining() {
 				job.UpdateIsTraining(true)
 				jobsReadyForDeployment = append(jobsReadyForDeployment, job)
-			} else if job.IsDone() {
-
+			} else {
+				outsideServers += job.GetNumberOfServers()
+				outsideWorkers += job.GetNumberOfWorkers()
 			}
 		}
 
 		if len(jobsReadyForDeployment) > 0 {
-			trainOneEpoch(handler, jobs)
+			trainOneEpoch(handler, jobs, outsideWorkers, outsideServers)
 		}
 
 		allJobsDone = true
@@ -106,7 +109,7 @@ func trainUntilConvergence(handler jb.JobHandler, jobs []*jb.Job) {
 	}
 }
 
-func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job) {
+func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job, outsideWorkers uint, outsideServers uint) {
 
 	maxFuncs := make([]uint, len(jobs))
 	for i, job := range jobs {
@@ -117,7 +120,7 @@ func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job) {
 	}
 
 	// 5. Calculate number of functions we can invoke
-	workerDeployment, serverDeployment := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs)
+	workerDeployment, serverDeployment := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs, outsideWorkers, outsideServers)
 
 	for i, job := range jobs {
 		//numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
@@ -127,20 +130,20 @@ func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job) {
 		numberOfServersToDeploy := serverDeployment[i]
 		fmt.Printf("actual number of servers: %d\n", numberOfServersToDeploy)
 
-		job.NumberOfWorkers = numberOfFunctionsToDeploy
-		job.NumberOfServers = numberOfServersToDeploy
+		job.SetNumberOfWorkers(numberOfFunctionsToDeploy)
+		job.SetNumberOfServers(numberOfServersToDeploy)
 
 		deleteExcessWorkers(handler, job)
 		deleteExcessParameterServers(handler, job)
 	}
 
 	for _, job := range jobs {
-		// redploy all workers and servers, if they exist, they are kept and not redeployed.
+		// redploy all outsideWorkers and servers, if they exist, they are kept and not redeployed.
 		handler.DeployFunctions(job)
 	}
 
-	for i, job := range jobs {
-		go waitAndExecuteEpochTraining(handler, job, workerDeployment, i)
+	for _, job := range jobs {
+		go waitAndExecuteEpochTraining(handler, job)
 	}
 
 	// TODO check if this works
@@ -148,25 +151,25 @@ func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job) {
 	//if we do not include epoch in pod name we will have to wait for them to delete
 }
 
-func waitAndExecuteEpochTraining(handler jb.JobHandler, job *jb.Job, workerDeployment []uint, i int) {
+func waitAndExecuteEpochTraining(handler jb.JobHandler, job *jb.Job) {
 	// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
 	err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
+	helperFunctions.NonFatalErrCheck(err, "waitForAllWorkerPods")
 
-	executeTrainingOfOneEpoch(handler, job, workerDeployment[i])
+	executeTrainingOfOneEpoch(handler, job)
 
 	job.UpdateIsTraining(false)
 }
 
 func deleteExcessWorkers(handler jb.JobHandler, job *jb.Job) {
-	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_WORKER, job.NumberOfWorkers)
+	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_WORKER, job.GetNumberOfWorkers())
 }
 
 func deleteExcessParameterServers(handler jb.JobHandler, job *jb.Job) {
-	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_SERVER, job.NumberOfServers)
+	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_SERVER, job.GetNumberOfServers())
 }
 
-func executeTrainingOfOneEpoch(handler jb.JobHandler, job *jb.Job, numberOfFunctionsToInvoke uint) {
+func executeTrainingOfOneEpoch(handler jb.JobHandler, job *jb.Job) {
 	println("invoking functions")
 
 	epochStartTime := time.Now()

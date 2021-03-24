@@ -23,8 +23,10 @@ type Job struct {
 	FunctionChannel       *chan string
 	AverageFunctionCost   float64
 	NumberOfFunctionsUsed uint
-	NumberOfWorkers       uint
-	NumberOfServers       uint
+	workersMutex          sync.Mutex
+	numberOfWorkers       uint
+	serversMutex          sync.Mutex
+	numberOfServers       uint
 	SchedulerIp           *string
 	History               *[]HistoryEvent
 	MarginalUtilityFunc   *[]float64
@@ -57,8 +59,8 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		job.PodNames = make(map[string]bool, 0)
 		job.History = &history
 		job.Epoch = &epoch
-		job.NumberOfWorkers = 1
-		job.NumberOfServers = 1
+		job.numberOfWorkers = 1
+		job.numberOfServers = 1
 		job.SchedulerIp = &ipString
 		job.MarginalUtilityFunc = &marginalUtilityFunc
 		job.isTraining = false
@@ -185,9 +187,13 @@ func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorker
 	if len(*job.MarginalUtilityFunc) == 0 {
 		job.UpdateMarginalUtilityFunc()
 	}
-	oldStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), *job.MarginalUtilityFunc)
+	oldStepsPerSec, err := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), *job.MarginalUtilityFunc)
 
-	newStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(numWorkers), float64(numServers), *job.MarginalUtilityFunc)
+	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck")
+
+	newStepsPerSec, err := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(numWorkers), float64(numServers), *job.MarginalUtilityFunc)
+
+	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck")
 
 	return newStepsPerSec - oldStepsPerSec
 }
@@ -204,7 +210,9 @@ func (job *Job) CalculateEpochsTillConvergence() uint {
 
 	function := helperFunctions.Python3DParabolaLeastSquares(x, y, make([]float64, 1), startingGuess, "convergence")
 
-	convergenceEpoch := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, function)
+	convergenceEpoch, err := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, function)
+
+	helperFunctions.FatalErrCheck(err, "CalculateEpochsTillConvergence: ")
 
 	println(int(math.Ceil(convergenceEpoch)))
 	println(int(math.Ceil(convergenceEpoch)) - *job.Epoch)
@@ -233,6 +241,10 @@ func (job *Job) functionsForNextEpoch(functions uint, epochs uint) uint {
 }
 
 func (job *Job) UpdateAverageFunctionCost(cost float64) {
+	if len(*job.History) == 0 {
+		return
+	}
+
 	job.AverageFunctionCost = ((job.AverageFunctionCost * float64(job.NumberOfFunctionsUsed)) + cost) / float64(job.NumberOfFunctionsUsed+(*job.History)[len(*job.History)-1].NumWorkers)
 }
 
@@ -248,5 +260,35 @@ func (job *Job) CheckIsTraining() bool {
 	defer job.isTrainingMutex.Unlock()
 
 	res := job.isTraining
+	return res
+}
+
+func (job *Job) SetNumberOfServers(numberOfServers uint) {
+	job.serversMutex.Lock()
+	defer job.serversMutex.Unlock()
+
+	job.numberOfServers = numberOfServers
+}
+
+func (job *Job) GetNumberOfServers() uint {
+	job.serversMutex.Lock()
+	defer job.serversMutex.Unlock()
+
+	res := job.numberOfServers
+	return res
+}
+
+func (job *Job) SetNumberOfWorkers(numberOfWorkers uint) {
+	job.workersMutex.Lock()
+	defer job.workersMutex.Unlock()
+
+	job.numberOfWorkers = numberOfWorkers
+}
+
+func (job *Job) GetNumberOfWorkers() uint {
+	job.workersMutex.Lock()
+	defer job.workersMutex.Unlock()
+
+	res := job.numberOfWorkers
 	return res
 }
