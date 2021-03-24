@@ -7,6 +7,7 @@ import (
 	"jobHandler/helperFunctions"
 	"math"
 	"os"
+	"sync"
 )
 
 type Job struct {
@@ -27,9 +28,11 @@ type Job struct {
 	SchedulerIp           *string
 	History               *[]HistoryEvent
 	MarginalUtilityFunc   *[]float64
+	isTraining            bool
+	isTrainingMutex       sync.Mutex
 }
 
-func ParseJson(jsonPath string) (Job, error) {
+func ParseJson(jsonPath string) ([]*Job, error) {
 	file, err := os.Open(jsonPath)
 
 	helperFunctions.FatalErrCheck(err, "ParseJson: ")
@@ -38,40 +41,43 @@ func ParseJson(jsonPath string) (Job, error) {
 
 	helperFunctions.FatalErrCheck(err, "ParseJson: ")
 
-	var job Job
+	var jobs []*Job
 
-	ipString := ""
+	err = json.Unmarshal(byteValue, &jobs)
 
-	history := make([]HistoryEvent, 0)
-	marginalUtilityFunc := make([]float64, 1)
-	//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
-	epoch := 2
-	tmpChan := make(chan string)
-	job.FunctionChannel = &tmpChan
-	job.PodNames = make(map[string]bool, 0)
-	job.History = &history
-	job.Epoch = &epoch
-	job.NumberOfWorkers = 1
-	job.NumberOfServers = 1
-	job.SchedulerIp = &ipString
-	job.MarginalUtilityFunc = &marginalUtilityFunc
+	for _, job := range jobs {
+		ipString := ""
 
-	err = json.Unmarshal(byteValue, &job)
+		history := make([]HistoryEvent, 0)
+		marginalUtilityFunc := make([]float64, 1)
+		//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
+		epoch := 2
+		tmpChan := make(chan string)
+		job.FunctionChannel = &tmpChan
+		job.PodNames = make(map[string]bool, 0)
+		job.History = &history
+		job.Epoch = &epoch
+		job.NumberOfWorkers = 1
+		job.NumberOfServers = 1
+		job.SchedulerIp = &ipString
+		job.MarginalUtilityFunc = &marginalUtilityFunc
+		job.isTraining = false
 
-	helperFunctions.FatalErrCheck(err, "ParseJson: ")
+		helperFunctions.FatalErrCheck(err, "ParseJson: ")
 
-	println(job.Budget)
-	println(job.TargetLoss)
-	println(job.ImageUrl)
+		println(job.Budget)
+		println(job.TargetLoss)
+		println(job.ImageUrl)
+	}
 
-	return job, nil
+	return jobs, nil
 }
 
-func (job Job) IsDone() bool {
+func (job *Job) IsDone() bool {
 	return job.lossReached() || job.budgetSurpassed()
 }
 
-func (job Job) budgetSurpassed() bool {
+func (job *Job) budgetSurpassed() bool {
 	budgetSurpassed := job.CurrentCost >= job.Budget
 	if budgetSurpassed {
 		println("budget surpassed for job: ", job.JobId)
@@ -79,7 +85,7 @@ func (job Job) budgetSurpassed() bool {
 	return budgetSurpassed
 }
 
-func (job Job) lossReached() bool {
+func (job *Job) lossReached() bool {
 	lossReached := !job.historyIsEmpty() && (*job.History)[len(*job.History)-1].Loss <= job.TargetLoss
 	if lossReached {
 		println("target loss: ", job.TargetLoss)
@@ -89,12 +95,12 @@ func (job Job) lossReached() bool {
 	return lossReached
 }
 
-func (job Job) historyIsEmpty() bool {
+func (job *Job) historyIsEmpty() bool {
 	// always contains (loss = 1, epoch = 1)
 	return len(*job.History) <= 1
 }
 
-func (job Job) CalculateNumberOfFunctions() uint {
+func (job *Job) CalculateNumberOfFunctions() uint {
 	if job.historyIsEmpty() {
 		return 2
 	}
@@ -114,7 +120,7 @@ func (job Job) CalculateNumberOfFunctions() uint {
 	return functions
 }
 
-func (job Job) FunctionsHaveFinished() bool {
+func (job *Job) FunctionsHaveFinished() bool {
 	for _, functionIsDone := range job.PodNames {
 		println(functionIsDone)
 		if functionIsDone == false {
@@ -124,7 +130,7 @@ func (job Job) FunctionsHaveFinished() bool {
 	return true
 }
 
-func (job Job) LeastSquaresTest() {
+func (job *Job) LeastSquaresTest() {
 	println("History log:")
 	x := make([]float64, 0)
 	y := make([]float64, 0)
@@ -142,7 +148,7 @@ func (job Job) LeastSquaresTest() {
 	}
 }
 
-func (job Job) UpdateMarginalUtilityFunc() {
+func (job *Job) UpdateMarginalUtilityFunc() {
 	if job.historyIsEmpty() {
 		return //TODO find better solution for this
 	}
@@ -167,7 +173,7 @@ func (job Job) UpdateMarginalUtilityFunc() {
 }
 
 //TODO has not been checked if it works
-func (job Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, maxFunctions uint) float64 {
+func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, maxFunctions uint) float64 {
 	if numWorkers + numServers > maxFunctions {
 		return -1
 	}
@@ -186,7 +192,7 @@ func (job Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers
 	return newStepsPerSec - oldStepsPerSec
 }
 
-func (job Job) CalculateEpochsTillConvergence() uint {
+func (job *Job) CalculateEpochsTillConvergence() uint {
 	x := make([]float64, 0)
 	y := make([]float64, 0)
 	for _, historyEvent := range *job.History {
@@ -206,13 +212,13 @@ func (job Job) CalculateEpochsTillConvergence() uint {
 	return uint(int(math.Ceil(convergenceEpoch)) - *job.Epoch) //TODO should we have some sort of "optimism" deterrent (ex. multiply by 1.1)
 }
 
-func (job Job) maxFunctionsWithRemainingBudget() uint {
+func (job *Job) maxFunctionsWithRemainingBudget() uint {
 	currentBudget := job.Budget - job.CurrentCost
 
 	return uint(currentBudget / job.costPerFunction())
 }
 
-func (job Job) costPerFunction() float64 {
+func (job *Job) costPerFunction() float64 {
 	if job.AverageFunctionCost == 0 {
 		println("job does not have an average function cost yet")
 		return 10
@@ -221,11 +227,26 @@ func (job Job) costPerFunction() float64 {
 	}
 }
 
-func (job Job) functionsForNextEpoch(functions uint, epochs uint) uint {
+func (job *Job) functionsForNextEpoch(functions uint, epochs uint) uint {
 	suggestedNumber := float64(functions / epochs)
 	return uint(math.Max(suggestedNumber, 1)) //TODO make this take into account that fewer functions are used for later epochs
 }
 
-func (job Job) UpdateAverageFunctionCost(cost float64) {
+func (job *Job) UpdateAverageFunctionCost(cost float64) {
 	job.AverageFunctionCost = ((job.AverageFunctionCost * float64(job.NumberOfFunctionsUsed)) + cost) / float64(job.NumberOfFunctionsUsed+(*job.History)[len(*job.History)-1].NumWorkers)
+}
+
+func (job *Job) UpdateIsTraining(isTraining bool) {
+	job.isTrainingMutex.Lock()
+	defer job.isTrainingMutex.Unlock()
+
+	job.isTraining = isTraining
+}
+
+func (job *Job) CheckIsTraining() bool {
+	job.isTrainingMutex.Lock()
+	defer job.isTrainingMutex.Unlock()
+
+	res := job.isTraining
+	return res
 }

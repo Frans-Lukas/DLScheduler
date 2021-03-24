@@ -69,7 +69,7 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 //	println("completed aggregation")
 //}
 
-func (jobHandler JobHandler) InvokeFunctions(job Job) {
+func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 	var wg sync.WaitGroup
 	numWorkers := job.NumberOfWorkers
 	numServers := job.NumberOfServers
@@ -94,14 +94,15 @@ func (jobHandler JobHandler) InvokeFunctions(job Job) {
 	}
 	//wait for all to complete
 	wg.Wait()
+	println("test")
 }
 
-func (jobHandler JobHandler) InvokeWGFunction(job Job, id int, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {
+func (jobHandler JobHandler) InvokeWGFunction(job *Job, id int, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {
 	defer wg.Done()
 	jobHandler.InvokeFunction(job, id, epoch, jobType, numWorkers, numServers)
 }
 
-func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType string, numWorkers uint, numServers uint) {
+func (jobHandler JobHandler) InvokeFunction(job *Job, id int, epoch int, jobType string, numWorkers uint, numServers uint) {
 	println("running function: ", jobHandler.GetPodName(job, id, jobType))
 	start := time.Now()
 	functionName := jobHandler.GetPodName(job, id, jobType)
@@ -146,7 +147,7 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 			NumWorkers: uint(numWorkers),
 			NumServers: uint(numServers),
 			WorkerId:   response.WorkerId,
-			Loss:       response.Loss * 2 / float64(epoch),
+			Loss:       response.Loss,
 			Accuracy:   response.Accuracy,
 			Time:       time.Since(start).Seconds(),
 			Epoch:      epoch,
@@ -171,7 +172,7 @@ func (jobHandler JobHandler) GetCompletedFunctionId(job Job) string {
 	return <-*job.FunctionChannel
 }
 
-func (jobHandler JobHandler) DeployFunctions(job Job) {
+func (jobHandler JobHandler) DeployFunctions(job *Job) {
 	// deploy scheduler
 	// deploy x workers
 	// deploy y servers
@@ -189,12 +190,12 @@ func (jobHandler JobHandler) DeployFunctions(job Job) {
 		println("pod with id: ", <-finishedChannel, " deployed")
 	}
 }
-func (jobHandler JobHandler) DeployChannelFunction(job Job, functionId int, channel chan string, jobType string) {
+func (jobHandler JobHandler) DeployChannelFunction(job *Job, functionId int, channel chan string, jobType string) {
 	jobHandler.DeployFunction(job, functionId, jobType)
 	channel <- jobHandler.GetPodName(job, functionId, jobType)
 }
 
-func (jobHandler JobHandler) DeployFunction(job Job, functionId int, jobType string) {
+func (jobHandler JobHandler) DeployFunction(job *Job, functionId int, jobType string) {
 	podName := jobHandler.GetPodName(job, functionId, jobType)
 	if jobHandler.podExists(podName){
 		return
@@ -239,7 +240,7 @@ func (jobHandler JobHandler) executeDeployFunction(podName string, imageUrl stri
 	)
 }
 
-func (jobHandler JobHandler) GetPodName(job Job, functionId int, jobType string) string {
+func (jobHandler JobHandler) GetPodName(job *Job, functionId int, jobType string) string {
 	return job.JobId + jobType + strconv.Itoa(functionId)
 }
 
@@ -278,7 +279,7 @@ func (jobHandler JobHandler) DeployableNumberOfFunctions(job Job, desiredNumberO
 	}
 }
 
-func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job, maxFunctions []uint) ([]uint, []uint) {
+func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job, maxFunctions []uint) ([]uint, []uint) {
 	if len(jobs) != len(maxFunctions) {
 		log.Fatalf("GetDeploymentWithHighestMarginalUtility: len(jobs) != len(maxFunctions)")
 	}
@@ -365,7 +366,7 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 	return workerDeployment, serverDeployment
 }
 
-func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, timeout time.Duration) error {
+func (jobHandler JobHandler) WaitForAllWorkerPods(job *Job, namespace string, timeout time.Duration) error {
 	hasStarted := false
 	for !hasStarted {
 		hasStarted = true
@@ -382,7 +383,7 @@ func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, tim
 	return nil
 }
 
-func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, jobType string, numberOf uint) {
+func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job *Job, jobType string, numberOf uint) {
 	fmt.Printf("deleting all funcitons starting with %s and greater or equal to %d\n", job.JobId + jobType, numberOf)
 	stdout, stderr, err := helperFunctions.ExecuteFunction(
 		constants.DELETE_FUNCTIONS_SUBSTRING_SCRIPT,
