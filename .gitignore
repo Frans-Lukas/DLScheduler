@@ -5,6 +5,7 @@
 *.sum
 *.zip
 *ubyte
+*rec
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
