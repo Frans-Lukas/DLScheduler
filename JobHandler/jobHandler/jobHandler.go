@@ -365,6 +365,15 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 	return workerDeployment, serverDeployment
 }
 
+
+//TODO:
+/**
+* This should wait for at least:
+* 1. Worker, 1. Scheduler and 1. Server for each job
+* When this requirement has been satisfied, but not all requested pods have been scheduled:
+* Wait for x seconds and start invocations!
+* Also make sure to check how many of each type are already ready and add them to job configuration.
+ */
 func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, timeout time.Duration) error {
 	hasStarted := false
 	for !hasStarted {

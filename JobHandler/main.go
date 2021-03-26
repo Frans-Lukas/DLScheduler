@@ -65,7 +65,7 @@ func main() {
 	//jobHandler.TestReasonableBatchSize(job)
 	//
 	//
-	job.JobId = helperFunctions.GenerateId(10)
+	job.JobId = helperFunctions.GenerateId(constants.JOB_ID_LENGTH)
 
 	// 3. If done, store gradients and remove job from queue.
 	//for !job.IsDone() {

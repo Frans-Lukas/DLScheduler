@@ -13,3 +13,4 @@ const JOB_TYPE_SERVER = "server"
 const KUBERNETES_NAMESPACE = "nuclio"
 const MAX_SERVERS_PER_NODE = 2
 const MAX_WORKERS_PER_NODE = 5
+const JOB_ID_LENGTH = 10
