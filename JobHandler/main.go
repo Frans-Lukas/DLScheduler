@@ -16,7 +16,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	// 1. receive job
 	if len(os.Args) < 2 {
-		log.Fatalf("wrong input, needs arguments <jobPath> and optional <pathToCfg>")
+		log.Fatalf("wrong input, needs arguments <jobPath> and optional <pathToCfg>, e.x. exampleJob.json /home/franslukas/.kube/config")
 	}
 
 	var jobHandler jb.JobHandler
@@ -34,11 +34,6 @@ func main() {
 	jobPath := os.Args[1]
 	job, err := jb.ParseJson(jobPath)
 	helperFunctions.FatalErrCheck(err, "main: ")
-
-	for _,v := range os.Environ() {
-		println(v)
-	}
-	//println(os.Environ())
 
 	//TODO: check add one one
 	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.508112, Epoch: 2})
@@ -62,10 +57,12 @@ func main() {
 	//}
 	//job.LeastSquaresTest()
 
-	jobHandler.TestReasonableBatchSize(job)
-	//
-	//
 	job.JobId = helperFunctions.GenerateId(constants.JOB_ID_LENGTH)
+	println("testing reasonable batch size")
+	jobHandler.TestReasonableBatchSize(job)
+	println("done with testing reasonable batch size")
+	//
+	//
 
 	// 3. If done, store gradients and remove job from queue.
 	//for !job.IsDone() {

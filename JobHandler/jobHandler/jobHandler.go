@@ -422,6 +422,7 @@ func (jobHandler JobHandler) TestReasonableBatchSize(job Job) int {
 	minBatchSizeBeforeMaxTime := datasetSize
 
 	for timeTaken < minTimeInSeconds || timeTaken > maxTimeInSeconds{
+		fmt.Printf("deploying and running with %d dataset size", batchSize)
 		timeTaken = jobHandler.deployAndRunWithBatchSize(job, batchSize)
 		fmt.Printf("took %f seconds with dataset size %d, trying to reach interval %f-%f\n",
 			timeTaken, batchSize, minTimeInSeconds, maxTimeInSeconds)

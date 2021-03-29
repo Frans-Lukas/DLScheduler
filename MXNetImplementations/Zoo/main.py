@@ -1,20 +1,15 @@
 import faulthandler
-import gc
 import logging
 import os
 import sys
 import time
 
-import matplotlib.pyplot as plt
 import mxnet
 import mxnet as mx
-import numpy
-import skimage.io as io
 from mxnet import autograd as ag
 from mxnet import gluon
 from mxnet.gluon.model_zoo import vision
 from mxnet.gluon.utils import download
-from skimage.color import rgba2rgb
 from mxnet.image import color_normalize
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
@@ -29,11 +24,11 @@ def real_fn(X):
 
 
 def main():
-    kv = mxnet.kv.create('dist_sync')
+    kv = mxnet.kv.create('local')
     batch_size = 256
     log_interval = 100
     mode = 'hybrid'
-    epochs = 1
+    epochs = 40
     learning_rate = 0.05
     wd = 0.002
     positive_class_weight = 5
@@ -66,7 +61,7 @@ def main():
                  overwrite=True)
 
     num_parts = os.getenv("NUM_PARTS")
-    if num_parts is None or num_parts is 1:
+    if num_parts is None or num_parts == 1:
         num_parts = kv.num_workers
     train_iter = mx.io.ImageRecordIter(path_imgrec=training_dataset,
                                        min_img_size=256,
@@ -80,6 +75,8 @@ def main():
                                        num_parts=num_parts,
                                        part_index=kv.rank)
 
+    # for i, batch in enumerate(train_iter):
+    #     print(len(batch.data[0]))
     # val_iter = mx.io.ImageRecordIter(path_imgrec=validation_dataset,
     #                                  min_img_size=256,
     #                                  data_shape=(3, 224, 224),
