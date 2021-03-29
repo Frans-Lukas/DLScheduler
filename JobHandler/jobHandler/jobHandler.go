@@ -41,9 +41,9 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 	helperFunctions.FatalErrCheck(err, "CreateJobHandler: ")
 
 	//TODO these numbers are nonsense
-	cm := helperFunctions.CreateClusterManager(handler.ClientSet, handler.MetricsClientSet, constants.MAX_SERVERS_PER_NODE, constants.MAX_WORKERS_PER_NODE)
-	handler.cm = &cm
-	handler.cm.UpdateClusterInfo()
+	//cm := helperFunctions.CreateClusterManager(handler.ClientSet, handler.MetricsClientSet, constants.MAX_SERVERS_PER_NODE, constants.MAX_WORKERS_PER_NODE)
+	//handler.cm = &cm
+	//handler.cm.UpdateClusterInfo()
 
 	return handler
 }
@@ -303,7 +303,7 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 		job.UpdateMarginalUtilityFunc()
 	}
 
-	JobHandler.cm.UpdateClusterInfo()
+	//JobHandler.cm.UpdateClusterInfo()
 
 	workerDeployment := make([]uint, len(jobs))
 	serverDeployment := make([]uint, len(jobs))
@@ -333,10 +333,13 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 				serverUtility := -1.0
 				serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], maxFunctions[i])
 
-				marginalUtilities[i] = workerUtility
-				deploymentType[i]    = 'w'
-				marginalUtilities[i] = serverUtility
-				deploymentType[i]    = 's'
+				if workerUtility >= serverUtility {
+					marginalUtilities[i] = workerUtility
+					deploymentType[i]    = 'w'
+				} else {
+					marginalUtilities[i] = serverUtility
+					deploymentType[i]    = 's'
+				}
 			}
 		}
 

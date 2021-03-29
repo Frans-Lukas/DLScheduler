@@ -137,6 +137,7 @@ func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job, outsideWorkers uint, o
 		deleteExcessParameterServers(handler, job)
 	}
 
+	//TODO should deployment be threaded?
 	for _, job := range jobs {
 		// redploy all outsideWorkers and servers, if they exist, they are kept and not redeployed.
 		handler.DeployFunctions(job)
