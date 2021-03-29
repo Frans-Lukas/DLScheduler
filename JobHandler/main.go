@@ -85,17 +85,17 @@ func trainUntilConvergence(handler jb.JobHandler, jobs []*jb.Job) {
 
 		allJobsDone = true
 		for _, job := range jobs {
-			if !job.CheckIsTraining() {
+			if !job.CheckIsTraining() && !job.IsDone() {
 				job.UpdateIsTraining(true)
 				jobsReadyForDeployment = append(jobsReadyForDeployment, job)
-			} else {
+			} else if !job.IsDone() {
 				outsideServers += job.GetNumberOfServers()
 				outsideWorkers += job.GetNumberOfWorkers()
 			}
 		}
 
 		if len(jobsReadyForDeployment) > 0 {
-			trainOneEpoch(handler, jobs, outsideWorkers, outsideServers)
+			trainOneEpoch(handler, jobsReadyForDeployment, outsideWorkers, outsideServers)
 		}
 
 		allJobsDone = true

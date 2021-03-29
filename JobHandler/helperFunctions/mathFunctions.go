@@ -201,7 +201,7 @@ func Python3DParabolaLeastSquares(xs []float64, ys []float64, hs []float64, init
 	re = regexp.MustCompile("[ ]+")
 	splitString = re.Split(splitString[0], -1)
 
-	output := make([]float64, 4)
+	output := make([]float64, 5)
 
 	currPos := 0
 	for _, s := range splitString {
@@ -232,7 +232,7 @@ func Python3DParabolaLeastSquaresEstimateH(x float64, y float64, f []float64) (f
 	if len(f) == 0 {
 		return -1, errors.New("empty function")
 	}
-	return f[2]*math.Pow(x-f[0], 2) + f[3]*math.Pow(y-f[1], 2), nil
+	return -f[2]*math.Pow(x-f[0], 2) + -f[3]*math.Pow(y-f[1], 2) + f[4], nil
 }
 
 func PythonParabolicLeastSquaresEstimateY(x float64, f []float64) (float64, error) {

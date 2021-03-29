@@ -166,8 +166,8 @@ func (job *Job) UpdateMarginalUtilityFunc() {
 	}
 
 	previousEstimation := *job.MarginalUtilityFunc
-	if len(previousEstimation) < 4 {
-		previousEstimation = []float64{0, 0, 1, 2}
+	if len(previousEstimation) < 5 {
+		previousEstimation = []float64{0, 0, 1, 2, 0}
 	}
 
 	*job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation, "marginalUtil") //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
@@ -214,10 +214,13 @@ func (job *Job) CalculateEpochsTillConvergence() uint {
 
 	helperFunctions.FatalErrCheck(err, "CalculateEpochsTillConvergence: ")
 
-	println(int(math.Ceil(convergenceEpoch)))
-	println(int(math.Ceil(convergenceEpoch)) - *job.Epoch)
-	println(uint(int(math.Ceil(convergenceEpoch)) - *job.Epoch))
-	return uint(int(math.Ceil(convergenceEpoch)) - *job.Epoch) //TODO should we have some sort of "optimism" deterrent (ex. multiply by 1.1)
+	remainingEpochs := int(math.Ceil(convergenceEpoch)) - (*job.Epoch - 1)
+
+	if remainingEpochs < 0 {
+		return 1
+	} else {
+		return uint(remainingEpochs)
+	} //TODO should we have some sort of "optimism" deterrent (ex. multiply by 1.1)
 }
 
 func (job *Job) maxFunctionsWithRemainingBudget() uint {
@@ -236,6 +239,9 @@ func (job *Job) costPerFunction() float64 {
 }
 
 func (job *Job) functionsForNextEpoch(functions uint, epochs uint) uint {
+	if epochs == 0 {
+		return functions
+	}
 	suggestedNumber := float64(functions / epochs)
 	return uint(math.Max(suggestedNumber, 1)) //TODO make this take into account that fewer functions are used for later epochs
 }

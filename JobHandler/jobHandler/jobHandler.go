@@ -343,7 +343,7 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 			}
 		}
 
-		maxUtility := -1.0
+		maxUtility := 0.0
 		maxUtilityJobIndex := -1
 		for i, utility := range marginalUtilities {
 			if utility > maxUtility {
