@@ -40,20 +40,13 @@ func (cm *ClusterManager) UpdateClusterInfo() {
 }
 
 func (cm *ClusterManager) CheckDeploymentValidity(numWorkers uint, numServers uint) bool {
-	numberOfNodes := uint(len(cm.activeNodes.Items))
 
-	numberCheck :=  numWorkers <= cm.maxWorkersPerNode * numberOfNodes && numServers <= cm.maxServersPerNode * numberOfNodes
-
-	if !numberCheck {
-		return false
-	}
-
-	memoryCheck := cm.remainingMemoryCheck(numWorkers, numServers)
+	//memoryCheck := cm.remainingMemoryCheck(numWorkers, numServers)
 	//TODO if we want to use this we should do the same for cpu usage and gpu usage
 
-	if !memoryCheck {
-		return false
-	}
+	//if !memoryCheck {
+	//	return false
+	//}
 
 	return true
 }

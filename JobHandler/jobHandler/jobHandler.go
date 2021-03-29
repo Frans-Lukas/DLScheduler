@@ -318,36 +318,25 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 		marginalUtilities := make([]float64, len(jobs))
 		deploymentType    := make([]byte, len(jobs))
 
-		roomForServer := JobHandler.cm.CheckDeploymentValidity(workerDeploymentTotal, serverDeploymentTotal + 1)
-		roomForWorker := JobHandler.cm.CheckDeploymentValidity(workerDeploymentTotal + 1, serverDeploymentTotal)
-
 		for i, job := range jobs {
 			if workerDeployment[i] == 0 {
 				utility := -1.0
 				// so that no deployment has 1 worker and 0 servers, or 0 servers and 1 worker
-				if roomForServer && roomForWorker {
-					utility = job.MarginalUtilityCheck(1, 1, 0, 0, maxFunctions[i])
-				}
+				utility = job.MarginalUtilityCheck(1, 1, 0, 0, maxFunctions[i])
+
 				marginalUtilities[i] = utility
 				deploymentType[i]    = 'f'
 			} else {
 				workerUtility := -1.0
-				if roomForWorker {
-					workerUtility = job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], maxFunctions[i])
-				}
+				workerUtility = job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], maxFunctions[i])
 
 				serverUtility := -1.0
-				if roomForServer {
-					serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], maxFunctions[i])
-				}
+				serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], maxFunctions[i])
 
-				if workerUtility >= serverUtility {
-					marginalUtilities[i] = workerUtility
-					deploymentType[i]    = 'w'
-				} else {
-					marginalUtilities[i] = serverUtility
-					deploymentType[i]    = 's'
-				}
+				marginalUtilities[i] = workerUtility
+				deploymentType[i]    = 'w'
+				marginalUtilities[i] = serverUtility
+				deploymentType[i]    = 's'
 			}
 		}
 
