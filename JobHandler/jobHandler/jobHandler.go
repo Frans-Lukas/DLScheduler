@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"jobHandler/CostCalculator"
 	"jobHandler/constants"
 	"jobHandler/helperFunctions"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,14 +84,14 @@ func (jobHandler JobHandler) InvokeFunctions(job Job) {
 		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_SERVER)
 		job.PodNames[functionName] = false
 		wg.Add(1)
-		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_SERVER, numWorkers, numServers,  &wg)
+		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_SERVER, numWorkers, numServers, &wg)
 	}
 	//invoke workers
 	for i := 0; i < int(job.NumberOfWorkers); i++ {
 		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_WORKER)
 		job.PodNames[functionName] = false
 		wg.Add(1)
-		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_WORKER, numWorkers, numServers,  &wg)
+		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_WORKER, numWorkers, numServers, &wg)
 	}
 	//wait for all to complete
 	wg.Wait()
@@ -109,8 +110,16 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 	var response FunctionResponse
 	for {
 		//'{"ip": "'$2'", "role": "'$3'", "num_workers": '$4', "num_servers": '$5'}'
-		out, stderr, err := helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
-			functionName, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath)
+		var out, stderr bytes.Buffer
+		var err error
+		if job.InitialTuning {
+			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
+				functionName, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath)
+		} else {
+			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
+				functionName, schedulerIp, jobType, strconv.Itoa(int(numWorkers)),
+				strconv.Itoa(int(numServers)), job.ScriptPath, strconv.Itoa(job.NumberOfParts))
+		}
 		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 		//println(out.String())
 
@@ -172,9 +181,6 @@ func (jobHandler JobHandler) GetCompletedFunctionId(job Job) string {
 }
 
 func (jobHandler JobHandler) DeployFunctions(job Job) {
-	// deploy scheduler
-	// deploy x workers
-	// deploy y servers
 	finishedChannel := make(chan string)
 
 	go jobHandler.DeployChannelFunction(job, 0, finishedChannel, constants.JOB_TYPE_SCHEDULER)
@@ -403,9 +409,10 @@ func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, jobType string,
 
 
 func (jobHandler JobHandler) TestReasonableBatchSize(job Job) int {
+	job.InitialTuning = true
 	datasetSize := job.DataSetSize
 
-	batchSize := 10
+	batchSize := int(math.Min(10.0, float64(datasetSize)))
 	minTimeInSeconds := 50.0
 	maxTimeInSeconds := 120.0
 	midPointInSeconds := minTimeInSeconds + (maxTimeInSeconds - minTimeInSeconds) // 80
@@ -423,8 +430,8 @@ func (jobHandler JobHandler) TestReasonableBatchSize(job Job) int {
 			if batchSize == datasetSize {
 				break
 			}
-			numTimeTakensToReachInterval := midPointInSeconds / timeTaken
-			batchSize = int(math.Min(float64(batchSize)*numTimeTakensToReachInterval, float64(minBatchSizeBeforeMaxTime)))
+			numTimeTakenToReachInterval := midPointInSeconds / timeTaken
+			batchSize = int(math.Min(float64(batchSize)*numTimeTakenToReachInterval, float64(minBatchSizeBeforeMaxTime)))
 		} else if timeTaken > maxTimeInSeconds{
 			if batchSize == 1 {
 				 break
@@ -440,12 +447,14 @@ func (jobHandler JobHandler) TestReasonableBatchSize(job Job) int {
 }
 
 func (jobHandler JobHandler) deployAndRunWithBatchSize(job Job, batchSize int) float64 {
-	//numberOfWorkers := job.DataSetSize / batchSize
-	//jobHandler.DeployFunction(job, 0)
-	//jobHandler.InvokeFunction(job, 0, numberOfWorkers, 1)
-	//cost := CostCalculator.CalculateCostForPods(job.JobId, jobHandler.ClientSet, jobHandler.MetricsClientSet)
-	//job.UpdateAverageFunctionCost(cost)
-
+	job.NumberOfParts = job.DataSetSize / batchSize
+	job.NumberOfWorkers = 1
+	job.NumberOfServers = 1
+	jobHandler.DeployFunctions(job)
+	epochStartTime := time.Now()
+	jobHandler.InvokeFunctions(job)
+	cost := CostCalculator.CalculateCostForPods(job.JobId, jobHandler.ClientSet, jobHandler.MetricsClientSet, epochStartTime)
+	job.UpdateAverageFunctionCost(cost)
 	return (*job.History)[len(*job.History) - 1].Time
 }
 

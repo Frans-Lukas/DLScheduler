@@ -24,9 +24,11 @@ type Job struct {
 	NumberOfFunctionsUsed uint
 	NumberOfWorkers       uint
 	NumberOfServers       uint
+	NumberOfParts 		  int
 	SchedulerIp           *string
 	History               *[]HistoryEvent
 	MarginalUtilityFunc   *[]float64
+	InitialTuning         bool
 }
 
 func ParseJson(jsonPath string) (Job, error) {
@@ -55,6 +57,7 @@ func ParseJson(jsonPath string) (Job, error) {
 	job.NumberOfServers = 1
 	job.SchedulerIp = &ipString
 	job.MarginalUtilityFunc = &marginalUtilityFunc
+	job.InitialTuning = false
 
 	err = json.Unmarshal(byteValue, &job)
 
@@ -168,7 +171,7 @@ func (job Job) UpdateMarginalUtilityFunc() {
 
 //TODO has not been checked if it works
 func (job Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, maxFunctions uint) float64 {
-	if numWorkers + numServers > maxFunctions {
+	if numWorkers+numServers > maxFunctions {
 		return -1
 	}
 

@@ -62,7 +62,7 @@ func main() {
 	//}
 	//job.LeastSquaresTest()
 
-	//jobHandler.TestReasonableBatchSize(job)
+	jobHandler.TestReasonableBatchSize(job)
 	//
 	//
 	job.JobId = helperFunctions.GenerateId(constants.JOB_ID_LENGTH)

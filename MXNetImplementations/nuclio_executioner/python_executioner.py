@@ -12,6 +12,9 @@ def start_from_nuclio(context, event):
     os.environ['DMLC_ROLE'] = body['role']
     os.environ['DMLC_NUM_SERVER'] = body['num_server']
     os.environ['DMLC_NUM_WORKER'] = body['num_worker']
+
+    if 'num_parts' in body:
+        os.environ['NUM_PARTS'] = body['num_parts']
     script_path = body['script_path']
     return start_real_nuclio(script_path)
 

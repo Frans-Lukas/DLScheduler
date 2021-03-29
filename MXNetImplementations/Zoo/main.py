@@ -64,6 +64,10 @@ def main():
         logging.info('Downloading training dataset.')
         download(url_format.format(training_dataset),
                  overwrite=True)
+
+    num_parts = os.getenv("NUM_PARTS")
+    if num_parts is None or num_parts is 1:
+        num_parts = kv.num_workers
     train_iter = mx.io.ImageRecordIter(path_imgrec=training_dataset,
                                        min_img_size=256,
                                        data_shape=(3, 224, 224),
@@ -72,7 +76,10 @@ def main():
                                        batch_size=batch_size,
                                        max_random_scale=1.5,
                                        min_random_scale=0.75,
-                                       rand_mirror=True)
+                                       rand_mirror=True,
+                                       num_parts=num_parts,
+                                       part_index=kv.rank)
+
     # val_iter = mx.io.ImageRecordIter(path_imgrec=validation_dataset,
     #                                  min_img_size=256,
     #                                  data_shape=(3, 224, 224),
@@ -83,7 +90,6 @@ def main():
     deep_dog_net.collect_params().initialize(ctx=contexts)
     deep_dog_net.features = net.features
     faulthandler.enable()
-
 
     # the last conv layer is the second layer
     pretrained_conv_params = net.output[0].params
