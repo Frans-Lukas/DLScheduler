@@ -39,7 +39,7 @@ def main():
     dataset_files = {'train': ('not_hotdog_train-e6ef27b4.rec', '0aad7e1f16f5fb109b719a414a867bbee6ef27b4'),
                      'validation': ('not_hotdog_validation-c0201740.rec', '723ae5f8a433ed2e2bf729baec6b878ac0201740')}
     num_images = {'validation': 1259, 'train': 16882}
-    training_dataset, training_data_hash = dataset_files[dataset_key]
+    training_dataset_name, training_data_hash = dataset_files[dataset_key]
 
     def verified(file_path, sha1hash):
         import hashlib
@@ -56,18 +56,18 @@ def main():
                          .format(file_path))
         return matched
 
+    training_dataset_path = '/' + training_dataset_name
     url_format = 'https://apache-mxnet.s3-accelerate.amazonaws.com/gluon/dataset/{}'
-    if not os.path.exists(training_dataset) or not verified(training_dataset, training_data_hash):
+    if not os.path.exists(training_dataset_path) or not verified(training_dataset_name, training_data_hash):
         logging.info('Downloading training dataset.')
-        download(url_format.format(training_dataset), path='/' + training_dataset, overwrite=True)
+        download(url_format.format(training_dataset_name), path=training_dataset_path, overwrite=True)
 
     num_parts = os.getenv("NUM_PARTS")
-
-    batch_size = min(batch_size, int(num_images[dataset_key] / int(num_parts)))
-
     if num_parts is None or num_parts == 1:
         num_parts = kv.num_workers
-    train_iter = mx.io.ImageRecordIter(path_imgrec=training_dataset,
+
+    batch_size = min(batch_size, int(num_images[dataset_key] / int(num_parts)))
+    train_iter = mx.io.ImageRecordIter(path_imgrec=training_dataset_path,
                                        min_img_size=256,
                                        data_shape=(3, 224, 224),
                                        rand_crop=True,
