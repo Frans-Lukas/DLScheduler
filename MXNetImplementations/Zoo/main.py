@@ -1,6 +1,7 @@
 import faulthandler
 import logging
 import os
+import re
 import sys
 import time
 
@@ -28,7 +29,7 @@ def main():
     batch_size = 256
     log_interval = 100
     mode = 'hybrid'
-    epochs = 40
+    epochs = 1
     learning_rate = 0.05
     wd = 0.002
     positive_class_weight = 5
@@ -56,7 +57,7 @@ def main():
                          .format(file_path))
         return matched
 
-    training_dataset_path = '/' + training_dataset_name
+    training_dataset_path = training_dataset_name
     url_format = 'https://apache-mxnet.s3-accelerate.amazonaws.com/gluon/dataset/{}'
     if not os.path.exists(training_dataset_path) or not verified(training_dataset_path, training_data_hash):
         logging.info('Downloading training dataset.')
@@ -77,7 +78,7 @@ def main():
                                        min_random_scale=0.75,
                                        rand_mirror=True,
                                        num_parts=num_parts,
-                                       part_index=1)
+                                       part_index=kv.rank)
 
     # for i, batch in enumerate(train_iter):
     #     print(len(batch.data[0]))
@@ -85,41 +86,41 @@ def main():
     #                                  min_img_size=256,
     #                                  data_shape=(3, 224, 224),
     #                                  batch_size=batch_size)
-    net = vision.squeezenet1_1(pretrained=True, prefix='deep_dog_', ctx=contexts)
+    # net = vision.squeezenet1_1(pretrained=False, prefix='deep_dog_', ctx=contexts)
     imagenet_hotdog_index = 713
     deep_dog_net = vision.squeezenet1_1(prefix='deep_dog_', classes=2)
     deep_dog_net.collect_params().initialize(ctx=contexts)
-    deep_dog_net.features = net.features
+    # deep_dog_net.features = net.features
     faulthandler.enable()
 
     # the last conv layer is the second layer
-    pretrained_conv_params = net.output[0].params
+    # pretrained_conv_params = net.output[0].params
 
     # weights can then be found from the above parameter dict
-    pretrained_weight_param = pretrained_conv_params.get('weight')
-    pretrained_bias_param = pretrained_conv_params.get('bias')
-
-    # next, we locate the right slice that we're interested in.
-    hotdog_w = mx.nd.split(pretrained_weight_param.data(ctx=contexts[0]),
-                           1000, axis=0)[imagenet_hotdog_index]
-    hotdog_b = mx.nd.split(pretrained_bias_param.data(ctx=contexts[0]),
-                           1000, axis=0)[imagenet_hotdog_index]
-
-    # our classifier is for two classes. here, we reuse the hotdog class weight,
-    # and randomly initialize the 'not hotdog' class.
-    new_classifier_w = mx.nd.concat(mx.nd.random_normal(shape=hotdog_w.shape, scale=0.02, ctx=contexts[0]),
-                                    hotdog_w,
-                                    dim=0)
-    new_classifier_b = mx.nd.concat(mx.nd.random_normal(shape=hotdog_b.shape, scale=0.02, ctx=contexts[0]),
-                                    hotdog_b,
-                                    dim=0)
-
-    # finally, we initialize the parameter buffers and set the values.
-    # since classifier is a HybridSequential/Sequential, the following
-    # takes the zero-indexed 1-st layer of the classifier
-    final_conv_layer_params = deep_dog_net.output[0].params
-    final_conv_layer_params.get('weight').set_data(new_classifier_w)
-    final_conv_layer_params.get('bias').set_data(new_classifier_b)
+    # pretrained_weight_param = pretrained_conv_params.get('weight')
+    # pretrained_bias_param = pretrained_conv_params.get('bias')
+    #
+    # # next, we locate the right slice that we're interested in.
+    # hotdog_w = mx.nd.split(pretrained_weight_param.data(ctx=contexts[0]),
+    #                        1000, axis=0)[imagenet_hotdog_index]
+    # hotdog_b = mx.nd.split(pretrained_bias_param.data(ctx=contexts[0]),
+    #                        1000, axis=0)[imagenet_hotdog_index]
+    #
+    # # our classifier is for two classes. here, we reuse the hotdog class weight,
+    # # and randomly initialize the 'not hotdog' class.
+    # new_classifier_w = mx.nd.concat(mx.nd.random_normal(shape=hotdog_w.shape, scale=0.02, ctx=contexts[0]),
+    #                                 hotdog_w,
+    #                                 dim=0)
+    # new_classifier_b = mx.nd.concat(mx.nd.random_normal(shape=hotdog_b.shape, scale=0.02, ctx=contexts[0]),
+    #                                 hotdog_b,
+    #                                 dim=0)
+    #
+    # # finally, we initialize the parameter buffers and set the values.
+    # # since classifier is a HybridSequential/Sequential, the following
+    # # takes the zero-indexed 1-st layer of the classifier
+    # final_conv_layer_params = deep_dog_net.output[0].params
+    # final_conv_layer_params.get('weight').set_data(new_classifier_w)
+    # final_conv_layer_params.get('bias').set_data(new_classifier_b)
 
     def metric_str(names, accs):
         return ', '.join(['%s=%f' % (name, acc) for name, acc in zip(names, accs)])
@@ -180,10 +181,11 @@ def main():
     # hot dog happens to be a class in imagenet.
     # we can reuse the weight for that class for better performance
     # here's the index for that class for later use
-    imagenet_hotdog_index = 713
     # print("role: " + os.getenv("DMLC_ROLE"))
+    loss = loss.mean()
+    loss = re.search('\[(.*)\]', str(loss)).group(1)
     print("regexpresultstart{\"loss\":" + str(
-        loss) + ", \"accuracy\":" + acc + ", \"worker_id\":" + str(kv.rank) + "}regexpresultend")
+        loss) + ", \"accuracy\":" + str(acc) + ", \"worker_id\":" + str(kv.rank) + "}regexpresultend")
 
 
 if __name__ == '__main__': main()
