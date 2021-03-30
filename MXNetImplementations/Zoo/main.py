@@ -24,7 +24,7 @@ def real_fn(X):
 
 
 def main():
-    kv = mxnet.kv.create('local')
+    kv = mxnet.kv.create('dist')
     batch_size = 256
     log_interval = 100
     mode = 'hybrid'
