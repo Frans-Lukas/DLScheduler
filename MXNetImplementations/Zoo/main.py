@@ -35,9 +35,11 @@ def main():
     gpus = mx.test_utils.list_gpus()
     contexts = [mx.gpu(i) for i in gpus] if len(gpus) > 0 else [mx.cpu()]
 
+    dataset_key = 'validation'
     dataset_files = {'train': ('not_hotdog_train-e6ef27b4.rec', '0aad7e1f16f5fb109b719a414a867bbee6ef27b4'),
                      'validation': ('not_hotdog_validation-c0201740.rec', '723ae5f8a433ed2e2bf729baec6b878ac0201740')}
-    training_dataset, training_data_hash = dataset_files['validation']
+    num_images = {'validation': 1259, 'train': 16882}
+    training_dataset, training_data_hash = dataset_files[dataset_key]
 
     def verified(file_path, sha1hash):
         import hashlib
@@ -61,6 +63,9 @@ def main():
                  overwrite=True)
 
     num_parts = os.getenv("NUM_PARTS")
+
+    batch_size = min(batch_size, int(num_images[dataset_key] / int(num_parts)))
+
     if num_parts is None or num_parts == 1:
         num_parts = kv.num_workers
     train_iter = mx.io.ImageRecordIter(path_imgrec=training_dataset,
