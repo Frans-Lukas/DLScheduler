@@ -28,7 +28,7 @@ type Job struct {
 	SchedulerIp           *string
 	History               *[]HistoryEvent
 	MarginalUtilityFunc   *[]float64
-	InitialTuning         bool
+	InitialTuning         *bool
 }
 
 func ParseJson(jsonPath string) (Job, error) {
@@ -57,7 +57,8 @@ func ParseJson(jsonPath string) (Job, error) {
 	job.NumberOfServers = 1
 	job.SchedulerIp = &ipString
 	job.MarginalUtilityFunc = &marginalUtilityFunc
-	job.InitialTuning = false
+	tmpInitalTuning := false
+	job.InitialTuning = &tmpInitalTuning
 
 	err = json.Unmarshal(byteValue, &job)
 

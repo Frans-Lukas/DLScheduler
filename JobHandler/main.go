@@ -59,7 +59,7 @@ func main() {
 
 	job.JobId = helperFunctions.GenerateId(constants.JOB_ID_LENGTH)
 	println("testing reasonable batch size")
-	jobHandler.TestReasonableBatchSize(job)
+	jobHandler.InitialTuning(job)
 	println("done with testing reasonable batch size")
 	//
 	//

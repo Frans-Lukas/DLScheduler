@@ -112,13 +112,13 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 		//'{"ip": "'$2'", "role": "'$3'", "num_workers": '$4', "num_servers": '$5'}'
 		var out, stderr bytes.Buffer
 		var err error
-		if job.InitialTuning {
-			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
-				functionName, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath)
-		} else {
+		if *job.InitialTuning {
 			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
 				functionName, schedulerIp, jobType, strconv.Itoa(int(numWorkers)),
 				strconv.Itoa(int(numServers)), job.ScriptPath, strconv.Itoa(job.NumberOfParts))
+		} else {
+			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
+				functionName, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath)
 		}
 		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 		//println(out.String())
@@ -408,11 +408,11 @@ func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, jobType string,
 }
 
 
-func (jobHandler JobHandler) TestReasonableBatchSize(job Job) int {
-	job.InitialTuning = true
+func (jobHandler JobHandler) InitialTuning(job Job) int {
+	*job.InitialTuning = true
 	datasetSize := job.DataSetSize
 
-	batchSize := int(math.Min(10.0, float64(datasetSize)))
+	batchSize := int(math.Min(256, float64(datasetSize)))
 	minTimeInSeconds := 50.0
 	maxTimeInSeconds := 120.0
 	midPointInSeconds := minTimeInSeconds + (maxTimeInSeconds - minTimeInSeconds) // 80
