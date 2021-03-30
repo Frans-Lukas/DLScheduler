@@ -182,9 +182,8 @@ def main():
     # here's the index for that class for later use
     imagenet_hotdog_index = 713
     # print("role: " + os.getenv("DMLC_ROLE"))
-    print(
-        "regexpresultstart{\"loss\":" + str(
-            loss) + ", \"accuracy\":" + acc + ", \"worker_id\":" + str(kv.rank) + "}regexpresultend")
+    print("regexpresultstart{\"loss\":" + str(
+        loss) + ", \"accuracy\":" + acc + ", \"worker_id\":" + str(kv.rank) + "}regexpresultend")
 
 
 if __name__ == '__main__': main()
