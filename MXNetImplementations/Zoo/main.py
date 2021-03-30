@@ -59,8 +59,7 @@ def main():
     url_format = 'https://apache-mxnet.s3-accelerate.amazonaws.com/gluon/dataset/{}'
     if not os.path.exists(training_dataset) or not verified(training_dataset, training_data_hash):
         logging.info('Downloading training dataset.')
-        download(url_format.format(training_dataset),
-                 overwrite=True)
+        download(url_format.format(training_dataset), path='/' + training_dataset, overwrite=True)
 
     num_parts = os.getenv("NUM_PARTS")
 
@@ -132,6 +131,7 @@ def main():
             ctx = [ctx]
         trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': learning_rate, 'wd': wd}, kvstore=kv)
         loss = gluon.loss.SoftmaxCrossEntropyLoss()
+        latestLoss = 0.0
         for epoch in range(epochs):
             tic = time.time()
             train_iter.reset()
@@ -150,6 +150,7 @@ def main():
                         z = net(x)
                         # rescale the loss based on class to counter the imbalance problem
                         L = loss(z, y) * (1 + y * positive_class_weight) / positive_class_weight
+                        latestLoss = L
                         # store the loss and do backward after we have done forward
                         # on all GPUs for better speed on multiple GPUs.
                         Ls.append(L)
@@ -168,21 +169,22 @@ def main():
             metric.reset()
             print('[Epoch %d] training: %s' % (epoch, metric_str(names, accs)))
             print('[Epoch %d] time cost: %f' % (epoch, time.time() - tic))
+            return latestLoss, accs[0]
 
     if mode == 'hybrid':
         deep_dog_net.hybridize()
-    if epochs > 0:
-        deep_dog_net.collect_params().reset_ctx(contexts)
-        train(deep_dog_net, train_iter, epochs, contexts)
+
+    deep_dog_net.collect_params().reset_ctx(contexts)
+    loss, acc = train(deep_dog_net, train_iter, epochs, contexts)
 
     # hot dog happens to be a class in imagenet.
     # we can reuse the weight for that class for better performance
     # here's the index for that class for later use
     imagenet_hotdog_index = 713
     # print("role: " + os.getenv("DMLC_ROLE"))
-    # print(
-    #     "regexpresultstart{\"loss\":" + str(
-    #         cumulative_loss / num_examples) + ", \"accuracy\":0" + ", \"worker_id\":" + str(rank) + "}regexpresultend")
+    print(
+        "regexpresultstart{\"loss\":" + str(
+            loss) + ", \"accuracy\":" + acc + ", \"worker_id\":" + str(kv.rank) + "}regexpresultend")
 
 
 if __name__ == '__main__': main()
