@@ -24,7 +24,7 @@ def real_fn(X):
 
 
 def main():
-    kv = mxnet.kv.create('dist')
+    kv = mxnet.kv.create('local')
     batch_size = 256
     log_interval = 100
     mode = 'hybrid'
@@ -77,7 +77,7 @@ def main():
                                        min_random_scale=0.75,
                                        rand_mirror=True,
                                        num_parts=num_parts,
-                                       part_index=kv.rank)
+                                       part_index=1)
 
     # for i, batch in enumerate(train_iter):
     #     print(len(batch.data[0]))
