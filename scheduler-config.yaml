@@ -18,7 +18,7 @@ spec:
     - --leader-elect=false
     - --port=0
     image: docker.io/franslukas/scheduler-test
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     livenessProbe:
       failureThreshold: 8
       httpGet:
