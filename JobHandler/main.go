@@ -42,37 +42,10 @@ func main() {
 		println("done with testing reasonable batch size")
 	}
 
-	//TODO: check add one one
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.508112, Epoch: 2})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.367166, Epoch: 3})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.327031, Epoch: 4})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.300430, Epoch: 5})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.280054, Epoch: 6})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.262924, Epoch: 7})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.248206, Epoch: 8})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.234580, Epoch: 9})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.221567, Epoch: 10})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.209484, Epoch: 11})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.199290, Epoch: 12})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.190342, Epoch: 13})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.180169, Epoch: 14})
-	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.171137, Epoch: 15})
-	//for i, _ := range *jobs.History {
-	//	//v.Loss *= 100
-	//	(*jobs.History)[i].Epoch--
-	//	//fmt.Printf("%d, %f\n",v.Epoch, v.Loss)
-	//}
-	//jobs.LeastSquaresTest()
-
-	//jobHandler.TestReasonableBatchSize(jobs)
-	//
-	//
 	for _, job := range jobs {
 		job.JobId = helperFunctions.GenerateId(10)
 	}
 
-	// 3. If done, store gradients and remove jobs from queue.
-	//for !jobs.IsDone() {
 	println("train until convergence")
 	trainUntilConvergence(jobHandler, jobs)
 }
