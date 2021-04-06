@@ -7,6 +7,7 @@ import (
 	"jobHandler/helperFunctions"
 	"math"
 	"os"
+	"sync"
 )
 
 type Job struct {
@@ -30,9 +31,15 @@ type Job struct {
 	History               *[]HistoryEvent
 	MarginalUtilityFunc   *[]float64
 	InitialTuning         *bool
+	workersMutex          sync.Mutex
+	numberOfWorkers       uint
+	serversMutex          sync.Mutex
+	numberOfServers       uint
+	isTraining            bool
+	isTrainingMutex       sync.Mutex
 }
 
-func ParseJson(jsonPath string) (Job, error) {
+func ParseJson(jsonPath string) ([]*Job, error) {
 	file, err := os.Open(jsonPath)
 
 	helperFunctions.FatalErrCheck(err, "ParseJson: ")
@@ -41,42 +48,45 @@ func ParseJson(jsonPath string) (Job, error) {
 
 	helperFunctions.FatalErrCheck(err, "ParseJson: ")
 
-	var job Job
+	var jobs []*Job
 
-	ipString := ""
+	err = json.Unmarshal(byteValue, &jobs)
 
-	history := make([]HistoryEvent, 0)
-	marginalUtilityFunc := make([]float64, 1)
-	//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
-	epoch := 2
-	tmpChan := make(chan string)
-	job.FunctionChannel = &tmpChan
-	job.PodNames = make(map[string]bool, 0)
-	job.History = &history
-	job.Epoch = &epoch
-	job.NumberOfWorkers = 1
-	job.NumberOfServers = 1
-	job.SchedulerIp = &ipString
-	job.MarginalUtilityFunc = &marginalUtilityFunc
-	tmpInitalTuning := false
-	job.InitialTuning = &tmpInitalTuning
+	for _, job := range jobs {
+		ipString := ""
 
-	err = json.Unmarshal(byteValue, &job)
+		history := make([]HistoryEvent, 0)
+		marginalUtilityFunc := make([]float64, 1)
+		//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
+		epoch := 2
+		tmpChan := make(chan string)
+		job.FunctionChannel = &tmpChan
+		job.PodNames = make(map[string]bool, 0)
+		job.History = &history
+		job.Epoch = &epoch
+		job.numberOfWorkers = 1
+		job.numberOfServers = 1
+		job.SchedulerIp = &ipString
+		job.MarginalUtilityFunc = &marginalUtilityFunc
+		job.isTraining = false
+		tmpInitalTuning := false
+		job.InitialTuning = &tmpInitalTuning
 
-	helperFunctions.FatalErrCheck(err, "ParseJson: ")
+		helperFunctions.FatalErrCheck(err, "ParseJson: ")
 
-	println(job.Budget)
-	println(job.TargetLoss)
-	println(job.ImageUrl)
+		println(job.Budget)
+		println(job.TargetLoss)
+		println(job.ImageUrl)
+	}
 
-	return job, nil
+	return jobs, nil
 }
 
-func (job Job) IsDone() bool {
+func (job *Job) IsDone() bool {
 	return job.lossReached() || job.budgetSurpassed()
 }
 
-func (job Job) budgetSurpassed() bool {
+func (job *Job) budgetSurpassed() bool {
 	budgetSurpassed := job.CurrentCost >= job.Budget
 	if budgetSurpassed {
 		println("budget surpassed for job: ", job.JobId)
@@ -84,7 +94,7 @@ func (job Job) budgetSurpassed() bool {
 	return budgetSurpassed
 }
 
-func (job Job) lossReached() bool {
+func (job *Job) lossReached() bool {
 	lossReached := !job.historyIsEmpty() && (*job.History)[len(*job.History)-1].Loss <= job.TargetLoss
 	if lossReached {
 		println("target loss: ", job.TargetLoss)
@@ -94,12 +104,12 @@ func (job Job) lossReached() bool {
 	return lossReached
 }
 
-func (job Job) historyIsEmpty() bool {
+func (job *Job) historyIsEmpty() bool {
 	// always contains (loss = 1, epoch = 1)
 	return len(*job.History) <= 1
 }
 
-func (job Job) CalculateNumberOfFunctions() uint {
+func (job *Job) CalculateNumberOfFunctions() uint {
 	if job.historyIsEmpty() {
 		return 2
 	}
@@ -119,7 +129,7 @@ func (job Job) CalculateNumberOfFunctions() uint {
 	return functions
 }
 
-func (job Job) FunctionsHaveFinished() bool {
+func (job *Job) FunctionsHaveFinished() bool {
 	for _, functionIsDone := range job.PodNames {
 		println(functionIsDone)
 		if functionIsDone == false {
@@ -129,7 +139,7 @@ func (job Job) FunctionsHaveFinished() bool {
 	return true
 }
 
-func (job Job) LeastSquaresTest() {
+func (job *Job) LeastSquaresTest() {
 	println("History log:")
 	x := make([]float64, 0)
 	y := make([]float64, 0)
@@ -147,7 +157,7 @@ func (job Job) LeastSquaresTest() {
 	}
 }
 
-func (job Job) UpdateMarginalUtilityFunc() {
+func (job *Job) UpdateMarginalUtilityFunc() {
 	if job.historyIsEmpty() {
 		return //TODO find better solution for this
 	}
@@ -163,8 +173,8 @@ func (job Job) UpdateMarginalUtilityFunc() {
 	}
 
 	previousEstimation := *job.MarginalUtilityFunc
-	if len(previousEstimation) < 4 {
-		previousEstimation = []float64{0, 0, 1, 2}
+	if len(previousEstimation) < 5 {
+		previousEstimation = []float64{0, 0, 1, 2, 0}
 	}
 
 	//TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
@@ -173,8 +183,8 @@ func (job Job) UpdateMarginalUtilityFunc() {
 }
 
 //TODO has not been checked if it works
-func (job Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, maxFunctions uint) float64 {
-	if numWorkers+numServers > maxFunctions {
+func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, maxFunctions uint) float64 {
+	if numWorkers + numServers > maxFunctions {
 		return -1
 	}
 
@@ -185,14 +195,18 @@ func (job Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers
 	if len(*job.MarginalUtilityFunc) == 0 {
 		job.UpdateMarginalUtilityFunc()
 	}
-	oldStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), *job.MarginalUtilityFunc)
+	oldStepsPerSec, err := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), *job.MarginalUtilityFunc)
 
-	newStepsPerSec := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(numWorkers), float64(numServers), *job.MarginalUtilityFunc)
+	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck")
+
+	newStepsPerSec, err := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(numWorkers), float64(numServers), *job.MarginalUtilityFunc)
+
+	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck")
 
 	return newStepsPerSec - oldStepsPerSec
 }
 
-func (job Job) CalculateEpochsTillConvergence() uint {
+func (job *Job) CalculateEpochsTillConvergence() uint {
 	x := make([]float64, 0)
 	y := make([]float64, 0)
 	for _, historyEvent := range *job.History {
@@ -204,21 +218,26 @@ func (job Job) CalculateEpochsTillConvergence() uint {
 
 	function := helperFunctions.Python3DParabolaLeastSquares(x, y, make([]float64, 1), startingGuess, "convergence")
 
-	convergenceEpoch := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, function)
+	convergenceEpoch, err := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, function)
 
-	println(int(math.Ceil(convergenceEpoch)))
-	println(int(math.Ceil(convergenceEpoch)) - *job.Epoch)
-	println(uint(int(math.Ceil(convergenceEpoch)) - *job.Epoch))
-	return uint(int(math.Ceil(convergenceEpoch)) - *job.Epoch) //TODO should we have some sort of "optimism" deterrent (ex. multiply by 1.1)
+	helperFunctions.FatalErrCheck(err, "CalculateEpochsTillConvergence: ")
+
+	remainingEpochs := int(math.Ceil(convergenceEpoch)) - (*job.Epoch - 1)
+
+	if remainingEpochs < 0 {
+		return 1
+	} else {
+		return uint(remainingEpochs)
+	} //TODO should we have some sort of "optimism" deterrent (ex. multiply by 1.1)
 }
 
-func (job Job) maxFunctionsWithRemainingBudget() uint {
+func (job *Job) maxFunctionsWithRemainingBudget() uint {
 	currentBudget := job.Budget - job.CurrentCost
 
 	return uint(currentBudget / job.costPerFunction())
 }
 
-func (job Job) costPerFunction() float64 {
+func (job *Job) costPerFunction() float64 {
 	if job.AverageFunctionCost == 0 {
 		println("job does not have an average function cost yet")
 		return 10
@@ -227,11 +246,63 @@ func (job Job) costPerFunction() float64 {
 	}
 }
 
-func (job Job) functionsForNextEpoch(functions uint, epochs uint) uint {
+func (job *Job) functionsForNextEpoch(functions uint, epochs uint) uint {
+	if epochs == 0 {
+		return functions
+	}
 	suggestedNumber := float64(functions / epochs)
 	return uint(math.Max(suggestedNumber, 1)) //TODO make this take into account that fewer functions are used for later epochs
 }
 
-func (job Job) UpdateAverageFunctionCost(cost float64) {
+func (job *Job) UpdateAverageFunctionCost(cost float64) {
+	if len(*job.History) == 0 {
+		return
+	}
+
 	job.AverageFunctionCost = ((job.AverageFunctionCost * float64(job.NumberOfFunctionsUsed)) + cost) / float64(job.NumberOfFunctionsUsed+(*job.History)[len(*job.History)-1].NumWorkers)
+}
+
+func (job *Job) UpdateIsTraining(isTraining bool) {
+	job.isTrainingMutex.Lock()
+	defer job.isTrainingMutex.Unlock()
+
+	job.isTraining = isTraining
+}
+
+func (job *Job) CheckIsTraining() bool {
+	job.isTrainingMutex.Lock()
+	defer job.isTrainingMutex.Unlock()
+
+	res := job.isTraining
+	return res
+}
+
+func (job *Job) SetNumberOfServers(numberOfServers uint) {
+	job.serversMutex.Lock()
+	defer job.serversMutex.Unlock()
+
+	job.numberOfServers = numberOfServers
+}
+
+func (job *Job) GetNumberOfServers() uint {
+	job.serversMutex.Lock()
+	defer job.serversMutex.Unlock()
+
+	res := job.numberOfServers
+	return res
+}
+
+func (job *Job) SetNumberOfWorkers(numberOfWorkers uint) {
+	job.workersMutex.Lock()
+	defer job.workersMutex.Unlock()
+
+	job.numberOfWorkers = numberOfWorkers
+}
+
+func (job *Job) GetNumberOfWorkers() uint {
+	job.workersMutex.Lock()
+	defer job.workersMutex.Unlock()
+
+	res := job.numberOfWorkers
+	return res
 }

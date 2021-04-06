@@ -6,7 +6,7 @@ from scipy.optimize import least_squares
 
 
 def h(theta, x, y):
-    return theta[2] * (x - theta[0]) ** 2 + theta[3] * (y - theta[1]) ** 2
+    return -theta[2] * (x - theta[0]) ** 2 -theta[3] * (y - theta[1]) ** 2 + theta[4]
 
 
 def fun_marginal(theta):
@@ -44,10 +44,10 @@ if __name__ == '__main__':
     thetaRes = None
 
     if functionType == "marginalUtil":
-        res3 = least_squares(fun_marginal, theta0)
+        res3 = least_squares(fun_marginal, theta0, bounds=(0, np.inf))
         thetaRes = res3.get("x")
     elif functionType == "convergence":
-        res3 = least_squares(fun_converge, theta0)
+        res3 = least_squares(fun_converge, theta0, bounds=(0, np.inf))
         thetaRes = res3.get("x")
 
     print(thetaRes)

@@ -42,9 +42,9 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 	helperFunctions.FatalErrCheck(err, "CreateJobHandler: ")
 
 	//TODO these numbers are nonsense
-	cm := helperFunctions.CreateClusterManager(handler.ClientSet, handler.MetricsClientSet, constants.MAX_SERVERS_PER_NODE, constants.MAX_WORKERS_PER_NODE)
-	handler.cm = &cm
-	handler.cm.UpdateClusterInfo()
+	//cm := helperFunctions.CreateClusterManager(handler.ClientSet, handler.MetricsClientSet, constants.MAX_SERVERS_PER_NODE, constants.MAX_WORKERS_PER_NODE)
+	//handler.cm = &cm
+	//handler.cm.UpdateClusterInfo()
 
 	return handler
 }
@@ -70,7 +70,7 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 //	println("completed aggregation")
 //}
 
-func (jobHandler JobHandler) InvokeFunctions(job Job) {
+func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 	var wg sync.WaitGroup
 
 	numWorkers := uint(0)
@@ -84,24 +84,32 @@ func (jobHandler JobHandler) InvokeFunctions(job Job) {
 			numWorkers++
 		}
 	}
-	job.NumberOfServers = numServers
-	job.NumberOfWorkers = numWorkers
+	job.SetNumberOfServers(numServers)
+	job.SetNumberOfWorkers(numWorkers)
+
+	if numWorkers == 0 && numServers == 0 {
+		println("No workers or servers for job: ", job.JobId)
+		return
+	}
 
 	for _, podName := range job.DeployedPod {
 		jobType := parseJobType(podName)
 		wg.Add(1)
 		job.PodNames[podName] = false
+		println("invoking ", jobType)
 		go jobHandler.InvokeWGFunction(job, podName, *job.Epoch, jobType, numWorkers, numServers, &wg)
 	}
+
+	//wait for all to complete
 	wg.Wait()
 }
 
-func (jobHandler JobHandler) InvokeWGFunction(job Job, id string, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {
+func (jobHandler JobHandler) InvokeWGFunction(job *Job, id string, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {
 	defer wg.Done()
 	jobHandler.InvokeFunction(job, id, epoch, jobType, numWorkers, numServers)
 }
 
-func (jobHandler JobHandler) InvokeFunction(job Job, id string, epoch int, jobType string, numWorkers uint, numServers uint) {
+func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobType string, numWorkers uint, numServers uint) {
 	println("running function: ", id)
 	start := time.Now()
 	schedulerIp := *job.SchedulerIp
@@ -153,7 +161,7 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id string, epoch int, jobTy
 			NumWorkers: uint(numWorkers),
 			NumServers: uint(numServers),
 			WorkerId:   response.WorkerId,
-			Loss:       response.Loss * 2 / float64(epoch),
+			Loss:       response.Loss,
 			Accuracy:   response.Accuracy,
 			Time:       time.Since(start).Seconds(),
 			Epoch:      epoch,
@@ -178,27 +186,37 @@ func (jobHandler JobHandler) GetCompletedFunctionId(job Job) string {
 	return <-*job.FunctionChannel
 }
 
-func (jobHandler JobHandler) DeployFunctions(job Job) {
+func (jobHandler JobHandler) DeployFunctions(job *Job) {
+	// deploy scheduler
+	// deploy x workers
+	// deploy y servers
 	finishedChannel := make(chan string)
+
+	numServers := job.GetNumberOfServers()
+	numWorkers := job.GetNumberOfWorkers()
+
+	if numServers == 0 && numWorkers == 0 {
+		return // so that the scheduler isnt deployed
+	}
 
 	go jobHandler.DeployChannelFunction(job, 0, finishedChannel, constants.JOB_TYPE_SCHEDULER)
 
-	for i := 0; i < int(job.NumberOfWorkers); i++ {
+	for i := 0; i < int(numWorkers); i++ {
 		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_WORKER)
 	}
-	for i := 0; i < int(job.NumberOfServers); i++ {
+	for i := 0; i < int(numServers); i++ {
 		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_SERVER)
 	}
-	for i := 0; i < int(job.NumberOfServers+job.NumberOfWorkers+1); i++ {
+	for i := 0; i < int(numServers+numWorkers+1); i++ {
 		println("pod with id: ", <-finishedChannel, " deployed")
 	}
 }
-func (jobHandler JobHandler) DeployChannelFunction(job Job, functionId int, channel chan string, jobType string) {
+func (jobHandler JobHandler) DeployChannelFunction(job *Job, functionId int, channel chan string, jobType string) {
 	jobHandler.DeployFunction(job, functionId, jobType)
 	channel <- jobHandler.GetPodName(job, functionId, jobType)
 }
 
-func (jobHandler JobHandler) DeployFunction(job Job, functionId int, jobType string) {
+func (jobHandler JobHandler) DeployFunction(job *Job, functionId int, jobType string) {
 	podName := jobHandler.GetPodName(job, functionId, jobType)
 	if jobHandler.podExists(podName){
 		return
@@ -219,6 +237,7 @@ func (jobHandler JobHandler) DeployFunction(job Job, functionId int, jobType str
 		out, stderr, err = jobHandler.executeDeployFunction(podName, imageUrl)
 	}
 
+	job.PodNames[podName] = false
 
 	for jobType == constants.JOB_TYPE_SCHEDULER {
 		pods, err := jobHandler.ClientSet.CoreV1().Pods(constants.KUBERNETES_NAMESPACE).List(context.Background(), v1.ListOptions{})
@@ -243,7 +262,7 @@ func (jobHandler JobHandler) executeDeployFunction(podName string, imageUrl stri
 	)
 }
 
-func (jobHandler JobHandler) GetPodName(job Job, functionId int, jobType string) string {
+func (jobHandler JobHandler) GetPodName(job *Job, functionId int, jobType string) string {
 	return job.JobId + jobType + strconv.Itoa(functionId)
 }
 
@@ -282,7 +301,7 @@ func (jobHandler JobHandler) DeployableNumberOfFunctions(job Job, desiredNumberO
 	}
 }
 
-func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job, maxFunctions []uint) ([]uint, []uint) {
+func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job, maxFunctions []uint, outsideWorkers uint, outsideServers uint) ([]uint, []uint) {
 	if len(jobs) != len(maxFunctions) {
 		log.Fatalf("GetDeploymentWithHighestMarginalUtility: len(jobs) != len(maxFunctions)")
 	}
@@ -291,13 +310,14 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 		job.UpdateMarginalUtilityFunc()
 	}
 
-	JobHandler.cm.UpdateClusterInfo()
+	//JobHandler.cm.UpdateClusterInfo()
 
 	workerDeployment := make([]uint, len(jobs))
 	serverDeployment := make([]uint, len(jobs))
 
-	workerDeploymentTotal := uint(0)
-	serverDeploymentTotal := uint(0)
+	// So that we take into account already existing workers/servers
+	workerDeploymentTotal := outsideWorkers
+	serverDeploymentTotal := outsideServers
 
 	deploymentFinished := false
 
@@ -305,28 +325,20 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 		marginalUtilities := make([]float64, len(jobs))
 		deploymentType    := make([]byte, len(jobs))
 
-		roomForServer := JobHandler.cm.CheckDeploymentValidity(workerDeploymentTotal, serverDeploymentTotal + 1)
-		roomForWorker := JobHandler.cm.CheckDeploymentValidity(workerDeploymentTotal + 1, serverDeploymentTotal)
-
 		for i, job := range jobs {
 			if workerDeployment[i] == 0 {
 				utility := -1.0
 				// so that no deployment has 1 worker and 0 servers, or 0 servers and 1 worker
-				if roomForServer && roomForWorker {
-					utility = job.MarginalUtilityCheck(1, 1, 0, 0, maxFunctions[i])
-				}
+				utility = job.MarginalUtilityCheck(1, 1, 0, 0, maxFunctions[i])
+
 				marginalUtilities[i] = utility
 				deploymentType[i]    = 'f'
 			} else {
 				workerUtility := -1.0
-				if roomForWorker {
-					workerUtility = job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], maxFunctions[i])
-				}
+				workerUtility = job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], maxFunctions[i])
 
 				serverUtility := -1.0
-				if roomForServer {
-					serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], maxFunctions[i])
-				}
+				serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], maxFunctions[i])
 
 				if workerUtility >= serverUtility {
 					marginalUtilities[i] = workerUtility
@@ -338,7 +350,7 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 			}
 		}
 
-		maxUtility := -1.0
+		maxUtility := 0.0
 		maxUtilityJobIndex := -1
 		for i, utility := range marginalUtilities {
 			if utility > maxUtility {
@@ -369,7 +381,6 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 	return workerDeployment, serverDeployment
 }
 
-
 //TODO:
 /**
 * This should wait for at least:
@@ -378,7 +389,7 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 * Wait for x seconds and start invocations!
 * Also make sure to check how many of each type are already ready and add them to job configuration.
  */
-func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, timeout time.Duration) ([]string, error) {
+func (jobHandler JobHandler) WaitForAllWorkerPods(job *Job, namespace string, timeout time.Duration) ([]string, error) {
 	hasStarted := false
 
 
@@ -421,7 +432,7 @@ func allTypesStarted(types map[string]int) bool {
 	return types[constants.JOB_TYPE_SCHEDULER] > 0 && types[constants.JOB_TYPE_WORKER] > 0 && types[constants.JOB_TYPE_SERVER] > 0
 }
 
-func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, jobType string, numberOf uint) {
+func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job *Job, jobType string, numberOf uint) {
 	fmt.Printf("deleting all funcitons starting with %s and greater or equal to %d\n", job.JobId + jobType, numberOf)
 	stdout, stderr, err := helperFunctions.ExecuteFunction(
 		constants.DELETE_FUNCTIONS_SUBSTRING_SCRIPT,
@@ -432,7 +443,7 @@ func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, jobType string,
 }
 
 
-func (jobHandler JobHandler) InitialTuning(job Job) int {
+func (jobHandler JobHandler) InitialTuning(job *Job) int {
 	*job.InitialTuning = true
 	datasetSize := job.DataSetSize
 
@@ -471,7 +482,7 @@ func (jobHandler JobHandler) InitialTuning(job Job) int {
 	return batchSize
 }
 
-func (jobHandler JobHandler) deployAndRunWithBatchSize(job Job, batchSize int) float64 {
+func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) float64 {
 	job.NumberOfParts = job.DataSetSize / batchSize
 
 	jobHandler.DeployFunctions(job)
