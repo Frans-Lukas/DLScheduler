@@ -18,14 +18,14 @@ type Job struct {
 	CurrentCost           float64
 	JobId                 string
 	PodNames              map[string]bool
-	DeployedPod           []string
+	DeployedPods          []string
 	Epoch                 *int
 	FunctionChannel       *chan string
 	AverageFunctionCost   float64
 	NumberOfFunctionsUsed uint
 	NumberOfWorkers       uint
 	NumberOfServers       uint
-	NumberOfParts 		  int
+	NumberOfParts         int
 	SchedulerIp           *string
 	History               *[]HistoryEvent
 	MarginalUtilityFunc   *[]float64

@@ -73,7 +73,7 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		handler.DeployFunctions(job)
 
 		deployedPods, err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-		job.DeployedPod = deployedPods
+		job.DeployedPods = deployedPods
 		helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 
 		trainOneEpoch(handler, job)
