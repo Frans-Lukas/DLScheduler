@@ -1,9 +1,9 @@
 [
   {
     "budget": 1337.420,
-    "targetLoss": 1,
+    "targetLoss": 0.1,
     "dataSetSize": 1259,
-    "imageUrl": "docker.io/johansundkvist/processor-mxnet_sh:latest",
+    "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
     "scriptPath": "/DLScheduler/MXNetImplementations/Zoo/main.py"
   }
 ]

@@ -183,7 +183,7 @@ func Python3DParabolaLeastSquares(xs []float64, ys []float64, hs []float64, init
 	fmt.Printf("xstring: %s, ystring: %s, hstring: %s, guess: %s\n", xString, yString, hString, guess)
 
 	if os.Getenv(constants.PY_PATH_ENV_NAME) == "" {
-		FatalErrCheck(errors.New(constants.PY_PATH_ENV_NAME+" not set"), "get py path")
+		FatalErrCheck(errors.New(constants.PY_PATH_ENV_NAME+" not set e.x. /usr/bin/python3"), "get py path")
 	}
 
 	out, stderr, err := ExecuteFunction(os.Getenv(constants.PY_PATH_ENV_NAME), constants.PYTHON_LEAST_SQUARES, functionType, xString, yString, hString, guess)
