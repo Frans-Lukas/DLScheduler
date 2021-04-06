@@ -39,8 +39,6 @@ func main() {
 	println("testing reasonable batch size")
 	jobHandler.InitialTuning(job)
 	println("done with testing reasonable batch size")
-	//
-	//
 
 	// 3. If done, store gradients and remove job from queue.
 	//for !job.IsDone() {
@@ -74,17 +72,13 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		// redploy all workers and servers, if they exist, they are kept and not redeployed.
 		handler.DeployFunctions(job)
 
-		// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
 		deployedPods, err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
 		job.DeployedPod = deployedPods
 		helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 
 		trainOneEpoch(handler, job)
-
-		// TODO check if this works
-		//handler.DeleteNuclioFunctionsInJob(job)
-		//if we do not include epoch in pod name we will have to wait for them to delete
 	}
+	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_WORKER, 0)
 }
 
 func deleteExcessWorkers(handler jb.JobHandler, job jb.Job) {
