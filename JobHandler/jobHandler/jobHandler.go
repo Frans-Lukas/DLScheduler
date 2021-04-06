@@ -75,7 +75,7 @@ func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 
 	numWorkers := uint(0)
 	numServers := uint(0)
-	for _, podName := range job.DeployedPod {
+	for _, podName := range job.DeployedPods {
 		jobType := parseJobType(podName)
 		switch jobType {
 		case constants.JOB_TYPE_SERVER:
@@ -84,6 +84,7 @@ func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 			numWorkers++
 		}
 	}
+
 	job.SetNumberOfServers(numServers)
 	job.SetNumberOfWorkers(numWorkers)
 
@@ -92,7 +93,9 @@ func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 		return
 	}
 
-	for _, podName := range job.DeployedPod {
+	fmt.Printf("num servers: %d, num workers %d\n",numWorkers, numServers)
+
+	for _, podName := range job.DeployedPods {
 		jobType := parseJobType(podName)
 		wg.Add(1)
 		job.PodNames[podName] = false
@@ -230,7 +233,6 @@ func (jobHandler JobHandler) DeployFunction(job *Job, functionId int, jobType st
 		err = errors.New("500 internal server error")
 	}
 
-	//TODO: this keeps going until no errors occurs
 	for err != nil {
 		time.Sleep(time.Second * 5)
 		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
@@ -424,8 +426,8 @@ func (jobHandler JobHandler) WaitForAllWorkerPods(job *Job, namespace string, ti
 
 func parseJobType(name string) string {
 	// 10 chars followed by TYPE followed by int
-	re := regexp.MustCompile("[a-z]{10}([a-z]*)[0-9]*")
-	return re.FindStringSubmatch(name)[0]
+	re := regexp.MustCompile("[a-z0-9]{10}([a-z]*)[0-9]*")
+	return re.FindStringSubmatch(name)[1]
 }
 
 func allTypesStarted(types map[string]int) bool {
@@ -484,11 +486,13 @@ func (jobHandler JobHandler) InitialTuning(job *Job) int {
 
 func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) float64 {
 	job.NumberOfParts = job.DataSetSize / batchSize
+	job.NumberOfWorkers = 1
+	job.NumberOfServers = 1
 
 	jobHandler.DeployFunctions(job)
 
 	deployedPods, err := jobHandler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	job.DeployedPod = deployedPods
+	job.DeployedPods = deployedPods
 	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 	epochStartTime := time.Now()
 	jobHandler.InvokeFunctions(job)

@@ -42,11 +42,6 @@ func main() {
 		println("done with testing reasonable batch size")
 	}
 
-	for _,v := range os.Environ() {
-		println(v)
-	}
-	//println(os.Environ())
-
 	//TODO: check add one one
 	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.508112, Epoch: 2})
 	//*jobs.History = append(*jobs.History, jb.HistoryEvent{Loss: 0.367166, Epoch: 3})
@@ -167,7 +162,7 @@ func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job, outsideWorkers uint, o
 func waitAndExecuteEpochTraining(handler jb.JobHandler, job *jb.Job) {
 	// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
 	deployedPods, err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	job.DeployedPod = deployedPods
+	job.DeployedPods = deployedPods
 	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 
 	executeTrainingOfOneEpoch(handler, job)
