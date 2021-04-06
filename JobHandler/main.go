@@ -35,28 +35,6 @@ func main() {
 	job, err := jb.ParseJson(jobPath)
 	helperFunctions.FatalErrCheck(err, "main: ")
 
-	//TODO: check add one one
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.508112, Epoch: 2})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.367166, Epoch: 3})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.327031, Epoch: 4})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.300430, Epoch: 5})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.280054, Epoch: 6})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.262924, Epoch: 7})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.248206, Epoch: 8})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.234580, Epoch: 9})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.221567, Epoch: 10})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.209484, Epoch: 11})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.199290, Epoch: 12})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.190342, Epoch: 13})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.180169, Epoch: 14})
-	//*job.History = append(*job.History, jb.HistoryEvent{Loss: 0.171137, Epoch: 15})
-	//for i, _ := range *job.History {
-	//	//v.Loss *= 100
-	//	(*job.History)[i].Epoch--
-	//	//fmt.Printf("%d, %f\n",v.Epoch, v.Loss)
-	//}
-	//job.LeastSquaresTest()
-
 	job.JobId = helperFunctions.GenerateId(constants.JOB_ID_LENGTH)
 	println("testing reasonable batch size")
 	jobHandler.InitialTuning(job)
@@ -97,10 +75,11 @@ func trainUntilConvergence(handler jb.JobHandler, job jb.Job) {
 		handler.DeployFunctions(job)
 
 		// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
-		err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
+		deployedPods, err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
+		job.DeployedPod = deployedPods
 		helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 
-		trainOneEpoch(handler, job, numberOfFunctionsToDeploy)
+		trainOneEpoch(handler, job)
 
 		// TODO check if this works
 		//handler.DeleteNuclioFunctionsInJob(job)
@@ -116,7 +95,7 @@ func deleteExcessParameterServers(handler jb.JobHandler, job jb.Job) {
 	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_SERVER, job.NumberOfServers)
 }
 
-func trainOneEpoch(handler jb.JobHandler, job jb.Job, numberOfFunctionsToInvoke uint) {
+func trainOneEpoch(handler jb.JobHandler, job jb.Job) {
 	println("invoking functions")
 
 	epochStartTime := time.Now()

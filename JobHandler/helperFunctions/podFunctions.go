@@ -36,6 +36,7 @@ func IsPodRunning(client kubernetes.Interface, podName string, namespace string)
 		case v1.PodFailed:
 			return false, errors.New("PodFailed")
 		}
+
 		return false, nil
 	}
 }

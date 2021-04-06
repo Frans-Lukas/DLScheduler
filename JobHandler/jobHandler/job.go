@@ -18,6 +18,7 @@ type Job struct {
 	CurrentCost           float64
 	JobId                 string
 	PodNames              map[string]bool
+	DeployedPod           []string
 	Epoch                 *int
 	FunctionChannel       *chan string
 	AverageFunctionCost   float64
@@ -166,7 +167,8 @@ func (job Job) UpdateMarginalUtilityFunc() {
 		previousEstimation = []float64{0, 0, 1, 2}
 	}
 
-	*job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation, "marginalUtil") //TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
+	//TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
+	*job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation, "marginalUtil")
 	fmt.Printf("y = %f + %fx", (*job.MarginalUtilityFunc)[0], (*job.MarginalUtilityFunc)[1])
 }
 

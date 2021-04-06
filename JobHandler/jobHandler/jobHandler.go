@@ -72,40 +72,38 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 
 func (jobHandler JobHandler) InvokeFunctions(job Job) {
 	var wg sync.WaitGroup
-	numWorkers := job.NumberOfWorkers
-	numServers := job.NumberOfServers
-	//invoke scheduler
-	wg.Add(1)
-	functionName := jobHandler.GetPodName(job, 0, constants.JOB_TYPE_SCHEDULER)
-	job.PodNames[functionName] = false
-	go jobHandler.InvokeWGFunction(job, 0, *job.Epoch, constants.JOB_TYPE_SCHEDULER, numWorkers, numServers, &wg)
-	for i := 0; i < int(job.NumberOfServers); i++ {
-		//invoke servers
-		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_SERVER)
-		job.PodNames[functionName] = false
-		wg.Add(1)
-		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_SERVER, numWorkers, numServers, &wg)
+
+	numWorkers := uint(0)
+	numServers := uint(0)
+	for _, podName := range job.DeployedPod {
+		jobType := parseJobType(podName)
+		switch jobType {
+		case constants.JOB_TYPE_SERVER:
+			numServers++
+		case constants.JOB_TYPE_WORKER:
+			numWorkers++
+		}
 	}
-	//invoke workers
-	for i := 0; i < int(job.NumberOfWorkers); i++ {
-		functionName = jobHandler.GetPodName(job, i, constants.JOB_TYPE_WORKER)
-		job.PodNames[functionName] = false
+	job.NumberOfServers = numServers
+	job.NumberOfWorkers = numWorkers
+
+	for _, podName := range job.DeployedPod {
+		jobType := parseJobType(podName)
 		wg.Add(1)
-		go jobHandler.InvokeWGFunction(job, i, *job.Epoch, constants.JOB_TYPE_WORKER, numWorkers, numServers, &wg)
+		job.PodNames[podName] = false
+		go jobHandler.InvokeWGFunction(job, podName, *job.Epoch, jobType, numWorkers, numServers, &wg)
 	}
-	//wait for all to complete
 	wg.Wait()
 }
 
-func (jobHandler JobHandler) InvokeWGFunction(job Job, id int, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {
+func (jobHandler JobHandler) InvokeWGFunction(job Job, id string, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {
 	defer wg.Done()
 	jobHandler.InvokeFunction(job, id, epoch, jobType, numWorkers, numServers)
 }
 
-func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType string, numWorkers uint, numServers uint) {
-	println("running function: ", jobHandler.GetPodName(job, id, jobType))
+func (jobHandler JobHandler) InvokeFunction(job Job, id string, epoch int, jobType string, numWorkers uint, numServers uint) {
+	println("running function: ", id)
 	start := time.Now()
-	functionName := jobHandler.GetPodName(job, id, jobType)
 	schedulerIp := *job.SchedulerIp
 	var response FunctionResponse
 	for {
@@ -114,11 +112,11 @@ func (jobHandler JobHandler) InvokeFunction(job Job, id int, epoch int, jobType 
 		var err error
 		if *job.InitialTuning {
 			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
-				functionName, schedulerIp, jobType, strconv.Itoa(int(numWorkers)),
+				id, schedulerIp, jobType, strconv.Itoa(int(numWorkers)),
 				strconv.Itoa(int(numServers)), job.ScriptPath, strconv.Itoa(job.NumberOfParts))
 		} else {
 			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
-				functionName, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath)
+				id, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath)
 		}
 		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 		//println(out.String())
@@ -380,21 +378,47 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []Job,
 * Wait for x seconds and start invocations!
 * Also make sure to check how many of each type are already ready and add them to job configuration.
  */
-func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, timeout time.Duration) error {
+func (jobHandler JobHandler) WaitForAllWorkerPods(job Job, namespace string, timeout time.Duration) ([]string, error) {
 	hasStarted := false
+
+
+	startedTypes := make(map[string]int)
+	startedPods := make([]string, 0)
+	startedTypes[constants.JOB_TYPE_SCHEDULER] = 0
+	startedTypes[constants.JOB_TYPE_WORKER] = 0
+	startedTypes[constants.JOB_TYPE_WORKER] = 0
+
+	timeStart := time.Now()
 	for !hasStarted {
 		hasStarted = true
 		for podName, _ := range job.PodNames {
 			err := helperFunctions.WaitForPodRunning(jobHandler.ClientSet, namespace, podName, timeout)
 			if err != nil {
+				if time.Now().Sub(timeStart).Seconds() > time.Second.Seconds() * 100 && allTypesStarted(startedTypes) {
+					return startedPods, nil
+				}
 				hasStarted = false
 				println(err.Error())
 				time.Sleep(time.Second * 2)
 				break
+			} else {
+				jobType := parseJobType(podName)
+				startedPods = append(startedPods, podName)
+				startedTypes[jobType]++
 			}
 		}
 	}
-	return nil
+	return startedPods, nil
+}
+
+func parseJobType(name string) string {
+	// 10 chars followed by TYPE followed by int
+	re := regexp.MustCompile("[a-z]{10}([a-z]*)[0-9]*")
+	return re.FindStringSubmatch(name)[0]
+}
+
+func allTypesStarted(types map[string]int) bool {
+	return types[constants.JOB_TYPE_SCHEDULER] > 0 && types[constants.JOB_TYPE_WORKER] > 0 && types[constants.JOB_TYPE_SERVER] > 0
 }
 
 func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job Job, jobType string, numberOf uint) {
@@ -449,9 +473,12 @@ func (jobHandler JobHandler) InitialTuning(job Job) int {
 
 func (jobHandler JobHandler) deployAndRunWithBatchSize(job Job, batchSize int) float64 {
 	job.NumberOfParts = job.DataSetSize / batchSize
-	job.NumberOfWorkers = 1
-	job.NumberOfServers = 1
+
 	jobHandler.DeployFunctions(job)
+
+	deployedPods, err := jobHandler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
+	job.DeployedPod = deployedPods
+	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 	epochStartTime := time.Now()
 	jobHandler.InvokeFunctions(job)
 	cost := CostCalculator.CalculateCostForPods(job.JobId, jobHandler.ClientSet, jobHandler.MetricsClientSet, epochStartTime)
