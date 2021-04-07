@@ -73,17 +73,7 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 	var wg sync.WaitGroup
 
-	numWorkers := uint(0)
-	numServers := uint(0)
-	for _, podName := range job.DeployedPods {
-		jobType := parseJobType(podName)
-		switch jobType {
-		case constants.JOB_TYPE_SERVER:
-			numServers++
-		case constants.JOB_TYPE_WORKER:
-			numWorkers++
-		}
-	}
+	numWorkers, numServers := jobHandler.countServersAndWorkers(job)
 
 	job.SetNumberOfServers(numServers)
 	job.SetNumberOfWorkers(numWorkers)
@@ -93,7 +83,7 @@ func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 		return
 	}
 
-	fmt.Printf("num servers: %d, num workers %d\n",numWorkers, numServers)
+	fmt.Printf("num servers: %d, num workers %d\n", numWorkers, numServers)
 
 	for _, podName := range job.DeployedPods {
 		jobType := parseJobType(podName)
@@ -105,6 +95,21 @@ func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 
 	//wait for all to complete
 	wg.Wait()
+}
+
+func (jobHandler JobHandler) countServersAndWorkers(job *Job) (uint, uint) {
+	numWorkers := uint(0)
+	numServers := uint(0)
+	for _, podName := range job.DeployedPods {
+		jobType := parseJobType(podName)
+		switch jobType {
+		case constants.JOB_TYPE_SERVER:
+			numServers++
+		case constants.JOB_TYPE_WORKER:
+			numWorkers++
+		}
+	}
+	return numWorkers, numServers
 }
 
 func (jobHandler JobHandler) InvokeWGFunction(job *Job, id string, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {

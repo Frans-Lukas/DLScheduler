@@ -42,10 +42,6 @@ func main() {
 		println("done with testing reasonable batch size")
 	}
 
-	for _, job := range jobs {
-		job.JobId = helperFunctions.GenerateId(10)
-	}
-
 	println("train until convergence")
 	trainUntilConvergence(jobHandler, jobs)
 }
