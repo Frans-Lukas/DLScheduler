@@ -162,6 +162,7 @@ func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobT
 		}
 	}
 
+	//TODO does this only add history events for workers and not for parameter servers?
 	if jobType == constants.JOB_TYPE_WORKER {
 		fmt.Println("got response: ", response)
 		println("job length: ", len(*job.History))
@@ -173,6 +174,7 @@ func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobT
 			Accuracy:   response.Accuracy,
 			Time:       time.Since(start).Seconds(),
 			Epoch:      epoch,
+			Cost:       -1, // is set to real number later
 		})
 		println("job length after: ", len(*job.History))
 	}
@@ -308,12 +310,13 @@ func (jobHandler JobHandler) DeployableNumberOfFunctions(job Job, desiredNumberO
 	}
 }
 
-func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job, maxFunctions []uint, outsideWorkers uint, outsideServers uint) ([]uint, []uint) {
-	if len(jobs) != len(maxFunctions) {
-		log.Fatalf("GetDeploymentWithHighestMarginalUtility: len(jobs) != len(maxFunctions)")
+func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job, budgets []float64, outsideWorkers uint, outsideServers uint) ([]uint, []uint) {
+	if len(jobs) != len(budgets) {
+		log.Fatalf("GetDeploymentWithHighestMarginalUtility: len(jobs) != len(budgets)")
 	}
 
 	for _, job := range jobs {
+		job.UpdateCostFunc()
 		job.UpdateMarginalUtilityFunc()
 	}
 
@@ -336,16 +339,16 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 			if workerDeployment[i] == 0 {
 				utility := -1.0
 				// so that no deployment has 1 worker and 0 servers, or 0 servers and 1 worker
-				utility = job.MarginalUtilityCheck(1, 1, 0, 0, maxFunctions[i])
+				utility = job.MarginalUtilityCheck(1, 1, 0, 0, budgets[i])
 
 				marginalUtilities[i] = utility
 				deploymentType[i]    = 'f'
 			} else {
 				workerUtility := -1.0
-				workerUtility = job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], maxFunctions[i])
+				workerUtility = job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], budgets[i])
 
 				serverUtility := -1.0
-				serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], maxFunctions[i])
+				serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], budgets[i])
 
 				if workerUtility >= serverUtility {
 					marginalUtilities[i] = workerUtility
@@ -502,7 +505,7 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) 
 	epochStartTime := time.Now()
 	jobHandler.InvokeFunctions(job)
 	cost := CostCalculator.CalculateCostForPods(job.JobId, jobHandler.ClientSet, jobHandler.MetricsClientSet, epochStartTime)
-	job.UpdateAverageFunctionCost(cost)
+	job.UpdateFunctionCostsInHistory(cost)
 	return (*job.History)[len(*job.History) - 1].Time
 }
 
