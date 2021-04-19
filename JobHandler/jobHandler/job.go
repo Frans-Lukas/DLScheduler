@@ -2,6 +2,7 @@ package jobHandler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"jobHandler/helperFunctions"
@@ -22,7 +23,6 @@ type Job struct {
 	DeployedPods          []string
 	Epoch                 *int
 	FunctionChannel       *chan string
-	AverageFunctionCost   float64
 	NumberOfFunctionsUsed uint
 	NumberOfWorkers       uint
 	NumberOfServers       uint
@@ -37,6 +37,7 @@ type Job struct {
 	numberOfServers       uint
 	isTraining            bool
 	isTrainingMutex       sync.Mutex
+	CostFunc              *[]float64
 }
 
 func ParseJson(jsonPath string) ([]*Job, error) {
@@ -56,7 +57,8 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		ipString := ""
 
 		history := make([]HistoryEvent, 0)
-		marginalUtilityFunc := make([]float64, 1)
+		marginalUtilityFunc := make([]float64, 0)
+		costFunc := make([]float64, 0)
 		//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
 		epoch := 2
 		tmpChan := make(chan string)
@@ -68,6 +70,7 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		job.numberOfServers = 1
 		job.SchedulerIp = &ipString
 		job.MarginalUtilityFunc = &marginalUtilityFunc
+		job.CostFunc = &costFunc
 		job.isTraining = false
 		tmpInitalTuning := false
 		job.InitialTuning = &tmpInitalTuning
@@ -109,24 +112,18 @@ func (job *Job) historyIsEmpty() bool {
 	return len(*job.History) <= 1
 }
 
-func (job *Job) CalculateNumberOfFunctions() uint {
+func (job *Job) CalculateBudgetForEpoch() (float64, error) {
 	if job.historyIsEmpty() {
-		return 2
+		return -1, errors.New("CalculateBudgetForEpoch: empty history")
 	}
 
 	epochsTillConvergence := job.CalculateEpochsTillConvergence()
 	fmt.Printf("epochs until convergence: %d\n", epochsTillConvergence)
 
-	maxFunctions := job.maxFunctionsWithRemainingBudget()
-	fmt.Printf("maxFunctions: %d\n", maxFunctions)
+	budgetForEpoch := job.budgetForNextEpoch(epochsTillConvergence)
+	fmt.Printf("budgetForEpoch: %d\n", budgetForEpoch)
 
-	functions := job.functionsForNextEpoch(maxFunctions, epochsTillConvergence)
-	fmt.Printf("functions: %d\n", functions)
-
-	if functions < 2 {
-		return 2
-	}
-	return functions
+	return budgetForEpoch, nil
 }
 
 func (job *Job) FunctionsHaveFinished() bool {
@@ -157,6 +154,33 @@ func (job *Job) LeastSquaresTest() {
 	}
 }
 
+func (job *Job) UpdateCostFunc() {
+	if job.historyIsEmpty() {
+		return //TODO find better solution for this
+	}
+
+	x := make([]float64, 0)
+	y := make([]float64, 0)
+	h := make([]float64, 0)
+	for _, historyEvent := range *job.History {
+		if historyEvent.Cost == -1 {
+			println("event with unset cost!")
+		} else {
+			fmt.Printf("numWorkers: %d, numServers: %d, cost: %f\n", historyEvent.NumWorkers, historyEvent.NumServers, 1/historyEvent.Cost)
+			x = append(x, float64(historyEvent.NumWorkers))
+			y = append(y, float64(historyEvent.NumServers))
+			h = append(h, historyEvent.Cost)
+		}
+	}
+
+	previousEstimation := *job.CostFunc
+	if len(previousEstimation) < 5 {
+		previousEstimation = []float64{1, 1, 1, 1, 1}
+	}
+
+	*job.CostFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation, "costEstimation")
+}
+
 func (job *Job) UpdateMarginalUtilityFunc() {
 	if job.historyIsEmpty() {
 		return //TODO find better solution for this
@@ -166,25 +190,24 @@ func (job *Job) UpdateMarginalUtilityFunc() {
 	y := make([]float64, 0)
 	h := make([]float64, 0)
 	for _, historyEvent := range *job.History {
-		fmt.Printf("numFunctions: %d, steps/s: %f\n", historyEvent.NumWorkers, 1/historyEvent.Time)
+		fmt.Printf("numWorkers: %d, numServers: %d, steps/s: %f\n", historyEvent.NumWorkers, historyEvent.NumServers, 1/historyEvent.Time)
 		x = append(x, float64(historyEvent.NumWorkers))
 		y = append(y, float64(historyEvent.NumServers))
-		h = append(h, historyEvent.Time)
+		h = append(h, 1/historyEvent.Time) // conversion to steps/s
 	}
 
 	previousEstimation := *job.MarginalUtilityFunc
 	if len(previousEstimation) < 5 {
-		previousEstimation = []float64{0, 0, 1, 2, 0}
+		previousEstimation = []float64{1, 1, 1, 1, 1}
 	}
 
 	//TODO check if this should be done with polynomial least squares and steps/s instead of time (check optimus)
 	*job.MarginalUtilityFunc = helperFunctions.Python3DParabolaLeastSquares(x, y, h, previousEstimation, "marginalUtil")
-	fmt.Printf("y = %f + %fx", (*job.MarginalUtilityFunc)[0], (*job.MarginalUtilityFunc)[1])
 }
 
 //TODO has not been checked if it works
-func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, maxFunctions uint) float64 {
-	if numWorkers + numServers > maxFunctions {
+func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, budget float64) float64 {
+	if budget <= 0 {
 		return -1
 	}
 
@@ -195,13 +218,29 @@ func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorker
 	if len(*job.MarginalUtilityFunc) == 0 {
 		job.UpdateMarginalUtilityFunc()
 	}
-	oldStepsPerSec, err := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), *job.MarginalUtilityFunc)
 
-	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck")
+	if len(*job.CostFunc) == 0 {
+		job.UpdateCostFunc()
+	}
+
+	cost, err := helperFunctions.Python3DPolynomialEstimateH(float64(numWorkers), float64(numServers), *job.CostFunc)
+	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck: ")
+
+	if cost > budget {
+		return -1
+	}
+
+	oldStepsPerSec := -1.0
+
+	if oldWorkers == 0 || oldServers == 0 {
+		oldStepsPerSec = 0.0
+	} else {
+		oldStepsPerSec, err = helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), *job.MarginalUtilityFunc)
+		helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck: ")
+	}
 
 	newStepsPerSec, err := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(numWorkers), float64(numServers), *job.MarginalUtilityFunc)
-
-	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck")
+	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck: ")
 
 	return newStepsPerSec - oldStepsPerSec
 }
@@ -231,35 +270,27 @@ func (job *Job) CalculateEpochsTillConvergence() uint {
 	} //TODO should we have some sort of "optimism" deterrent (ex. multiply by 1.1)
 }
 
-func (job *Job) maxFunctionsWithRemainingBudget() uint {
+func (job *Job) budgetForNextEpoch(epochs uint) float64 {
 	currentBudget := job.Budget - job.CurrentCost
 
-	return uint(currentBudget / job.costPerFunction())
-}
-
-func (job *Job) costPerFunction() float64 {
-	if job.AverageFunctionCost == 0 {
-		println("job does not have an average function cost yet")
-		return 10
-	} else {
-		return job.AverageFunctionCost
-	}
-}
-
-func (job *Job) functionsForNextEpoch(functions uint, epochs uint) uint {
 	if epochs == 0 {
-		return functions
+		return currentBudget
 	}
-	suggestedNumber := float64(functions / epochs)
-	return uint(math.Max(suggestedNumber, 1)) //TODO make this take into account that fewer functions are used for later epochs
+
+	suggestedBudget := currentBudget / float64(epochs)
+	return suggestedBudget //TODO make this take into account that fewer functions are used for later epochs
 }
 
-func (job *Job) UpdateAverageFunctionCost(cost float64) {
+func (job *Job) UpdateFunctionCostsInHistory(cost float64) {
 	if len(*job.History) == 0 {
 		return
 	}
 
-	job.AverageFunctionCost = ((job.AverageFunctionCost * float64(job.NumberOfFunctionsUsed)) + cost) / float64(job.NumberOfFunctionsUsed+(*job.History)[len(*job.History)-1].NumWorkers)
+	for i, event := range *job.History {
+		if event.Cost == -1 {
+			(*job.History)[i].Cost = cost
+		}
+	}
 }
 
 func (job *Job) UpdateIsTraining(isTraining bool) {

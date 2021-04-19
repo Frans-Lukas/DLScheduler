@@ -18,6 +18,14 @@ def hc(theta, x):
 def fun_converge(theta):
     return hc(theta, xs) - ys
 
+
+def hd(theta, x, y):
+    return theta[0] + x * theta[1] + (x * theta[2]) ** 2 + y * theta[3] + (y * theta[4]) ** 2
+
+
+def fun_cost(theta):
+    return (hd(theta, xs, ys) - hs).flatten()
+
 # example input
 # -1. -0.89473684 -0.78947368 -0.68421053 -0.57894737 -0.47368421 -0.36842105 -0.26315789 -0.15789474 -0.05263158 0.05263158 0.15789474 0.26315789 0.36842105 0.47368421 0.57894737 0.68421053 0.78947368 0.89473684 1.
 # -1. -0.89473684 -0.78947368 -0.68421053 -0.57894737 -0.47368421 -0.36842105 -0.26315789 -0.15789474 -0.05263158 0.05263158 0.15789474 0.26315789 0.36842105 0.47368421 0.57894737 0.68421053 0.78947368 0.89473684 1.
@@ -48,6 +56,9 @@ if __name__ == '__main__':
         thetaRes = res3.get("x")
     elif functionType == "convergence":
         res3 = least_squares(fun_converge, theta0, bounds=(0, np.inf))
+        thetaRes = res3.get("x")
+    elif functionType == "costEstimation":
+        res3 = least_squares(fun_cost, theta0, bounds=(0, np.inf))
         thetaRes = res3.get("x")
 
     print(thetaRes)

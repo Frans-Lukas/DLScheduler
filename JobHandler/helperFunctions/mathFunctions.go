@@ -235,6 +235,13 @@ func Python3DParabolaLeastSquaresEstimateH(x float64, y float64, f []float64) (f
 	return -f[2]*math.Pow(x-f[0], 2) + -f[3]*math.Pow(y-f[1], 2) + f[4], nil
 }
 
+func Python3DPolynomialEstimateH(x float64, y float64, f []float64) (float64, error) {
+	if len(f) == 0 {
+		return -1, errors.New("empty function")
+	}
+	return f[0] + x * f[1] + math.Pow(x * f[2], 2) + y * f[3] + math.Pow(y * f[4], 2), nil
+}
+
 func PythonParabolicLeastSquaresEstimateY(x float64, f []float64) (float64, error) {
 	if len(f) == 0 {
 		return -1, errors.New("empty function")

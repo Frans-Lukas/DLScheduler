@@ -8,6 +8,7 @@ type HistoryEvent struct {
 	Accuracy   float64
 	Time       float64
 	Epoch      int
+	Cost       float64
 }
 
 type FunctionResponse struct {

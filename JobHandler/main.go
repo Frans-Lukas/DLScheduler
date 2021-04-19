@@ -87,16 +87,19 @@ func trainUntilConvergence(handler jb.JobHandler, jobs []*jb.Job) {
 
 func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job, outsideWorkers uint, outsideServers uint) {
 
-	maxFuncs := make([]uint, len(jobs))
+	budgetsForEpoch := make([]float64, len(jobs))
 	for i, job := range jobs {
 		// 4. Calculate number of functions we want to invoke
-		desiredNumberOfFunctions := job.CalculateNumberOfFunctions()
-		maxFuncs[i] = desiredNumberOfFunctions
-		fmt.Printf("desired number of funcs: %d\n", desiredNumberOfFunctions)
+		budgetForeEpoch, err := job.CalculateBudgetForEpoch()
+
+		helperFunctions.FatalErrCheck(err, "trainOneEpoch: ")
+
+		budgetsForEpoch[i] = budgetForeEpoch
+		fmt.Printf("budget for job %s : %f\n", job.JobId, budgetForeEpoch)
 	}
 
 	// 5. Calculate number of functions we can invoke
-	workerDeployment, serverDeployment := handler.GetDeploymentWithHighestMarginalUtility(jobs, maxFuncs, outsideWorkers, outsideServers)
+	workerDeployment, serverDeployment := handler.GetDeploymentWithHighestMarginalUtility(jobs, budgetsForEpoch, outsideWorkers, outsideServers)
 
 	for i, job := range jobs {
 		//numberOfFunctionsToDeploy := handler.DeployableNumberOfFunctions(job, desiredNumberOfFunctions)
@@ -161,7 +164,7 @@ func executeTrainingOfOneEpoch(handler jb.JobHandler, job *jb.Job) {
 
 	// update costs for functions
 	cost := CostCalculator.CalculateCostForPods(job.JobId, handler.ClientSet, handler.MetricsClientSet, epochStartTime)
-	job.UpdateAverageFunctionCost(cost)
+	job.UpdateFunctionCostsInHistory(cost)
 
 	println("job is done")
 }
