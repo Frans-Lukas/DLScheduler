@@ -2,7 +2,7 @@
 *classes.pkl*
 *h5
 *gz
-*.sum
+#*.sum
 *.zip
 *ubyte
 *rec
