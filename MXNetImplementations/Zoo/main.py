@@ -31,19 +31,19 @@ def save_model_to_hdfs(net: SqueezeNet, client: Client):
     if os.path.exists(MODEL_WEIGHTS_PATH):
         print("saving trained model to hdfs: " + name)
         try:
-            with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('models/' + name, overwrite=True) as writer:
+            with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write(name, overwrite=True) as writer:
                 writer.write(model.read())
         except:
             exit(-1)
 
 
 def load_model_from_hdfs(client: Client):
-    files = client.list('models')
+    files = client.list('')
     models = list()
     job_id = os.getenv("JOB_ID")
     for file in files:
         if job_id in file:
-            client.download('models/' + file, MODEL_WEIGHTS_PATH, overwrite=True)
+            client.download(file, MODEL_WEIGHTS_PATH, overwrite=True)
     # with client.read('models/' + file) as reader:
     # models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
     return models
