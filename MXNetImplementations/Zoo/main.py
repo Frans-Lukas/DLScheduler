@@ -33,8 +33,8 @@ def save_model_to_hdfs(net: SqueezeNet, client: Client):
         try:
             with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write(name, overwrite=True) as writer:
                 writer.write(model.read())
-        except:
-            exit(-1)
+        except Exception as e:
+            print(e)
 
 
 def load_model_from_hdfs(client: Client):
@@ -176,9 +176,9 @@ def main():
     loss = loss.mean()
     loss = re.search('\[(.*)\]', str(loss)).group(1)
 
-    save_model_to_hdfs(deep_dog_net, client)
     print("regexpresultstart{\"loss\":" + str(
         loss) + ", \"accuracy\":" + str(acc) + ", \"worker_id\":" + str(kv.rank) + "}regexpresultend")
+    save_model_to_hdfs(deep_dog_net, client)
 
 
 if __name__ == '__main__': main()
