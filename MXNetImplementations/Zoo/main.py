@@ -10,10 +10,9 @@ from hdfs import Config, Client
 from mxnet import autograd as ag
 from mxnet import gluon
 from mxnet.gluon.model_zoo import vision
+from mxnet.gluon.model_zoo.vision import SqueezeNet
 from mxnet.gluon.utils import download
 from mxnet.image import color_normalize
-
-from MXNetImplementations.LeNet.main import Net
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
@@ -26,7 +25,7 @@ def real_fn(X):
     return 2 * X[:, 0] - 3.4 * X[:, 1] + 4.2
 
 
-def save_model_to_hdfs(net: Net, client: Client):
+def save_model_to_hdfs(net: SqueezeNet, client: Client):
     net.save_params(MODEL_WEIGHTS_PATH)
     name = os.getenv("JOB_ID")
     if os.path.exists(MODEL_WEIGHTS_PATH):
@@ -50,7 +49,7 @@ def load_model_from_hdfs(client: Client):
     return models
 
 
-def load_model(net: Net, client: Client):
+def load_model(net: SqueezeNet, client: Client):
     load_model_from_hdfs(client)
     if os.path.isfile(MODEL_WEIGHTS_PATH):
         net.load_params(MODEL_WEIGHTS_PATH)
