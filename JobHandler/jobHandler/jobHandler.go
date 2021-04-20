@@ -129,10 +129,10 @@ func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobT
 		if *job.InitialTuning {
 			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
 				id, schedulerIp, jobType, strconv.Itoa(int(numWorkers)),
-				strconv.Itoa(int(numServers)), job.ScriptPath, strconv.Itoa(job.NumberOfParts))
+				strconv.Itoa(int(numServers)), job.ScriptPath, job.JobId, strconv.Itoa(job.NumberOfParts))
 		} else {
 			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
-				id, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath)
+				id, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath, job.JobId)
 		}
 		helperFunctions.NonFatalErrCheck(err, "deployFunctions: "+out.String()+"\n"+stderr.String())
 		//println(out.String())

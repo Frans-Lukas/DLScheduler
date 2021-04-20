@@ -30,8 +30,8 @@ spec:
       - echo "[global]" >> /tmp/.hdfscli.cfg
       - echo "default.alias = dev" >> /tmp/.hdfscli.cfg
       - echo "[dev.alias]" >> /tmp/.hdfscli.cfg
-      - echo "url = http://192.168.10.205:9870" >> /tmp/.hdfscli.cfg
-      - echo "user = franslukas" >> /tmp/.hdfscli.cfg
+      - echo "url = http://130.239.48.222:9870" >> /tmp/.hdfscli.cfg
+      - echo "user = pirat" >> /tmp/.hdfscli.cfg
       - rm -rf DLScheduler
       - git clone https://github.com/Frans-Lukas/DLScheduler.git
       - apt-get update

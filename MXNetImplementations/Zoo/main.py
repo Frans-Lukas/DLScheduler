@@ -6,11 +6,14 @@ import time
 
 import mxnet
 import mxnet as mx
+from hdfs import Config, Client
 from mxnet import autograd as ag
 from mxnet import gluon
 from mxnet.gluon.model_zoo import vision
 from mxnet.gluon.utils import download
 from mxnet.image import color_normalize
+
+from MXNetImplementations.LeNet.main import Net
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
@@ -21,6 +24,37 @@ INT_MAX = sys.maxsize
 
 def real_fn(X):
     return 2 * X[:, 0] - 3.4 * X[:, 1] + 4.2
+
+
+def save_model_to_hdfs(net: Net, client: Client):
+    net.save_params(MODEL_WEIGHTS_PATH)
+    name = os.getenv("JOB_ID")
+    if os.path.exists(MODEL_WEIGHTS_PATH):
+        print("saving trained model to hdfs: " + name)
+        try:
+            with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write('models/' + name, overwrite=True) as writer:
+                writer.write(model.read())
+        except:
+            exit(-1)
+
+
+def load_model_from_hdfs(client: Client):
+    files = client.list('models')
+    models = list()
+    job_id = os.getenv("JOB_ID")
+    for file in files:
+        if job_id in file:
+            client.download('models/' + file, MODEL_WEIGHTS_PATH, overwrite=True)
+    # with client.read('models/' + file) as reader:
+    # models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
+    return models
+
+
+def load_model(net: Net, client: Client):
+    load_model_from_hdfs(client)
+    if os.path.isfile(MODEL_WEIGHTS_PATH):
+        net.load_params(MODEL_WEIGHTS_PATH)
+    return net
 
 
 def main():
@@ -79,8 +113,10 @@ def main():
                                        num_parts=num_parts,
                                        part_index=kv.rank)
 
+    client = Config().get_client('dev')
     deep_dog_net = vision.squeezenet1_1(prefix='deep_dog_', classes=2)
     deep_dog_net.collect_params().initialize(ctx=contexts)
+    load_model(deep_dog_net, client)
 
     def metric_str(names, accs):
         return ', '.join(['%s=%f' % (name, acc) for name, acc in zip(names, accs)])
@@ -140,6 +176,8 @@ def main():
 
     loss = loss.mean()
     loss = re.search('\[(.*)\]', str(loss)).group(1)
+
+    save_model_to_hdfs(deep_dog_net, client)
     print("regexpresultstart{\"loss\":" + str(
         loss) + ", \"accuracy\":" + str(acc) + ", \"worker_id\":" + str(kv.rank) + "}regexpresultend")
 
