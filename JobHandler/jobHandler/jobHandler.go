@@ -209,13 +209,13 @@ func (jobHandler JobHandler) DeployFunctions(job *Job) {
 		return // so that the scheduler isnt deployed
 	}
 
-	go jobHandler.DeployChannelFunction(job, 0, finishedChannel, constants.JOB_TYPE_SCHEDULER)
+	jobHandler.DeployChannelFunction(job, 0, finishedChannel, constants.JOB_TYPE_SCHEDULER)
 
 	for i := 0; i < int(numWorkers); i++ {
-		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_WORKER)
+		jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_WORKER)
 	}
 	for i := 0; i < int(numServers); i++ {
-		go jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_SERVER)
+		jobHandler.DeployChannelFunction(job, i, finishedChannel, constants.JOB_TYPE_SERVER)
 	}
 	for i := 0; i < int(numServers+numWorkers+1); i++ {
 		println("pod with id: ", <-finishedChannel, " deployed")

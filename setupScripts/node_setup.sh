@@ -45,6 +45,11 @@ kubectl get pods --namespace nuclio
 #sudo cp /etc/kubernetes/admin.conf $HOME/
 #sudo chown $(id -u):$(id -g) $HOME/admin.conf
 #export KUBECONFIG=$HOME/admin.conf
+
+# to run main:
+# go run main.py exampleJob.json /etc/kubernetes/kubelet.conf
+
+
 # Weavenet CNI plugin
 # https://www.weave.works/docs/net/latest/kubernetes/kube-addon/
 # kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
