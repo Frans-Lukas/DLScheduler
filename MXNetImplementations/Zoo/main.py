@@ -6,13 +6,14 @@ import time
 
 import mxnet
 import mxnet as mx
-from hdfs import Config, Client
 from mxnet import autograd as ag
 from mxnet import gluon
 from mxnet.gluon.model_zoo import vision
 from mxnet.gluon.model_zoo.vision import SqueezeNet
 from mxnet.gluon.utils import download
 from mxnet.image import color_normalize
+
+from MXNetImplementations.Zoo.cloudStorage import download_simple, upload_simple
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
@@ -25,32 +26,27 @@ def real_fn(X):
     return 2 * X[:, 0] - 3.4 * X[:, 1] + 4.2
 
 
-def save_model_to_hdfs(net: SqueezeNet, client: Client):
+def save_model_to_hdfs(net: SqueezeNet):
     net.save_params(MODEL_WEIGHTS_PATH)
-    name = os.getenv("JOB_ID")
+    name = get_weights_file_name()
     if os.path.exists(MODEL_WEIGHTS_PATH):
         print("saving trained model to hdfs: " + name)
-        try:
-            with open(MODEL_WEIGHTS_PATH, 'rb') as model, client.write(name, overwrite=True) as writer:
-                writer.write(model.read())
-        except Exception as e:
-            print(e)
+        upload_simple(name, name)
 
 
-def load_model_from_hdfs(client: Client):
-    files = client.list('')
-    models = list()
+def load_model_from_gcloud():
+    file_name = get_weights_file_name()
+    download_simple(file_name, MODEL_WEIGHTS_PATH)
+
+
+def get_weights_file_name():
     job_id = os.getenv("JOB_ID")
-    for file in files:
-        if job_id in file:
-            client.download(file, MODEL_WEIGHTS_PATH, overwrite=True)
-    # with client.read('models/' + file) as reader:
-    # models.append(keras.models.load_model(MODEL_WEIGHTS_PATH))
-    return models
+    file_name = job_id + ".h5"
+    return file_name
 
 
-def load_model(net: SqueezeNet, client: Client):
-    load_model_from_hdfs(client)
+def load_model(net: SqueezeNet):
+    load_model_from_gcloud()
     if os.path.isfile(MODEL_WEIGHTS_PATH):
         net.load_params(MODEL_WEIGHTS_PATH)
     return net
@@ -112,10 +108,9 @@ def main():
                                        num_parts=num_parts,
                                        part_index=kv.rank)
 
-    client = Config().get_client('dev')
     deep_dog_net = vision.squeezenet1_1(prefix='deep_dog_', classes=2)
     deep_dog_net.collect_params().initialize(ctx=contexts)
-    load_model(deep_dog_net, client)
+    load_model(deep_dog_net)
 
     def metric_str(names, accs):
         return ', '.join(['%s=%f' % (name, acc) for name, acc in zip(names, accs)])
@@ -178,7 +173,7 @@ def main():
 
     print("regexpresultstart{\"loss\":" + str(
         loss) + ", \"accuracy\":" + str(acc) + ", \"worker_id\":" + str(kv.rank) + "}regexpresultend")
-    save_model_to_hdfs(deep_dog_net, client)
+    save_model_to_hdfs(deep_dog_net)
 
 
 if __name__ == '__main__': main()

@@ -24,6 +24,8 @@ spec:
       value: /tmp/.hdfscli.cfg
     - name: HADOOP_USER_NAME
       value: franslukas
+    - name: GOOGLE_APPLICATION_CREDENTIALS
+      value: /opt/nuclio/secret_key.json
   build:
     noCache: true
     commands:
@@ -37,4 +39,5 @@ spec:
       - apt-get update
       - apt-get -y install libopenblas-dev curl
       - curl -o /not_hotdog_validation-c0201740.rec https://apache-mxnet.s3-accelerate.amazonaws.com/gluon/dataset/not_hotdog_validation-c0201740.rec
-      - "pip install mxnet pillow keras dload numpy tensorflow hdfs"
+      - "pip install mxnet pillow keras dload numpy tensorflow"
+      - "pip install --upgrade google-cloud-storage"
