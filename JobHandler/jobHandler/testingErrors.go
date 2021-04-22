@@ -38,3 +38,8 @@ func (testingErrors TestingErrors) ApplyError(originalValue float64, errorName s
 		return originalValue
 	}
 }
+
+func (testingErrors TestingErrors) GetError(errorName string) float64 {
+	errorFloat := testingErrors.errors[errorName]
+	return errorFloat
+}

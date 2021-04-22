@@ -212,8 +212,24 @@ func (job *Job) UpdateMarginalUtilityFunc() {
 //TODO has not been checked if it works
 func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, budget float64) float64 {
 	if budget <= 0 {
+		println("Would go over budget.")
 		return -1
 	}
+
+	if job.testingErrors.GetError("maxWorkers") >= 1 {
+		if float64(numWorkers) > job.testingErrors.GetError("maxWorkers") {
+			println("Would exceed maxWorkers")
+			return -1
+		}
+	}
+
+	if job.testingErrors.GetError("maxServers") >= 1 {
+		if float64(numServers) > job.testingErrors.GetError("maxServers") {
+			println("Would exceed maxServers")
+			return -1
+		}
+	}
+
 
 	if job.historyIsEmpty() {
 		return 1 //TODO find better solution for this
