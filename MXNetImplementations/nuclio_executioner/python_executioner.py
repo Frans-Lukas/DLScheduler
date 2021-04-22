@@ -13,6 +13,7 @@ def start_from_nuclio(context, event):
     os.environ['DMLC_NUM_SERVER'] = body['num_server']
     os.environ['DMLC_NUM_WORKER'] = body['num_worker']
     os.environ['JOB_ID'] = body['job_id']
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "/opt/nuclio/secret_key.json"
 
     if 'num_parts' in body:
         os.environ['NUM_PARTS'] = body['num_parts']
