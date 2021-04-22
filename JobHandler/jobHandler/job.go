@@ -17,6 +17,8 @@ type Job struct {
 	ImageUrl              string  `json:"imageUrl"`
 	DataSetSize           int     `json:"dataSetSize"`
 	ScriptPath            string  `json:"scriptPath"`
+	TestingErrorsPath     string  `json:"testingErrorsPath"`
+	testingErrors         *TestingErrors
 	CurrentCost           float64
 	JobId                 string
 	PodNames              map[string]bool
@@ -52,6 +54,7 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 	var jobs []*Job
 
 	err = json.Unmarshal(byteValue, &jobs)
+	helperFunctions.FatalErrCheck(err, "ParseJson: ")
 
 	for _, job := range jobs {
 		ipString := ""
@@ -72,14 +75,15 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		job.MarginalUtilityFunc = &marginalUtilityFunc
 		job.CostFunc = &costFunc
 		job.isTraining = false
-		tmpInitalTuning := false
-		job.InitialTuning = &tmpInitalTuning
-
-		helperFunctions.FatalErrCheck(err, "ParseJson: ")
+		tmpInitialTuning := false
+		job.InitialTuning = &tmpInitialTuning
+		job.testingErrors = ParseTestingErrorsFromJson(job.TestingErrorsPath)
 
 		println(job.Budget)
 		println(job.TargetLoss)
 		println(job.ImageUrl)
+
+		job.testingErrors.ApplyError(1, "marginalUtility2")
 	}
 
 	return jobs, nil
@@ -225,6 +229,7 @@ func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorker
 
 	cost, err := helperFunctions.Python3DPolynomialEstimateH(float64(numWorkers), float64(numServers), *job.CostFunc)
 	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck: ")
+	cost = job.testingErrors.ApplyError(cost, "costEstimation")
 
 	if cost > budget {
 		return -1
@@ -237,9 +242,11 @@ func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorker
 	} else {
 		oldStepsPerSec, err = helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(oldWorkers), float64(oldServers), *job.MarginalUtilityFunc)
 		helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck: ")
+		oldStepsPerSec = job.testingErrors.ApplyError(oldStepsPerSec, "marginalUtility")
 	}
 
 	newStepsPerSec, err := helperFunctions.Python3DParabolaLeastSquaresEstimateH(float64(numWorkers), float64(numServers), *job.MarginalUtilityFunc)
+	newStepsPerSec = job.testingErrors.ApplyError(newStepsPerSec, "marginalUtility")
 	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck: ")
 
 	return newStepsPerSec - oldStepsPerSec
@@ -258,8 +265,8 @@ func (job *Job) CalculateEpochsTillConvergence() uint {
 	function := helperFunctions.Python3DParabolaLeastSquares(x, y, make([]float64, 1), startingGuess, "convergence")
 
 	convergenceEpoch, err := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, function)
-
 	helperFunctions.FatalErrCheck(err, "CalculateEpochsTillConvergence: ")
+	convergenceEpoch = job.testingErrors.ApplyError(convergenceEpoch, "convergenceEpoch")
 
 	remainingEpochs := int(math.Ceil(convergenceEpoch)) - (*job.Epoch - 1)
 
