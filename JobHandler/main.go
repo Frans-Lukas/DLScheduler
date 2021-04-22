@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"jobHandler/CostCalculator"
 	"jobHandler/constants"
@@ -16,14 +17,14 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	// 1. receive jobs
 	if len(os.Args) < 2 {
-		log.Fatalf("wrong input, needs arguments <jobPath> and optional <pathToCfg>, e.x. exampleJob.json /home/franslukas/.kube/config")
+		log.Fatalf("wrong input, needs arguments <jobPath> <outputPath> and optional <pathToCfg>, e.x. exampleJob.json outputFile.txt /home/franslukas/.kube/config")
 	}
 
 	var jobHandler jb.JobHandler
 
 	var err error
-	if len(os.Args) > 2 {
-		jobHandler = jb.CreateJobHandler(os.Args[2])
+	if len(os.Args) > 3 {
+		jobHandler = jb.CreateJobHandler(os.Args[3])
 	} else {
 		jobHandler = jb.CreateJobHandler("")
 	}
@@ -44,6 +45,25 @@ func main() {
 
 	println("train until convergence")
 	trainUntilConvergence(jobHandler, jobs)
+
+	storeTrainingData(jobs, os.Args[2])
+}
+
+func storeTrainingData(jobs []*jb.Job, outputFilePath string) {
+	f, err := os.Create(outputFilePath)
+	helperFunctions.FatalErrCheck(err, "storeTrainingData: ")
+
+	defer f.Close()
+
+	w := bufio.NewWriter(f)
+
+	for _, job := range jobs {
+		output := job.GetTrainingData()
+		_, err := w.WriteString(output)
+		helperFunctions.FatalErrCheck(err, "storeTrainingData: WriteString: ")
+	}
+	err = w.Flush()
+	helperFunctions.FatalErrCheck(err, "storeTrainingData: Flush: ")
 }
 
 func trainUntilConvergence(handler jb.JobHandler, jobs []*jb.Job) {

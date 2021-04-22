@@ -372,3 +372,8 @@ func (job *Job) GetNumberOfWorkers() uint {
 	res := job.numberOfWorkers
 	return res
 }
+
+func (job *Job) GetTrainingData() string {
+	//TODO make this output relevant information about training
+	return "TODO"
+}
