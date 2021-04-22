@@ -315,19 +315,37 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 		log.Fatalf("GetDeploymentWithHighestMarginalUtility: len(jobs) != len(budgets)")
 	}
 
-	for _, job := range jobs {
-		job.UpdateCostFunc()
-		job.UpdateMarginalUtilityFunc()
-	}
-
-	//JobHandler.cm.UpdateClusterInfo()
-
 	workerDeployment := make([]uint, len(jobs))
 	serverDeployment := make([]uint, len(jobs))
 
 	// So that we take into account already existing workers/servers
 	workerDeploymentTotal := outsideWorkers
 	serverDeploymentTotal := outsideServers
+
+	staticWorkerSetup := make([]bool, len(jobs))
+	staticServerSetup := make([]bool, len(jobs))
+
+	//JobHandler.cm.UpdateClusterInfo()
+	for i, job := range jobs {
+		job.UpdateCostFunc()
+		job.UpdateMarginalUtilityFunc()
+		staticWorkers := job.testingErrors.GetError("staticWorker")
+		staticServers := job.testingErrors.GetError("staticServers")
+
+		if staticWorkers >= 1 {
+			workerDeployment[i]  = uint(staticWorkers)
+			staticWorkerSetup[i] = true
+		} else {
+			staticWorkerSetup[i] = false
+		}
+
+		if staticServers >= 1 {
+			serverDeployment[i]  = uint(staticServers)
+			staticServerSetup[i] = true
+		} else {
+			staticServerSetup[i] = false
+		}
+	}
 
 	deploymentFinished := false
 
@@ -336,7 +354,7 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 		deploymentType    := make([]byte, len(jobs))
 
 		for i, job := range jobs {
-			if workerDeployment[i] == 0 {
+			if workerDeployment[i] == 0 && serverDeployment[i] == 0 {
 				utility := -1.0
 				// so that no deployment has 1 worker and 0 servers, or 0 servers and 1 worker
 				utility = job.MarginalUtilityCheck(1, 1, 0, 0, budgets[i])

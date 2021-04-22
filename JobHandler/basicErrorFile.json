@@ -2,6 +2,8 @@
   "marginalUtility"  : 1.00,
   "convergenceEpoch" : 1.00,
   "costEstimation"   : 1.00,
-  "maxWorkers"       : -1,
-  "maxServers"       : -1
+  "maxWorkers"       : 0,
+  "maxServers"       : 0,
+  "staticWorkers"    : 0,
+  "staticServers"    : 0
 }

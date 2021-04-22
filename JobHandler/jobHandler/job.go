@@ -211,6 +211,18 @@ func (job *Job) UpdateMarginalUtilityFunc() {
 
 //TODO has not been checked if it works
 func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, budget float64) float64 {
+	if job.testingErrors.GetError("staticWorkers") >= 1 {
+		if numWorkers != uint(job.testingErrors.GetError("staticWorkers")) {
+			return -1
+		}
+	}
+
+	if job.testingErrors.GetError("staticServers") >= 1 {
+		if numServers != uint(job.testingErrors.GetError("staticServers")) {
+			return -1
+		}
+	}
+
 	if budget <= 0 {
 		println("Would go over budget.")
 		return -1
