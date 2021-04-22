@@ -55,7 +55,7 @@ def upload_simple(local_name: str, external_name: str):
 
 
 def download_simple(external_name: str, local_name: str):
-    upload_blob("deep-learning-bucket-for-master-project", external_name, local_name)
+    download_blob("deep-learning-bucket-for-master-project", external_name, local_name)
 
 
 def main():

@@ -13,7 +13,7 @@ from mxnet.gluon.model_zoo.vision import SqueezeNet
 from mxnet.gluon.utils import download
 from mxnet.image import color_normalize
 
-from MXNetImplementations.Zoo.cloudStorage import download_simple, upload_simple
+from cloudStorage import download_simple, upload_simple
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
@@ -31,7 +31,7 @@ def save_model_to_hdfs(net: SqueezeNet):
     name = get_weights_file_name()
     if os.path.exists(MODEL_WEIGHTS_PATH):
         print("saving trained model to hdfs: " + name)
-        upload_simple(name, name)
+        upload_simple(MODEL_WEIGHTS_PATH, name)
 
 
 def load_model_from_gcloud():
