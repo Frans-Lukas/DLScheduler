@@ -38,6 +38,6 @@ spec:
       - git clone https://github.com/Frans-Lukas/DLScheduler.git
       - apt-get update
       - apt-get -y install libopenblas-dev curl
-      - curl -o /not_hotdog_validation-c0201740.rec https://apache-mxnet.s3-accelerate.amazonaws.com/gluon/dataset/not_hotdog_validation-c0201740.rec
+      #- curl -o /not_hotdog_validation-c0201740.rec https://apache-mxnet.s3-accelerate.amazonaws.com/gluon/dataset/not_hotdog_validation-c0201740.rec
       - "pip install mxnet pillow keras dload numpy tensorflow"
       - "pip install --upgrade google-cloud-storage"

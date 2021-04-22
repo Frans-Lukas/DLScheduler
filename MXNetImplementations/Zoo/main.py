@@ -85,7 +85,7 @@ def main():
                          .format(file_path))
         return matched
 
-    training_dataset_path = '/' + training_dataset_name
+    training_dataset_path = training_dataset_name
     url_format = 'https://apache-mxnet.s3-accelerate.amazonaws.com/gluon/dataset/{}'
     if not os.path.exists(training_dataset_path) or not verified(training_dataset_path, training_data_hash):
         logging.info('Downloading training dataset.')
