@@ -4,6 +4,7 @@
     "targetLoss": 0.1,
     "dataSetSize": 1259,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
-    "scriptPath": "/DLScheduler/MXNetImplementations/Zoo/main.py"
+    "scriptPath": "/DLScheduler/MXNetImplementations/Zoo/main.py",
+    "testingErrorsPath": "basicErrorFile.json"
   }
 ]
