@@ -115,6 +115,7 @@ func (jobHandler JobHandler) countServersAndWorkers(job *Job) (uint, uint) {
 func (jobHandler JobHandler) InvokeWGFunction(job *Job, id string, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {
 	defer wg.Done()
 	jobHandler.InvokeFunction(job, id, epoch, jobType, numWorkers, numServers)
+	println("function " + id + jobType + " finished.")
 }
 
 func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobType string, numWorkers uint, numServers uint) {
