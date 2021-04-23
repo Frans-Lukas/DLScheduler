@@ -1,11 +1,12 @@
+import os
+import re
+import sys
+
 import mxnet
 import mxnet as mx
 import mxnet.autograd as ag
 import mxnet.metric
 import mxnet.ndarray as F
-import os
-import re
-import sys
 from mxnet import gluon
 from mxnet.gluon import nn
 
@@ -71,18 +72,8 @@ def load_model(net: Net):
 def main():
     # os.environ["DMLC_ROLE"] = sys.argv[1]
 
-    print(os.environ['DMLC_PS_ROOT_URI'])
-    print(os.environ['DMLC_PS_ROOT_PORT'])
-    print(os.environ['DMLC_ROLE'])
-    print(os.environ['DMLC_NUM_SERVER'])
-    print(os.environ['DMLC_NUM_WORKER'])
-    print(os.environ['JOB_ID'])
-    print(os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
-    print(
-        "regexpresultstart{\"loss\":0.9" + ", \"accuracy\":0.9"  + ", \"worker_id\":0}regexpresultend")
 
-
-    # start_lenet()
+    start_lenet()
 
 
 def get_mnist_iterator_container(batch_size, input_shape, num_parts=1, part_index=0):
@@ -104,7 +95,7 @@ def get_mnist_iterator_container(batch_size, input_shape, num_parts=1, part_inde
 
 
 def start_lenet():
-    kv = mxnet.kv.create('local')
+    kv = mxnet.kv.create('dist')
     mx.random.seed(42)
     batch_size = 100
 
