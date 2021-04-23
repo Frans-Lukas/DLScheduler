@@ -1,10 +1,10 @@
 [
   {
     "budget": 1337.420,
-    "targetLoss": 0.1,
+    "targetLoss": 0.79,
     "dataSetSize": 1259,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
-    "scriptPath": "/DLScheduler/MXNetImplementations/Zoo/main.py",
+    "scriptPath": "/DLScheduler/MXNetImplementations/LeNet/main.py",
     "testingErrorsPath": "basicErrorFile.json"
   }
 ]
