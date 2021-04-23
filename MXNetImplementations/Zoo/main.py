@@ -123,6 +123,7 @@ def main():
         trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': learning_rate, 'wd': wd}, kvstore=kv)
         loss = gluon.loss.SoftmaxCrossEntropyLoss()
         latestLoss = 0.0
+        accs = None
         for epoch in range(epochs):
             tic = time.time()
             train_iter.reset()
@@ -160,7 +161,7 @@ def main():
             metric.reset()
             print('[Epoch %d] training: %s' % (epoch, metric_str(names, accs)))
             print('[Epoch %d] time cost: %f' % (epoch, time.time() - tic))
-            return latestLoss, accs[0]
+        return latestLoss, accs[0]
 
     if mode == 'hybrid':
         deep_dog_net.hybridize()
