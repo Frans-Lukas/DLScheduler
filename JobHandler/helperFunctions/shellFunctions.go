@@ -8,6 +8,11 @@ import (
 )
 
 func ExecuteFunction(name string, args ...string) (bytes.Buffer, bytes.Buffer, error) {
+	print(name)
+	for _, arg := range args {
+		print(" " + arg)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel() // The cancel should be deferred so resources are cleaned up
 
