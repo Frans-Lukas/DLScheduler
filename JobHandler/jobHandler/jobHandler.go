@@ -130,12 +130,14 @@ func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobT
 		if *job.InitialTuning {
 			println("invoking with numWorkers: " + strconv.Itoa(int(numWorkers)))
 			println("invoking with numServers: " + strconv.Itoa(int(numServers)))
+			println("schedulerIp: " + schedulerIp)
 			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
 				id, schedulerIp, jobType, strconv.Itoa(int(numWorkers)),
 				strconv.Itoa(int(numServers)), job.ScriptPath, job.JobId, strconv.Itoa(job.NumberOfParts))
 		} else {
 			println("invoking with numWorkers: " + strconv.Itoa(int(numWorkers)))
 			println("invoking with numServers: " + strconv.Itoa(int(numServers)))
+			println("schedulerIp: " + schedulerIp)
 			out, stderr, err = helperFunctions.ExecuteFunction(constants.INVOKE_FUNCTION_SCRIPT,
 				id, schedulerIp, jobType, strconv.Itoa(int(numWorkers)), strconv.Itoa(int(numServers)), job.ScriptPath, job.JobId)
 		}
@@ -163,6 +165,7 @@ func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobT
 		if err == nil {
 			break
 		} else {
+			println(out.String())
 			println(err.Error())
 			time.Sleep(time.Second * 3)
 		}
