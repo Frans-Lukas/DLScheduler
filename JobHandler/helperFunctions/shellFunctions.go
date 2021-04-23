@@ -12,6 +12,7 @@ func ExecuteFunction(name string, args ...string) (bytes.Buffer, bytes.Buffer, e
 	for _, arg := range args {
 		print(" " + arg)
 	}
+	println()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel() // The cancel should be deferred so resources are cleaned up
