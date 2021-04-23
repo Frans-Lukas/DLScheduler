@@ -1,17 +1,14 @@
 import os
 import re
 import sys
-from random import randint
 
 import mxnet
 import mxnet as mx
 import mxnet.autograd as ag
 import mxnet.metric
 import mxnet.ndarray as F
-from hdfs import Config, Client
 from mxnet import gluon
 from mxnet.gluon import nn
-from mxnet.test_utils import get_mnist_iterator
 
 from cloudStorage import download_simple, upload_simple
 
@@ -76,6 +73,7 @@ def main():
     # os.environ["DMLC_ROLE"] = sys.argv[1]
     start_lenet()
 
+
 def get_mnist_iterator_container(batch_size, input_shape, num_parts=1, part_index=0):
     """Returns training and validation iterators for MNIST dataset
     """
@@ -92,6 +90,7 @@ def get_mnist_iterator_container(batch_size, input_shape, num_parts=1, part_inde
         part_index=part_index)
 
     return train_dataiter
+
 
 def start_lenet():
     kv = mxnet.kv.create('dist')
@@ -114,21 +113,6 @@ def start_lenet():
     loss = re.search('\[(.*)\]', str(loss)).group(1)
     print(
         "regexpresultstart{\"loss\":" + loss + ", \"accuracy\":" + str(accuracy) + ", \"worker_id\":0}regexpresultend")
-
-
-def init_context(context):
-    setattr(context.user_data, HDFS_CONNECTION, Config().get_client('dev'))
-    setattr(context.user_data, NODE_ID, randint(1, INT_MAX))
-
-
-def start_from_nuclio(context, event):
-    context.logger.info_with('Got invoked',
-                             trigger_kind=event.trigger.kind,
-                             event_body=event.body)
-    os.environ["DMLC_ROLE"] = "worker"
-    client = getattr(context.user_data, HDFS_CONNECTION)
-    acc = start_lenet(client)
-    return "training successful, acc: " + str(acc)
 
 
 def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer):
@@ -171,6 +155,7 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
         metric.reset()
     loss = loss.mean()
     return loss, accuracy
+
 
 def evaluate(ctx, net, val_data):
     # Use Accuracy as the evaluation metric.
