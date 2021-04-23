@@ -159,6 +159,7 @@ func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobT
 		if err == nil {
 			break
 		} else {
+			println(err.Error())
 			time.Sleep(time.Second * 3)
 		}
 	}
