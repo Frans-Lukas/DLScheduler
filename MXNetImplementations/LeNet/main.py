@@ -1,12 +1,11 @@
-import os
-import re
-import sys
-
 import mxnet
 import mxnet as mx
 import mxnet.autograd as ag
 import mxnet.metric
 import mxnet.ndarray as F
+import os
+import re
+import sys
 from mxnet import gluon
 from mxnet.gluon import nn
 
@@ -105,7 +104,7 @@ def get_mnist_iterator_container(batch_size, input_shape, num_parts=1, part_inde
 
 
 def start_lenet():
-    kv = mxnet.kv.create('dist')
+    kv = mxnet.kv.create('local')
     mx.random.seed(42)
     batch_size = 100
 
