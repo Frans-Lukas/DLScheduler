@@ -9,7 +9,7 @@ def start_from_nuclio(context, event):
                              event_body=event.body)
     body = json.loads(event.body)
     os.environ['DMLC_PS_ROOT_URI'] = body['ip']
-    os.environ['DMLC_PS_ROOT_PORT'] = 9092
+    os.environ['DMLC_PS_ROOT_PORT'] = "9092"
     os.environ['DMLC_ROLE'] = body['role']
     os.environ['DMLC_NUM_SERVER'] = body['num_server']
     os.environ['DMLC_NUM_WORKER'] = body['num_worker']
