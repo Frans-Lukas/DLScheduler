@@ -96,7 +96,11 @@ def start_lenet():
     kv = mxnet.kv.create('dist')
     mx.random.seed(42)
     batch_size = 100
-    train_data = get_mnist_iterator_container(batch_size, (1, 28, 28), num_parts=kv.num_workers, part_index=kv.rank)
+
+    num_parts = os.getenv("NUM_PARTS")
+    if num_parts is None or num_parts == 1:
+        num_parts = kv.num_workers
+    train_data = get_mnist_iterator_container(batch_size, (1, 28, 28), num_parts=num_parts, part_index=kv.rank)
     net = Net()
     net = load_model(net)
     ctx = [mx.gpu() if mx.test_utils.list_gpus() else mx.cpu()]
