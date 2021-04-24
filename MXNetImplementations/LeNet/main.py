@@ -153,15 +153,16 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
                     # Backpropogate the error for one iteration.
                     loss.backward()
                     outputs.append(z)
+            # MADE IT HERE, WHICH MEANS SOMETHING BELOW CAUSES FREEZE
 
+            # Updates internal evaluation
+            metric.update(label, outputs)
             if os.environ["DMLC_NUM_WORKER"] == "2":
                 # print("regexpresultstart{\"loss\":0.9, \"accuracy\":0.9, \"worker_id\":0}regexpresultend")
                 print("batch, then train_data:")
                 print(batch)
                 print(train_data)
                 return [0.99,0.99], 0.99
-            # Updates internal evaluation
-            metric.update(label, outputs)
             # Make one step of parameter update. Trainer needs to know the
             # batch size of data to normalize the gradient by 1/batch_size.
             trainer.step(batch.data[0].shape[0])
