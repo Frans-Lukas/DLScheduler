@@ -159,7 +159,7 @@ func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobT
 			err = json.Unmarshal(responseBody, &response)
 			helperFunctions.NonFatalErrCheck(err, "InvokeFunction, regexp: ")
 		}
-		if strings.Contains(out.String(), "500"){
+		if strings.Contains(out.String(), " 500 "){
 			err = errors.New("500 internal server error")
 		}
 		if err == nil {
