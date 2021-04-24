@@ -23,6 +23,7 @@ from __future__ import print_function
 
 import os
 import random
+import re
 import sys
 
 import mxnet as mx
@@ -92,7 +93,7 @@ def main():
         num_parts = store.num_workers
     # Load the training data
     train_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=True).transform(transform), batch_size,
-                                       sampler=SplitSampler(5000, store.num_workers, store.rank))
+                                       sampler=SplitSampler(64, store.num_workers, store.rank))
 
     # Load the test data
     test_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=False).transform(transform),
@@ -158,6 +159,7 @@ def main():
         # Run the backward pass (calculate gradients) on all GPUs
         for l in losses:
             l.backward()
+        return losses[0].mean()
 
     # Train a batch using multiple GPUs
     def train_batch(batch_list, context, network, gluon_trainer):
@@ -183,13 +185,15 @@ def main():
         label = gluon.utils.split_and_load(label, context)
 
         # Run the forward and backward pass
-        forward_backward(network, data, label)
+        loss = forward_backward(network, data, label)
 
         # Update the parameters
         # print(batch_list[0].shape[0])
         if batch_list[0].shape[0] == 64:
             gluon_trainer.step(batch_list[0].shape[0])
+        return loss
 
+    loss_val = None
     # Run as many epochs as required
     for epoch in range(epochs):
 
@@ -197,7 +201,7 @@ def main():
         batch_num = 1
         for batch in train_data:
             # Train the batch using multiple GPUs
-            train_batch(batch, ctx, net, trainer)
+            loss_val = train_batch(batch, ctx, net, trainer)
 
             batch_num += 1
 
@@ -205,6 +209,9 @@ def main():
         test_accuracy = evaluate_accuracy(test_data, net)
         print("Epoch %d: Test_acc %f" % (epoch, test_accuracy))
         sys.stdout.flush()
+    loss_val = re.search('\[(.*)\]', str(loss_val)).group(1)
+    print(
+        "regexpresultstart{\"loss\":" + loss_val + ", \"accuracy\":0, \"worker_id\":0}regexpresultend")
 
 
 if __name__ == '__main__': main()
