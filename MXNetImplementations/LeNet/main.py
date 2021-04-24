@@ -1,12 +1,11 @@
-import os
-import re
-import sys
-
 import mxnet
 import mxnet as mx
 import mxnet.autograd as ag
 import mxnet.metric
 import mxnet.ndarray as F
+import os
+import re
+import sys
 from mxnet import gluon
 from mxnet.gluon import nn
 
@@ -134,12 +133,8 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
         # Loop over the train data iterator.
         for batch in train_data:
 
-            if os.environ["DMLC_NUM_WORKER"] == "2":
-                # print("regexpresultstart{\"loss\":0.9, \"accuracy\":0.9, \"worker_id\":0}regexpresultend")
-                print("batch, then train_data:")
-                print(batch)
-                print(train_data)
-                return [0.99,0.99], 0.99
+
+            # MADE IT HERE, WHICH MEANS SOMETHING BELOW CAUSES FREEZE
 
             # Splits train data into multiple slices along batch_axis
             # and copy each slice into a context.
@@ -147,6 +142,13 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
             # Splits train labels into multiple slices along batch_axis
             # and copy each slice into a context.
             label = gluon.utils.split_and_load(batch.label[0], ctx_list=ctx, batch_axis=0)
+
+            if os.environ["DMLC_NUM_WORKER"] == "2":
+                # print("regexpresultstart{\"loss\":0.9, \"accuracy\":0.9, \"worker_id\":0}regexpresultend")
+                print("batch, then train_data:")
+                print(batch)
+                print(train_data)
+                return [0.99,0.99], 0.99
             outputs = []
             # Inside training scope
             with ag.record():
