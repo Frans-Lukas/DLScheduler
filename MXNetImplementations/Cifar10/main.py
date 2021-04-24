@@ -24,17 +24,48 @@ from __future__ import print_function
 import os
 import random
 import re
-import sys
 
 import mxnet as mx
 import numpy as np
 from mxnet import autograd, gluon, kv, nd
 from mxnet.gluon.model_zoo import vision
+from mxnet.gluon.model_zoo.vision import ResNetV1
 
+from cloudStorage import download_simple, upload_simple
+
+
+
+MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
+
+
+def save_model_to_gcloud(net: ResNetV1):
+    net.save_parameters(MODEL_WEIGHTS_PATH)
+    name = get_weights_file_name()
+    if os.path.exists(MODEL_WEIGHTS_PATH):
+        print("saving trained model to hdfs: " + name)
+        upload_simple(MODEL_WEIGHTS_PATH, name)
+
+
+def load_model_from_gcloud():
+    file_name = get_weights_file_name()
+    download_simple(file_name, MODEL_WEIGHTS_PATH)
+
+
+def get_weights_file_name():
+    job_id = os.getenv("JOB_ID")
+    file_name = job_id + ".h5"
+    return file_name
+
+
+def load_model(net: ResNetV1):
+    load_model_from_gcloud()
+    if os.path.isfile(MODEL_WEIGHTS_PATH):
+        net.load_parameters(MODEL_WEIGHTS_PATH)
+    return net
 
 def main():
     # Create a distributed key-value store
-    store = kv.create('dist')
+    store = kv.create('local')
 
     # Clasify the images into one of the 10 digits
     num_outputs = 10
@@ -93,7 +124,7 @@ def main():
         num_parts = store.num_workers
     # Load the training data
     train_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=True).transform(transform), batch_size,
-                                       sampler=SplitSampler(64, store.num_workers, store.rank))
+                                       sampler=SplitSampler(50000, store.num_workers, store.rank))
 
     # Load the test data
     test_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=False).transform(transform),
@@ -104,6 +135,7 @@ def main():
 
     # Initialize the parameters with Xavier initializer
     net.collect_params().initialize(mx.init.Xavier(), ctx=ctx)
+    load_model(net)
 
     # SoftmaxCrossEntropy is the most common choice of loss function for multiclass classification
     softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
@@ -206,12 +238,14 @@ def main():
             batch_num += 1
 
         # Print test accuracy after every epoch
-        test_accuracy = evaluate_accuracy(test_data, net)
-        print("Epoch %d: Test_acc %f" % (epoch, test_accuracy))
-        sys.stdout.flush()
+        # test_accuracy = evaluate_accuracy(test_data, net)
+        # print("Epoch %d: Test_acc %f" % (epoch, test_accuracy))
+        # sys.stdout.flush()
     loss_val = re.search('\[(.*)\]', str(loss_val)).group(1)
+    acc = evaluate_accuracy(test_data, net)
     print(
-        "regexpresultstart{\"loss\":" + loss_val + ", \"accuracy\":0, \"worker_id\":0}regexpresultend")
+        "regexpresultstart{\"loss\":" + loss_val + ", \"accuracy\":" + str(acc) + ", \"worker_id\":0}regexpresultend")
+    save_model_to_gcloud(net)
 
 
 if __name__ == '__main__': main()
