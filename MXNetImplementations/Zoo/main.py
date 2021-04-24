@@ -110,7 +110,7 @@ def main():
 
     deep_dog_net = vision.squeezenet1_1(prefix='deep_dog_', classes=2)
     deep_dog_net.collect_params().initialize(ctx=contexts)
-    load_model(deep_dog_net)
+    # load_model(deep_dog_net)
 
     def metric_str(names, accs):
         return ', '.join(['%s=%f' % (name, acc) for name, acc in zip(names, accs)])
@@ -174,7 +174,7 @@ def main():
 
     print("regexpresultstart{\"loss\":" + str(
         loss) + ", \"accuracy\":" + str(acc) + ", \"worker_id\":" + str(kv.rank) + "}regexpresultend")
-    save_model_to_hdfs(deep_dog_net)
+    # save_model_to_hdfs(deep_dog_net)
 
 
 if __name__ == '__main__': main()
