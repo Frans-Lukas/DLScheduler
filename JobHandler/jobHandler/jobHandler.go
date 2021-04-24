@@ -484,7 +484,7 @@ func (jobHandler JobHandler) InitialTuning(job *Job) int {
 	*job.InitialTuning = true
 	datasetSize := job.DataSetSize
 
-	batchSize := int(math.Min(256, float64(datasetSize)))
+	batchSize := int(math.Min(10, float64(datasetSize)))
 	minTimeInSeconds := 50.0
 	maxTimeInSeconds := 120.0
 	midPointInSeconds := minTimeInSeconds + (maxTimeInSeconds - minTimeInSeconds) // 80
