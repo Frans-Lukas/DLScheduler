@@ -124,12 +124,8 @@ def main():
     else:
         num_parts = int(num_parts)
     # Load the training data
-    train_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=True).transform(transform), batch_size,
+    train_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=True, root="/opt/nuclio/data").transform(transform), batch_size,
                                        sampler=SplitSampler(50000, num_parts, store.rank))
-
-    # Load the test data
-    test_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=False).transform(transform),
-                                      batch_size, shuffle=False)
 
     # Use ResNet from model zoo
     net = vision.resnet18_v1()
@@ -243,7 +239,7 @@ def main():
         # print("Epoch %d: Test_acc %f" % (epoch, test_accuracy))
         # sys.stdout.flush()
     loss_val = re.search('\[(.*)\]', str(loss_val)).group(1)
-    acc = evaluate_accuracy(test_data, net)
+    acc = evaluate_accuracy(train_data, net)
     print(
         "regexpresultstart{\"loss\":" + loss_val + ", \"accuracy\":" + str(acc) + ", \"worker_id\":0}regexpresultend")
     save_model_to_gcloud(net)
