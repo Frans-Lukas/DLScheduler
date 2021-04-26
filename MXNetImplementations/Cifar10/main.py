@@ -30,13 +30,38 @@ import numpy as np
 from mxnet import autograd, gluon, kv, nd
 from mxnet.gluon.model_zoo import vision
 from mxnet.gluon.model_zoo.vision import ResNetV1
+from mxnet.gluon import nn
+import mxnet.ndarray as F
 
 from cloudStorage import download_simple, upload_simple
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
 
-def save_model_to_gcloud(net: ResNetV1):
+class Net(gluon.Block):
+    def __init__(self, **kwargs):
+        super(Net, self).__init__(**kwargs)
+        with self.name_scope():
+            # layers created in name_scope will inherit name space
+            # from parent layer.
+            self.conv1 = nn.Conv2D(20, kernel_size=(5, 5))
+            self.pool1 = nn.MaxPool2D(pool_size=(2, 2), strides=(2, 2))
+            self.conv2 = nn.Conv2D(50, kernel_size=(5, 5))
+            self.pool2 = nn.MaxPool2D(pool_size=(2, 2), strides=(2, 2))
+            self.fc1 = nn.Dense(500)
+            self.fc2 = nn.Dense(10)
+
+    def forward(self, x):
+        x = self.pool1(F.tanh(self.conv1(x)))
+        x = self.pool2(F.tanh(self.conv2(x)))
+        # 0 means copy over size from corresponding dimension.
+        # -1 means infer size from the rest of dimensions.
+        x = x.reshape((0, -1))
+        x = F.tanh(self.fc1(x))
+        x = F.tanh(self.fc2(x))
+        return x
+
+def save_model_to_gcloud(net: Net):
     net.save_params(MODEL_WEIGHTS_PATH)
     name = get_weights_file_name()
     if os.path.exists(MODEL_WEIGHTS_PATH):
@@ -55,11 +80,29 @@ def get_weights_file_name():
     return file_name
 
 
-def load_model(net: ResNetV1):
+def load_model(net: Net):
     load_model_from_gcloud()
     if os.path.isfile(MODEL_WEIGHTS_PATH):
         net.load_params(MODEL_WEIGHTS_PATH)
     return net
+
+
+def get_mnist_iterator_container(batch_size, input_shape, num_parts=1, part_index=0):
+    """Returns training and validation iterators for MNIST dataset
+    """
+    flat = len(input_shape) != 3
+
+    train_dataiter = mx.io.MNISTIter(
+        image="/opt/nuclio/data/train-images-idx3-ubyte",
+        label="/opt/nuclio/data/train-labels-idx1-ubyte",
+        input_shape=input_shape,
+        batch_size=batch_size,
+        shuffle=True,
+        flat=flat,
+        num_parts=num_parts,
+        part_index=part_index)
+
+    return train_dataiter
 
 
 def main():
@@ -72,7 +115,7 @@ def main():
     # 64 images in a batch
     batch_size_per_gpu = 64
     # How many epochs to run the training
-    epochs = 1
+    epochs = 10
 
     # How many GPUs per machine
     gpus_per_machine = 1
@@ -124,21 +167,17 @@ def main():
     else:
         num_parts = int(num_parts)
     # Load the training data
-    train_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=True, root="/opt/nuclio/data").transform(transform), batch_size,
-                                       sampler=SplitSampler(50000, num_parts, store.rank))
+    train_data = get_mnist_iterator_container(batch_size, (1, 28, 28), num_parts=num_parts, part_index=store.rank)
 
     # Use ResNet from model zoo
-    net = vision.resnet18_v1()
+    net = Net()
 
     # Initialize the parameters with Xavier initializer
     net.collect_params().initialize(mx.init.Xavier(), ctx=ctx)
     load_model(net)
 
-    # SoftmaxCrossEntropy is the most common choice of loss function for multiclass classification
-    softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
-
     # Use Adam optimizer. Ask trainer to use the distributor kv store.
-    trainer = gluon.Trainer(net.collect_params(), 'adam', {'learning_rate': .001}, kvstore=store)
+    trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': .001}, kvstore=store)
 
     # Evaluate accuracy of the given network using the given data
     def evaluate_accuracy(data_iterator, network):
@@ -176,6 +215,7 @@ def main():
 
     # We'll use cross entropy loss since we are doing multiclass classification
     loss = gluon.loss.SoftmaxCrossEntropyLoss()
+    metric = mx.metric.Accuracy()
 
     # Run one forward and backward pass on multiple GPUs
     def forward_backward(network, data, label):
@@ -183,8 +223,15 @@ def main():
         # Ask autograd to remember the forward pass
         with autograd.record():
             # Compute the loss on all GPUs
-            losses = [loss(network(X), Y) for X, Y in zip(data, label)]
+            losses = []
+            outputs = []
+            for X, Y in zip(data, label):
+                z = network(X)
+                losses.append(loss(z, Y))
+                outputs.append(z)
+                # losses = [loss(network(X), Y) ]
 
+        metric.update(label, outputs)
         # Run the backward pass (calculate gradients) on all GPUs
         for l in losses:
             l.backward()
@@ -206,20 +253,17 @@ def main():
           rain module of gluon
         """
         # Split and load data into multiple GPUs
-        data = batch_list[0]
-        data = gluon.utils.split_and_load(data, context)
+        data = gluon.utils.split_and_load(batch.data[0], ctx_list=context, batch_axis=0)
 
         # Split and load label into multiple GPUs
-        label = batch_list[1]
-        label = gluon.utils.split_and_load(label, context)
+        label = gluon.utils.split_and_load(batch.label[0], ctx_list=context, batch_axis=0)
 
         # Run the forward and backward pass
         loss = forward_backward(network, data, label)
 
         # Update the parameters
         # print(batch_list[0].shape[0])
-        if batch_list[0].shape[0] == 64:
-            gluon_trainer.step(batch_list[0].shape[0])
+        gluon_trainer.step(batch.data[0].shape[0])
         return loss
 
     loss_val = None
@@ -239,7 +283,7 @@ def main():
         # print("Epoch %d: Test_acc %f" % (epoch, test_accuracy))
         # sys.stdout.flush()
     loss_val = re.search('\[(.*)\]', str(loss_val)).group(1)
-    acc = evaluate_accuracy(train_data, net)
+    name, acc = metric.get()
     print(
         "regexpresultstart{\"loss\":" + loss_val + ", \"accuracy\":" + str(acc) + ", \"worker_id\":0}regexpresultend")
     save_model_to_gcloud(net)
