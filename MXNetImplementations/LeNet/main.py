@@ -106,7 +106,7 @@ def start_lenet():
     # net = load_model(net)
     ctx = [mx.gpu() if mx.test_utils.list_gpus() else mx.cpu()]
     net.initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
-    trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.03}, kvstore=kv)
+    trainer = gluon.Trainer(net.collect_params(), 'adam', {'learning_rate': 0.03}, kvstore=kv)
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
     epoch = 1
@@ -159,14 +159,14 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
             # Make one step of parameter update. Trainer needs to know the
             # batch size of data to normalize the gradient by 1/batch_size.
 
+            trainer.step(batch.data[0].shape[0])
+
             if os.environ["DMLC_NUM_WORKER"] == "2":
                 # print("regexpresultstart{\"loss\":0.9, \"accuracy\":0.9, \"worker_id\":0}regexpresultend")
                 print("batch, then train_data:")
                 print(batch)
                 print(train_data)
                 return [0.99, 0.99], 0.99
-            trainer.step(batch.data[0].shape[0])
-
             # DID NOT MAKE IT HERE, WHICH MEANS SOMETHING ABOVE FREEZES WITH TWO WORKERS
         # Gets the evaluation result.
         name, accuracy = metric.get()
