@@ -363,18 +363,18 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 				utility := -1.0
 				// so that no deployment has 1 worker and 0 servers, or 0 servers and 1 worker
 				utility = job.MarginalUtilityCheck(1, 1, 0, 0, budgets[i])
-				println("\t", job.JobId, " w: ", 1, "s: ", 1, "utility: ", utility)
+				println("\t", job.JobId, " w: ", 1, " s: ", 1, " utility: ", utility)
 
 				marginalUtilities[i] = utility
 				deploymentType[i]    = 'f'
 			} else {
 				workerUtility := -1.0
 				workerUtility = job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], budgets[i])
-				println("\t", job.JobId, " w: ", workerDeployment[i] + 1, "s: ", serverDeployment[i], "utility: ", workerUtility)
+				println("\t", job.JobId, " w: ", workerDeployment[i] + 1, " s: ", serverDeployment[i], " utility: ", workerUtility)
 
 				serverUtility := -1.0
 				serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], budgets[i])
-				println("\t", job.JobId, " w: ", workerDeployment[i], "s: ", serverDeployment[i] + 1, "utility: ", serverUtility)
+				println("\t", job.JobId, " w: ", workerDeployment[i], " s: ", serverDeployment[i] + 1, " utility: ", serverUtility)
 
 				if workerUtility >= serverUtility {
 					marginalUtilities[i] = workerUtility
@@ -415,6 +415,11 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 				println("\tadding server and worker to job: ", jobs[maxUtilityJobIndex].JobId)
 			}
 		}
+	}
+
+	println("final deployment:")
+	for i, job := range jobs {
+		println("\tjob: ", job.JobId, " w: ", workerDeployment[i], " s: ", serverDeployment[i])
 	}
 
 	return workerDeployment, serverDeployment
