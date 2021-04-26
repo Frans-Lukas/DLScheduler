@@ -119,15 +119,16 @@ func (job *Job) historyIsEmpty() bool {
 }
 
 func (job *Job) CalculateBudgetForEpoch() (float64, error) {
+	println("CalculateBudgetForEpoch: ")
 	if job.historyIsEmpty() {
 		return -1, errors.New("CalculateBudgetForEpoch: empty history")
 	}
 
 	epochsTillConvergence := job.CalculateEpochsTillConvergence()
-	fmt.Printf("epochs until convergence: %d\n", epochsTillConvergence)
+	fmt.Printf("\tepochs until convergence: %d\n", epochsTillConvergence)
 
 	budgetForEpoch := job.budgetForNextEpoch(epochsTillConvergence)
-	fmt.Printf("budgetForEpoch: %d\n", budgetForEpoch)
+	fmt.Printf("\tbudgetForEpoch: %d\n", budgetForEpoch)
 
 	return budgetForEpoch, nil
 }

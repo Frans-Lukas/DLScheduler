@@ -328,6 +328,8 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 	staticWorkerSetup := make([]bool, len(jobs))
 	staticServerSetup := make([]bool, len(jobs))
 
+	println("GetDeploymentWithHighestMarginalUtility: ")
+
 	//JobHandler.cm.UpdateClusterInfo()
 	for i, job := range jobs {
 		job.UpdateCostFunc()
@@ -361,15 +363,18 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 				utility := -1.0
 				// so that no deployment has 1 worker and 0 servers, or 0 servers and 1 worker
 				utility = job.MarginalUtilityCheck(1, 1, 0, 0, budgets[i])
+				println("\t", job.JobId, " w: ", 1, "s: ", 1, "utility: ", utility)
 
 				marginalUtilities[i] = utility
 				deploymentType[i]    = 'f'
 			} else {
 				workerUtility := -1.0
 				workerUtility = job.MarginalUtilityCheck(workerDeployment[i] + 1, serverDeployment[i], workerDeployment[i], serverDeployment[i], budgets[i])
+				println("\t", job.JobId, " w: ", workerDeployment[i] + 1, "s: ", serverDeployment[i], "utility: ", workerUtility)
 
 				serverUtility := -1.0
 				serverUtility = job.MarginalUtilityCheck(workerDeployment[i], serverDeployment[i] + 1, workerDeployment[i], serverDeployment[i], budgets[i])
+				println("\t", job.JobId, " w: ", workerDeployment[i], "s: ", serverDeployment[i] + 1, "utility: ", serverUtility)
 
 				if workerUtility >= serverUtility {
 					marginalUtilities[i] = workerUtility
@@ -397,14 +402,17 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 			case 'w':
 				workerDeployment[maxUtilityJobIndex]++
 				workerDeploymentTotal++
+				println("\tadding worker to job: ", jobs[maxUtilityJobIndex].JobId)
 			case 's':
 				serverDeployment[maxUtilityJobIndex]++
 				serverDeploymentTotal++
+				println("\tadding server to job: ", jobs[maxUtilityJobIndex].JobId)
 			case 'f':
 				workerDeployment[maxUtilityJobIndex]++
 				workerDeploymentTotal++
 				serverDeployment[maxUtilityJobIndex]++
 				serverDeploymentTotal++
+				println("\tadding server and worker to job: ", jobs[maxUtilityJobIndex].JobId)
 			}
 		}
 	}
