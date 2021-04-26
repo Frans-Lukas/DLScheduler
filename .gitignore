@@ -7,7 +7,9 @@
 *ubyte
 *rec
 *secret*
-
+*bin
+*meta.txt
+*html
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
