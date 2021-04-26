@@ -28,17 +28,15 @@ type Job struct {
 	Epoch                 *int
 	FunctionChannel       *chan string
 	NumberOfFunctionsUsed uint
-	NumberOfWorkers       uint
-	NumberOfServers       uint
 	NumberOfParts         int
 	SchedulerIp           *string
 	History               *[]HistoryEvent
 	MarginalUtilityFunc   *[]float64
 	InitialTuning         *bool
 	workersMutex          sync.Mutex
-	numberOfWorkers       uint
+	NumberOfWorkers       uint
 	serversMutex          sync.Mutex
-	numberOfServers       uint
+	NumberOfServers       uint
 	isTraining            bool
 	isTrainingMutex       sync.Mutex
 	CostFunc              *[]float64
@@ -71,8 +69,8 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		job.PodNames = make(map[string]bool, 0)
 		job.History = &history
 		job.Epoch = &epoch
-		job.numberOfWorkers = 1
-		job.numberOfServers = 1
+		job.NumberOfWorkers = 1
+		job.NumberOfServers = 1
 		job.SchedulerIp = &ipString
 		job.MarginalUtilityFunc = &marginalUtilityFunc
 		job.CostFunc = &costFunc
@@ -350,14 +348,14 @@ func (job *Job) SetNumberOfServers(numberOfServers uint) {
 	job.serversMutex.Lock()
 	defer job.serversMutex.Unlock()
 
-	job.numberOfServers = numberOfServers
+	job.NumberOfServers = numberOfServers
 }
 
 func (job *Job) GetNumberOfServers() uint {
 	job.serversMutex.Lock()
 	defer job.serversMutex.Unlock()
 
-	res := job.numberOfServers
+	res := job.NumberOfServers
 	return res
 }
 
@@ -365,14 +363,14 @@ func (job *Job) SetNumberOfWorkers(numberOfWorkers uint) {
 	job.workersMutex.Lock()
 	defer job.workersMutex.Unlock()
 
-	job.numberOfWorkers = numberOfWorkers
+	job.NumberOfWorkers = numberOfWorkers
 }
 
 func (job *Job) GetNumberOfWorkers() uint {
 	job.workersMutex.Lock()
 	defer job.workersMutex.Unlock()
 
-	res := job.numberOfWorkers
+	res := job.NumberOfWorkers
 	return res
 }
 
