@@ -8,6 +8,8 @@ import (
 	"jobHandler/helperFunctions"
 	"math"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -374,6 +376,134 @@ func (job *Job) GetNumberOfWorkers() uint {
 }
 
 func (job *Job) GetTrainingData() string {
-	//TODO make this output relevant information about training
-	return "TODO"
+	var b strings.Builder
+
+	b.WriteString("\t{\n")
+
+	b.WriteString("\t\t\"id\": \"" + job.JobId + "\",\n")
+	b.WriteString("\t\t\"epochs\":" + strconv.Itoa(*job.Epoch) + ",\n")
+	b.WriteString("\t\t\"loss\":" + job.getLossHistoryString() + ",\n")
+	b.WriteString("\t\t\"servers\":" + job.getServerHistoryString() + ",\n")
+	b.WriteString("\t\t\"workers\":" + job.getWorkerHistoryString() + ",\n")
+	b.WriteString("\t\t\"cost\":" + job.getCostHistoryString() + ",\n")
+	b.WriteString("\t\t\"time\":" + job.getTimeHistoryString() + "\n")
+
+	b.WriteString("\t}")
+
+	return b.String()
+}
+
+func (job *Job) getLossHistoryString() string {
+	var b strings.Builder
+
+	b.WriteString("[ ")
+
+	currEpoch := -1
+
+	for i, event := range *job.History {
+		if event.Epoch > currEpoch {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(fmt.Sprintf("%f", event.Loss))
+
+			currEpoch = event.Epoch
+		}
+	}
+
+	b.WriteString(" ]")
+
+	return b.String()
+}
+
+func (job *Job) getServerHistoryString() string {
+	var b strings.Builder
+
+	b.WriteString("[ ")
+
+	currEpoch := -1
+
+	for i, event := range *job.History {
+		if event.Epoch > currEpoch {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(strconv.Itoa(int(event.NumServers)))
+
+			currEpoch = event.Epoch
+		}
+	}
+
+	b.WriteString(" ]")
+
+	return b.String()
+}
+
+func (job *Job) getWorkerHistoryString() string {
+	var b strings.Builder
+
+	b.WriteString("[ ")
+
+	currEpoch := -1
+
+	for i, event := range *job.History {
+		if event.Epoch > currEpoch {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(strconv.Itoa(int(event.NumWorkers)))
+
+			currEpoch = event.Epoch
+		}
+	}
+
+	b.WriteString(" ]")
+
+	return b.String()
+}
+
+func (job *Job) getCostHistoryString() string {
+	var b strings.Builder
+
+	b.WriteString("[ ")
+
+	currEpoch := -1
+
+	for i, event := range *job.History {
+		if event.Epoch > currEpoch {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(fmt.Sprintf("%f", event.Cost))
+
+			currEpoch = event.Epoch
+		}
+	}
+
+	b.WriteString(" ]")
+
+	return b.String()
+}
+
+func (job *Job) getTimeHistoryString() string {
+	var b strings.Builder
+
+	b.WriteString("[ ")
+
+	currEpoch := -1
+
+	for i, event := range *job.History {
+		if event.Epoch > currEpoch {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(fmt.Sprintf("%f", event.Time))
+
+			currEpoch = event.Epoch
+		}
+	}
+
+	b.WriteString(" ]")
+
+	return b.String()
 }
