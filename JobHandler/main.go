@@ -57,11 +57,22 @@ func storeTrainingData(jobs []*jb.Job, outputFilePath string) {
 
 	w := bufio.NewWriter(f)
 
-	for _, job := range jobs {
+	_, err = w.WriteString("[")
+	helperFunctions.FatalErrCheck(err, "storeTrainingData: WriteString 1: ")
+
+	for i, job := range jobs {
 		output := job.GetTrainingData()
-		_, err := w.WriteString(output)
-		helperFunctions.FatalErrCheck(err, "storeTrainingData: WriteString: ")
+		if i != 0 {
+			_, err = w.WriteString(",\n" + output)
+		} else {
+			_, err = w.WriteString("\n" + output)
+		}
+		helperFunctions.FatalErrCheck(err, "storeTrainingData: WriteString 2: ")
 	}
+
+	_, err = w.WriteString("\n]")
+	helperFunctions.FatalErrCheck(err, "storeTrainingData: WriteString 3: ")
+
 	err = w.Flush()
 	helperFunctions.FatalErrCheck(err, "storeTrainingData: Flush: ")
 }

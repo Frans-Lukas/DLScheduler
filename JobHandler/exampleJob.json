@@ -6,5 +6,14 @@
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
     "scriptPath": "/DLScheduler/MXNetImplementations/Cifar10/main.py",
     "testingErrorsPath": "basicErrorFile.json"
+  },
+
+  {
+    "budget": 1335.420,
+    "targetLoss": 0.001,
+    "dataSetSize": 100,
+    "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
+    "scriptPath": "/DLScheduler/MXNetImplementations/Cifar10/main.py",
+    "testingErrorsPath": "basicErrorFile.json"
   }
 ]

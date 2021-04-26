@@ -1,0 +1,20 @@
+[
+	{
+		"id": "msgsz31z0t",
+		"epochs":2,
+		"loss":[  ],
+		"servers":[  ],
+		"workers":[  ],
+		"cost":[  ],
+		"time":[  ]
+	},
+	{
+		"id": "e7b7e7pu57",
+		"epochs":2,
+		"loss":[  ],
+		"servers":[  ],
+		"workers":[  ],
+		"cost":[  ],
+		"time":[  ]
+	}
+]
