@@ -37,7 +37,7 @@ MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
 
 def save_model_to_gcloud(net: ResNetV1):
-    net.save_parameters(MODEL_WEIGHTS_PATH)
+    net.save_params(MODEL_WEIGHTS_PATH)
     name = get_weights_file_name()
     if os.path.exists(MODEL_WEIGHTS_PATH):
         print("saving trained model to hdfs: " + name)
@@ -58,7 +58,7 @@ def get_weights_file_name():
 def load_model(net: ResNetV1):
     load_model_from_gcloud()
     if os.path.isfile(MODEL_WEIGHTS_PATH):
-        net.load_parameters(MODEL_WEIGHTS_PATH)
+        net.load_params(MODEL_WEIGHTS_PATH)
     return net
 
 
@@ -123,7 +123,7 @@ def main():
         num_parts = store.num_workers
     # Load the training data
     train_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=True).transform(transform), batch_size,
-                                       sampler=SplitSampler(64, store.num_workers, store.rank))
+                                       sampler=SplitSampler(50000, num_parts, store.rank))
 
     # Load the test data
     test_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=False).transform(transform),
