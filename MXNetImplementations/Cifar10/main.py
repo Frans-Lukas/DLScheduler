@@ -125,42 +125,6 @@ def main():
     # Create the context (a list of all GPUs to be used for training)
     ctx = [mx.gpu() if mx.test_utils.list_gpus() else mx.cpu()]
 
-    # Convert to float 32
-    # Having channel as the first dimension makes computation more efficient. Hence the (2,0,1) transpose.
-    # Dividing by 255 normalizes the input between 0 and 1
-    def transform(data, label):
-        return nd.transpose(data.astype(np.float32), (2, 0, 1)) / 255, label.astype(np.float32)
-
-    class SplitSampler(gluon.data.sampler.Sampler):
-        """ Split the dataset into `num_parts` parts and sample from the part with index `part_index`
-
-        Parameters
-        ----------
-        length: int
-          Number of examples in the dataset
-        num_parts: int
-          Partition the data into multiple parts
-        part_index: int
-          The index of the part to read from
-        """
-
-        def __init__(self, length, num_parts=1, part_index=0):
-            # Compute the length of each partition
-            self.part_len = length // num_parts
-            # Compute the start index for this partition
-            self.start = self.part_len * part_index
-            # Compute the end index for this partition
-            self.end = self.start + self.part_len
-
-        def __iter__(self):
-            # Extract examples between `start` and `end`, shuffle and return them.
-            indices = list(range(self.start, self.end))
-            random.shuffle(indices)
-            return iter(indices)
-
-        def __len__(self):
-            return self.part_len
-
     num_parts = os.getenv("NUM_PARTS")
     if num_parts is None or num_parts == 1:
         num_parts = store.num_workers
@@ -179,43 +143,8 @@ def main():
     # Use Adam optimizer. Ask trainer to use the distributor kv store.
     trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': .001}, kvstore=store)
 
-    # Evaluate accuracy of the given network using the given data
-    def evaluate_accuracy(data_iterator, network):
-        """ Measure the accuracy of ResNet
-
-        Parameters
-        ----------
-        data_iterator: Iter
-          examples of dataset
-        network:
-          ResNet
-
-        Returns
-        ----------
-        tuple of array element
-        """
-        acc = mx.metric.Accuracy()
-
-        # Iterate through data and label
-        for i, (data, label) in enumerate(data_iterator):
-            # Get the data and label into the GPU
-            data = data.as_in_context(ctx[0])
-            label = label.as_in_context(ctx[0])
-
-            # Get network's output which is a probability distribution
-            # Apply argmax on the probability distribution to get network's classification.
-            output = network(data)
-            predictions = nd.argmax(output, axis=1)
-
-            # Give network's prediction and the correct label to update the metric
-            acc.update(preds=predictions, labels=label)
-
-        # Return the accuracy
-        return acc.get()[1]
-
     # We'll use cross entropy loss since we are doing multiclass classification
     loss = gluon.loss.SoftmaxCrossEntropyLoss()
-    metric = mx.metric.Accuracy()
 
     # Run one forward and backward pass on multiple GPUs
     def forward_backward(network, data, label):
@@ -231,7 +160,7 @@ def main():
                 outputs.append(z)
                 # losses = [loss(network(X), Y) ]
 
-        metric.update(label, outputs)
+        # metric.update(label, outputs)
         # Run the backward pass (calculate gradients) on all GPUs
         for l in losses:
             l.backward()
@@ -239,31 +168,18 @@ def main():
 
     # Train a batch using multiple GPUs
     def train_batch(batch_list, context, network, gluon_trainer):
-        """ Training with multiple GPUs
-
-        Parameters
-        ----------
-        batch_list: List
-          list of dataset
-        context: List
-          a list of all GPUs to be used for training
-        network:
-          ResNet
-        gluon_trainer:
-          rain module of gluon
-        """
         # Split and load data into multiple GPUs
-        data = gluon.utils.split_and_load(batch.data[0], ctx_list=context, batch_axis=0)
+        data = gluon.utils.split_and_load(batch_list.data[0], ctx_list=context, batch_axis=0)
 
         # Split and load label into multiple GPUs
-        label = gluon.utils.split_and_load(batch.label[0], ctx_list=context, batch_axis=0)
+        label = gluon.utils.split_and_load(batch_list.label[0], ctx_list=context, batch_axis=0)
 
         # Run the forward and backward pass
         loss = forward_backward(network, data, label)
 
         # Update the parameters
         # print(batch_list[0].shape[0])
-        gluon_trainer.step(batch.data[0].shape[0])
+        gluon_trainer.step(batch_list.data[0].shape[0])
         return loss
 
     loss_val = None
@@ -283,9 +199,9 @@ def main():
         # print("Epoch %d: Test_acc %f" % (epoch, test_accuracy))
         # sys.stdout.flush()
     loss_val = re.search('\[(.*)\]', str(loss_val)).group(1)
-    name, acc = metric.get()
+    # name, acc = metric.get()
     print(
-        "regexpresultstart{\"loss\":" + loss_val + ", \"accuracy\":" + str(acc) + ", \"worker_id\":0}regexpresultend")
+        "regexpresultstart{\"loss\":" + loss_val + ", \"accuracy\":0, \"worker_id\":0}regexpresultend")
     save_model_to_gcloud(net)
 
 
