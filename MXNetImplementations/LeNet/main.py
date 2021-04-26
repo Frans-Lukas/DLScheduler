@@ -1,11 +1,12 @@
+import os
+import re
+import sys
+
 import mxnet
 import mxnet as mx
 import mxnet.autograd as ag
 import mxnet.metric
 import mxnet.ndarray as F
-import os
-import re
-import sys
 from mxnet import gluon
 from mxnet.gluon import nn
 
@@ -71,7 +72,6 @@ def load_model(net: Net):
 def main():
     # os.environ["DMLC_ROLE"] = sys.argv[1]
 
-
     start_lenet()
 
 
@@ -133,8 +133,6 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
         # Loop over the train data iterator.
         for batch in train_data:
 
-
-
             # Splits train data into multiple slices along batch_axis
             # and copy each slice into a context.
             data = gluon.utils.split_and_load(batch.data[0], ctx_list=ctx, batch_axis=0)
@@ -160,15 +158,14 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
             # MADE IT HERE, WHICH MEANS SOMETHING BELOW CAUSES FREEZE
             # Make one step of parameter update. Trainer needs to know the
             # batch size of data to normalize the gradient by 1/batch_size.
-            trainer.step(batch.data[0].shape[0])
 
             if os.environ["DMLC_NUM_WORKER"] == "2":
                 # print("regexpresultstart{\"loss\":0.9, \"accuracy\":0.9, \"worker_id\":0}regexpresultend")
                 print("batch, then train_data:")
                 print(batch)
                 print(train_data)
-                return [0.99,0.99], 0.99
-
+                return [0.99, 0.99], 0.99
+            trainer.step(batch.data[0].shape[0])
 
             # DID NOT MAKE IT HERE, WHICH MEANS SOMETHING ABOVE FREEZES WITH TWO WORKERS
         # Gets the evaluation result.

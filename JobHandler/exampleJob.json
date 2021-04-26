@@ -4,7 +4,7 @@
     "targetLoss": 0.001,
     "dataSetSize": 100,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
-    "scriptPath": "/DLScheduler/MXNetImplementations/Cifar10/main.py",
+    "scriptPath": "/DLScheduler/MXNetImplementations/LeNet/main.py",
     "testingErrorsPath": "basicErrorFile.json"
   }
 ]
