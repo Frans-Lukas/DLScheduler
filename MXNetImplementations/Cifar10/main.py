@@ -118,7 +118,7 @@ def main():
         def __len__(self):
             return self.part_len
 
-    num_parts = os.getenv("NUM_PARTS")
+    num_parts = int(os.getenv("NUM_PARTS"))
     if num_parts is None or num_parts == 1:
         num_parts = store.num_workers
     # Load the training data
