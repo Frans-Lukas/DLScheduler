@@ -123,7 +123,7 @@ def main():
         num_parts = store.num_workers
     # Load the training data
     train_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=True).transform(transform), batch_size,
-                                       sampler=SplitSampler(10000, store.num_workers, store.rank))
+                                       sampler=SplitSampler(64, store.num_workers, store.rank))
 
     # Load the test data
     test_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=False).transform(transform),
