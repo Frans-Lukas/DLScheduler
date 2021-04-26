@@ -33,8 +33,6 @@ from mxnet.gluon.model_zoo.vision import ResNetV1
 
 from cloudStorage import download_simple, upload_simple
 
-
-
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
 
@@ -63,9 +61,10 @@ def load_model(net: ResNetV1):
         net.load_parameters(MODEL_WEIGHTS_PATH)
     return net
 
+
 def main():
     # Create a distributed key-value store
-    store = kv.create('local')
+    store = kv.create('dist')
 
     # Clasify the images into one of the 10 digits
     num_outputs = 10
@@ -124,7 +123,7 @@ def main():
         num_parts = store.num_workers
     # Load the training data
     train_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=True).transform(transform), batch_size,
-                                       sampler=SplitSampler(50000, store.num_workers, store.rank))
+                                       sampler=SplitSampler(10000, store.num_workers, store.rank))
 
     # Load the test data
     test_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=False).transform(transform),
