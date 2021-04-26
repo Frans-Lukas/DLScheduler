@@ -10,6 +10,7 @@ import (
 	"jobHandler/constants"
 	"jobHandler/helperFunctions"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	rand2 "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -528,8 +529,8 @@ func (jobHandler JobHandler) InitialTuning(job *Job) int {
 
 func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) float64 {
 	job.NumberOfParts = job.DataSetSize / batchSize
-	job.NumberOfWorkers = 1
-	job.NumberOfServers = 1
+	job.SetNumberOfWorkers(1)
+	job.SetNumberOfServers(1)
 
 	jobHandler.DeployFunctions(job)
 
@@ -541,6 +542,22 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) 
 	cost := CostCalculator.CalculateCostForPods(job.JobId, jobHandler.ClientSet, jobHandler.MetricsClientSet, epochStartTime)
 	job.UpdateFunctionCostsInHistory(cost)
 	return (*job.History)[len(*job.History) - 1].Time
+}
+
+func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int) {
+	job.NumberOfParts = job.DataSetSize / batchSize
+	job.SetNumberOfWorkers(uint(rand2.IntnRange(1, 4)))
+	job.SetNumberOfServers(uint(rand2.IntnRange(1, 4)))
+
+	jobHandler.DeployFunctions(job)
+
+	deployedPods, err := jobHandler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
+	job.DeployedPods = deployedPods
+	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
+	epochStartTime := time.Now()
+	jobHandler.InvokeFunctions(job)
+	cost := CostCalculator.CalculateCostForPods(job.JobId, jobHandler.ClientSet, jobHandler.MetricsClientSet, epochStartTime)
+	job.UpdateFunctionCostsInHistory(cost)
 }
 
 func (jobHandler JobHandler) podExists(name string) bool {
