@@ -23,8 +23,8 @@ type Job struct {
 	testingErrors         *TestingErrors
 	CurrentCost           float64
 	JobId                 string
-	PodNames              map[string]bool
-	DeployedPods          *[]string
+	PodNames              *map[string]bool
+	DeployedPods          []string
 	Epoch                 *int
 	FunctionChannel       *chan string
 	NumberOfFunctionsUsed uint
@@ -60,14 +60,14 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		ipString := ""
 
 		history := make([]HistoryEvent, 0)
+		podNames := make(map[string]bool, 0)
 		marginalUtilityFunc := make([]float64, 0)
 		costFunc := make([]float64, 0)
-		deployedPods := make([]string, 0)
 		//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
 		epoch := 2
 		tmpChan := make(chan string)
 		job.FunctionChannel = &tmpChan
-		job.PodNames = make(map[string]bool, 0)
+		job.PodNames = &podNames
 		job.History = &history
 		job.Epoch = &epoch
 		job.NumberOfWorkers = 1
@@ -79,7 +79,6 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		tmpInitialTuning := false
 		job.InitialTuning = &tmpInitialTuning
 		job.testingErrors = ParseTestingErrorsFromJson(job.TestingErrorsPath)
-		job.DeployedPods =  &deployedPods
 
 		println(job.Budget)
 		println(job.TargetLoss)
@@ -134,7 +133,7 @@ func (job *Job) CalculateBudgetForEpoch() (float64, error) {
 }
 
 func (job *Job) FunctionsHaveFinished() bool {
-	for _, functionIsDone := range job.PodNames {
+	for _, functionIsDone := range *job.PodNames {
 		println(functionIsDone)
 		if functionIsDone == false {
 			return false
@@ -216,33 +215,31 @@ func (job *Job) UpdateMarginalUtilityFunc() {
 func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, budget float64) float64 {
 	if job.testingErrors.GetError("staticWorkers") >= 1 {
 		if numWorkers != uint(job.testingErrors.GetError("staticWorkers")) {
-			println("\tERROR: not matching exceed static workers", job.testingErrors.GetError("staticWorkers"))
 			return -1
 		}
 	}
 
 	if job.testingErrors.GetError("staticServers") >= 1 {
 		if numServers != uint(job.testingErrors.GetError("staticServers")) {
-			println("\tERROR: not matching static servers", job.testingErrors.GetError("staticServers"))
 			return -1
 		}
 	}
 
 	if budget <= 0 {
-		println("\tERROR: Would go over budget.")
+		println("Would go over budget.")
 		return -1
 	}
 
 	if job.testingErrors.GetError("maxWorkers") >= 1 {
 		if float64(numWorkers) > job.testingErrors.GetError("maxWorkers") {
-			println("\tERROR: Would exceed maxWorkers", job.testingErrors.GetError("maxServers"))
+			println("Would exceed maxWorkers")
 			return -1
 		}
 	}
 
 	if job.testingErrors.GetError("maxServers") >= 1 {
 		if float64(numServers) > job.testingErrors.GetError("maxServers") {
-			println("\tERROR: Would exceed maxServers", job.testingErrors.GetError("maxServers"))
+			println("Would exceed maxServers")
 			return -1
 		}
 	}

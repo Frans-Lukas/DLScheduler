@@ -153,8 +153,8 @@ func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job, outsideWorkers uint, o
 		job.SetNumberOfWorkers(numberOfFunctionsToDeploy)
 		job.SetNumberOfServers(numberOfServersToDeploy)
 
-		deleteExcessWorkers(handler, job)
-		deleteExcessParameterServers(handler, job)
+		handler.DeleteExcessWorkers(job)
+		handler.DeleteExcessParameterServers(job)
 	}
 
 	//TODO should deployment be threaded?
@@ -175,7 +175,7 @@ func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job, outsideWorkers uint, o
 func waitAndExecuteEpochTraining(handler jb.JobHandler, job *jb.Job) {
 	// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
 	deployedPods, err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	job.DeployedPods = &deployedPods
+	job.DeployedPods = deployedPods
 	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 
 	executeTrainingOfOneEpoch(handler, job)
@@ -183,13 +183,6 @@ func waitAndExecuteEpochTraining(handler jb.JobHandler, job *jb.Job) {
 	job.UpdateIsTraining(false)
 }
 
-func deleteExcessWorkers(handler jb.JobHandler, job *jb.Job) {
-	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_WORKER, job.GetNumberOfWorkers())
-}
-
-func deleteExcessParameterServers(handler jb.JobHandler, job *jb.Job) {
-	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_SERVER, job.GetNumberOfServers())
-}
 
 func executeTrainingOfOneEpoch(handler jb.JobHandler, job *jb.Job) {
 	println("invoking functions")

@@ -74,37 +74,56 @@ func CreateJobHandler(pthToCfg string) JobHandler {
 func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 	var wg sync.WaitGroup
 
-	numWorkers, numServers := jobHandler.countServersAndWorkers(job)
+	//numWorkers, numServers := jobHandler.countServersAndWorkers(job)
+	//
+	//job.SetNumberOfServers(numServers)
+	//job.SetNumberOfWorkers(numWorkers)
 
-	job.SetNumberOfServers(numServers)
-	job.SetNumberOfWorkers(numWorkers)
-
-	if numWorkers == 0 && numServers == 0 {
+	if job.NumberOfWorkers == 0 && job.NumberOfServers == 0 {
 		println("No workers or servers for job: ", job.JobId)
 		return
 	}
 
-	fmt.Printf("num servers: %d, num workers %d\n", numWorkers, numServers)
+	fmt.Printf("num servers: %d, num workers %d\n", job.NumberOfServers, job.NumberOfWorkers)
 
-	for _, podName := range *job.DeployedPods {
-		jobType := parseJobType(podName)
+	podName := jobHandler.GetPodName(job, 0, constants.JOB_TYPE_SCHEDULER)
+	wg.Add(1)
+	(*job.PodNames)[podName] = false
+	println("invoking ", constants.JOB_TYPE_SCHEDULER)
+	go jobHandler.InvokeWGFunction(job, podName, *job.Epoch, constants.JOB_TYPE_SCHEDULER, &wg)
+
+	for i := 0; i < int(job.NumberOfWorkers); i++ {
+		podName := jobHandler.GetPodName(job, i, constants.JOB_TYPE_WORKER)
 		wg.Add(1)
-		job.PodNames[podName] = false
-		println("invoking ", jobType)
-		go jobHandler.InvokeWGFunction(job, podName, *job.Epoch, jobType, numWorkers, numServers, &wg)
+		(*job.PodNames)[podName] = false
+		println("invoking ", constants.JOB_TYPE_WORKER)
+		go jobHandler.InvokeWGFunction(job, podName, *job.Epoch, constants.JOB_TYPE_WORKER, &wg)
 	}
+
+	for i := 0; i < int(job.NumberOfServers); i++ {
+		podName := jobHandler.GetPodName(job, i, constants.JOB_TYPE_SERVER)
+		wg.Add(1)
+		(*job.PodNames)[podName] = false
+		println("invoking ", constants.JOB_TYPE_SERVER)
+		go jobHandler.InvokeWGFunction(job, podName, *job.Epoch, constants.JOB_TYPE_SERVER, &wg)
+	}
+
+	//for _, podName := range job.DeployedPods {
+	//	jobType := parseJobType(podName)
+	//	wg.Add(1)
+	//	job.PodNames[podName] = false
+	//	println("invoking ", jobType)
+	//	go jobHandler.InvokeWGFunction(job, podName, *job.Epoch, jobType, &wg)
+	//}
 
 	//wait for all to complete
 	wg.Wait()
-
-	// nil clears the list
-	*job.DeployedPods = nil
 }
 
 func (jobHandler JobHandler) countServersAndWorkers(job *Job) (uint, uint) {
 	numWorkers := uint(0)
 	numServers := uint(0)
-	for _, podName := range *job.DeployedPods {
+	for _, podName := range job.DeployedPods {
 		jobType := parseJobType(podName)
 		switch jobType {
 		case constants.JOB_TYPE_SERVER:
@@ -116,17 +135,19 @@ func (jobHandler JobHandler) countServersAndWorkers(job *Job) (uint, uint) {
 	return numWorkers, numServers
 }
 
-func (jobHandler JobHandler) InvokeWGFunction(job *Job, id string, epoch int, jobType string, numWorkers uint, numServers uint, wg *sync.WaitGroup) {
+func (jobHandler JobHandler) InvokeWGFunction(job *Job, id string, epoch int, jobType string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	jobHandler.InvokeFunction(job, id, epoch, jobType, numWorkers, numServers)
+	jobHandler.InvokeFunction(job, id, epoch, jobType)
 	println("function " + id + jobType + " finished.")
 }
 
-func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobType string, numWorkers uint, numServers uint) {
+func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobType string) {
 	println("running function: ", id)
 	start := time.Now()
 	schedulerIp := *job.SchedulerIp
 	var response FunctionResponse
+	numWorkers := job.NumberOfWorkers
+	numServers := job.NumberOfServers
 	for {
 		//'{"ip": "'$2'", "role": "'$3'", "num_workers": '$4', "num_servers": '$5'}'
 		var out, stderr bytes.Buffer
@@ -195,7 +216,7 @@ func (jobHandler JobHandler) AwaitResponse(job Job) {
 		//TODO: fault tolerance, do not allow infinite loop if a function does not return.
 		completedFunctionId := jobHandler.GetCompletedFunctionId(job)
 		println("function completed with id: ", completedFunctionId)
-		job.PodNames[completedFunctionId] = true
+		(*job.PodNames)[completedFunctionId] = true
 	}
 }
 
@@ -253,7 +274,7 @@ func (jobHandler JobHandler) DeployFunction(job *Job, functionId int, jobType st
 		out, stderr, err = jobHandler.executeDeployFunction(podName, imageUrl)
 	}
 
-	job.PodNames[podName] = false
+	(*job.PodNames)[podName] = false
 
 	for jobType == constants.JOB_TYPE_SCHEDULER {
 		pods, err := jobHandler.ClientSet.CoreV1().Pods(constants.KUBERNETES_NAMESPACE).List(context.Background(), v1.ListOptions{})
@@ -456,7 +477,7 @@ func (jobHandler JobHandler) WaitForAllWorkerPods(job *Job, namespace string, ti
 	timeStart := time.Now()
 	for !hasStarted {
 		hasStarted = true
-		for podName, _ := range job.PodNames {
+		for podName, _ := range *job.PodNames {
 			err := helperFunctions.WaitForPodRunning(jobHandler.ClientSet, namespace, podName, timeout)
 			if err != nil {
 				if time.Now().Sub(timeStart).Seconds() > time.Second.Seconds() * 100 && allTypesStarted(startedTypes) {
@@ -481,6 +502,13 @@ func parseJobType(name string) string {
 	re := regexp.MustCompile("[a-z0-9]{10}([a-z]*)[0-9]*")
 	return re.FindStringSubmatch(name)[1]
 }
+func parsePodId(name string) int {
+	// 10 chars followed by TYPE followed by int
+	re := regexp.MustCompile("[a-z0-9]{10}[a-z]*([0-9]*)")
+	id := re.FindStringSubmatch(name)[1]
+	idInt, _ := strconv.Atoi(id)
+	return idInt
+}
 
 func allTypesStarted(types map[string]int) bool {
 	return types[constants.JOB_TYPE_SCHEDULER] > 0 && types[constants.JOB_TYPE_WORKER] > 0 && types[constants.JOB_TYPE_SERVER] > 0
@@ -493,6 +521,23 @@ func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job *Job, jobType string
 		job.JobId + jobType,
 		strconv.Itoa(int(numberOf)),
 	)
+
+	podsToDelete := make([]string, 0)
+	for i := range *job.PodNames {
+		podType := parseJobType(i)
+		if podType == jobType {
+			podId := parsePodId(i)
+			if podId >= int(numberOf){
+				podsToDelete = append(podsToDelete, i)
+			}
+		}
+	}
+
+	for _, v := range podsToDelete {
+		delete(*job.PodNames, v)
+	}
+
+	println(stdout.String())
 	helperFunctions.FatalErrCheck(err, "deleteNuclioFunctionsInJob: "+ stdout.String()+"\n"+stderr.String())
 }
 
@@ -544,7 +589,7 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) 
 	jobHandler.DeployFunctions(job)
 
 	deployedPods, err := jobHandler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	job.DeployedPods = &deployedPods
+	job.DeployedPods = deployedPods
 	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 	epochStartTime := time.Now()
 	jobHandler.InvokeFunctions(job)
@@ -557,12 +602,17 @@ func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int) {
 	job.NumberOfParts = job.DataSetSize / batchSize
 	job.SetNumberOfWorkers(uint(rand2.IntnRange(1, 4)))
 	job.SetNumberOfServers(uint(rand2.IntnRange(1, 4)))
-	fmt.Printf("running mini epoch with %d workers and %d servers", job.NumberOfWorkers, job.NumberOfServers)
+
+
+	fmt.Printf("running mini epoch with %d workers and %d servers\n", job.NumberOfWorkers, job.NumberOfServers)
 
 	jobHandler.DeployFunctions(job)
 
+	jobHandler.DeleteExcessWorkers(job)
+	jobHandler.DeleteExcessParameterServers(job)
+
 	deployedPods, err := jobHandler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	job.DeployedPods = &deployedPods
+	job.DeployedPods = deployedPods
 	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 	epochStartTime := time.Now()
 	jobHandler.InvokeFunctions(job)
@@ -570,11 +620,21 @@ func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int) {
 	job.UpdateFunctionCostsInHistory(cost)
 }
 
+
+func (handler JobHandler) DeleteExcessWorkers(job *Job) {
+	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_WORKER, job.GetNumberOfWorkers())
+}
+
+func (handler JobHandler) DeleteExcessParameterServers(job *Job) {
+	handler.DeleteNuclioFunctionsInJob(job, constants.JOB_TYPE_SERVER, job.GetNumberOfServers())
+}
+
 func (jobHandler JobHandler) podExists(name string) bool {
 	pods, err := jobHandler.ClientSet.CoreV1().Pods(constants.KUBERNETES_NAMESPACE).List(context.Background(), v1.ListOptions{})
 	if err == nil {
 		for _, v := range pods.Items {
 			if strings.Contains(v.Name, name) {
+				println("pod ", name, " exists")
 				return true
 			}
 		}
