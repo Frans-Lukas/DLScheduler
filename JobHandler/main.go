@@ -47,7 +47,6 @@ func main() {
 			jobHandler.RunMiniEpoch(job, batchSize)
 			*job.Epoch++
 		}
-		*job.Epoch = 1
 
 		job.NumberOfParts = 1
 		println("done with testing reasonable batch size")
