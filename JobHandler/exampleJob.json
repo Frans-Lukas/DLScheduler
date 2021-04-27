@@ -1,7 +1,7 @@
 [
   {
-    "budget": 1337.420,
-    "targetLoss": 0.001,
+    "budget": 2000000,
+    "targetLoss": 0.85,
     "dataSetSize": 100,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
     "scriptPath": "/DLScheduler/MXNetImplementations/LeNet/main.py",
