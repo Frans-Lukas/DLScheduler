@@ -64,6 +64,7 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		history := make([]HistoryEvent, 0)
 		podNames := make(map[string]bool, 0)
 		marginalUtilityFunc := make([]float64, 0)
+		convergenceFunc := make([]float64, 0)
 		costFunc := make([]float64, 0)
 		//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
 		epoch := 2
@@ -76,6 +77,7 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		job.NumberOfServers = 1
 		job.SchedulerIp = &ipString
 		job.MarginalUtilityFunc = &marginalUtilityFunc
+		job.ConvergenceFunction = &convergenceFunc
 		job.CostFunc = &costFunc
 		job.isTraining = false
 		tmpInitialTuning := false
