@@ -605,8 +605,8 @@ func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int) {
 	*job.ActualTrainingStarted = false
 
 	job.NumberOfParts = job.DataSetSize / batchSize
-	job.SetNumberOfWorkers(uint(rand2.IntnRange(1, 4)))
-	job.SetNumberOfServers(uint(rand2.IntnRange(1, 4)))
+	job.SetNumberOfWorkers(uint(rand2.IntnRange(1, 3)))
+	job.SetNumberOfServers(uint(rand2.IntnRange(1, 3)))
 
 
 	fmt.Printf("running mini epoch with %d workers and %d servers\n", job.NumberOfWorkers, job.NumberOfServers)
