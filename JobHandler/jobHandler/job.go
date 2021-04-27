@@ -138,7 +138,7 @@ func (job *Job) CalculateBudgetForEpoch() (float64, error) {
 	fmt.Printf("\tepochs until convergence: %d\n", epochsTillConvergence)
 
 	budgetForEpoch := job.budgetForNextEpoch(epochsTillConvergence)
-	fmt.Printf("\tbudgetForEpoch: %d\n", budgetForEpoch)
+	fmt.Printf("\tbudgetForEpoch: %f\n", budgetForEpoch)
 
 	return budgetForEpoch, nil
 }

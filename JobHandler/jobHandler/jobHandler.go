@@ -347,14 +347,12 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 	workerDeployment := make([]uint, len(jobs))
 	serverDeployment := make([]uint, len(jobs))
 
-
 	// So that we take into account already existing workers/servers
 	workerDeploymentTotal := outsideWorkers
 	serverDeploymentTotal := outsideServers
 
 	staticWorkerSetup := make([]bool, len(jobs))
 	staticServerSetup := make([]bool, len(jobs))
-
 
 	println("GetDeploymentWithHighestMarginalUtility: ")
 
