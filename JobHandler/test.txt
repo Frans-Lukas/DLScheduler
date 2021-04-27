@@ -1,3 +1,11 @@
-regexpresultstart{"loss":0.9143134, "accuracy":0.6077, "worker_id":0}regexpresultend
-regexpresultstart{"loss":0.84846294, "accuracy":0.6723, "worker_id":0}regexpresultend
-regexpresultstart{"loss":0.67180055, "accuracy":0.7025, "worker_id":0}regexpresultend
+[
+	{
+		"id": "sa3padq5tk",
+		"epochs":10,
+		"loss":[ 1.537602, 0.898527, 0.865781, 0.858101, 0.855464, 0.848727, 0.843087, 0.838648 ],
+		"servers":[ 1, 2, 2, 1, 1, 2, 1, 2 ],
+		"workers":[ 1, 1, 2, 2, 1, 1, 1, 1 ],
+		"cost":[ 0.643890, 84127.858967, 110895.863794, 85049.400928, 23074.271374, 4549.250188, 111376.012329, 119592.426866 ],
+		"time":[ 11.418819, 30.023796, 30.756778, 40.421513, 57.779752, 42.333055, 57.195073, 55.292552 ]
+	}
+]
