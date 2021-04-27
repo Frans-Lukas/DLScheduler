@@ -47,7 +47,7 @@ kubectl get pods --namespace nuclio
 #export KUBECONFIG=$HOME/admin.conf
 
 # to run main:
-# go run main.go exampleJob.json output.txt /etc/kubernetes/admin.conf
+# go run main.go exampleJob.json test.txt /etc/kubernetes/admin.conf
 
 
 # Weavenet CNI plugin

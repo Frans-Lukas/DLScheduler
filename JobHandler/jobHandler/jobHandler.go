@@ -493,8 +493,8 @@ func (jobHandler JobHandler) InitialTuning(job *Job) int {
 	datasetSize := job.DataSetSize
 
 	batchSize := int(math.Min(10, float64(datasetSize)))
-	minTimeInSeconds := 50.0
-	maxTimeInSeconds := 120.0
+	minTimeInSeconds := 10.0
+	maxTimeInSeconds := 20.0
 	midPointInSeconds := minTimeInSeconds + (maxTimeInSeconds - minTimeInSeconds) // 80
 	timeTaken := 0.0
 
@@ -544,8 +544,8 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) 
 	return (*job.History)[len(*job.History) - 1].Time
 }
 
-func (jobHandler JobHandler) RunMiniEpoch(job *Job) {
-	job.NumberOfParts = 1
+func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int) {
+	job.NumberOfParts = job.DataSetSize / batchSize
 	job.SetNumberOfWorkers(uint(rand2.IntnRange(1, 2)))
 	job.SetNumberOfServers(uint(rand2.IntnRange(1, 2)))
 	fmt.Printf("running mini epoch with %d workers and %d servers", job.NumberOfWorkers, job.NumberOfServers)

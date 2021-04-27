@@ -103,7 +103,7 @@ def start_lenet():
         num_parts = kv.num_workers
     train_data = get_mnist_iterator_container(batch_size, (1, 28, 28), num_parts=num_parts, part_index=kv.rank)
     net = Net()
-    # net = load_model(net)
+    net = load_model(net)
     ctx = [mx.gpu() if mx.test_utils.list_gpus() else mx.cpu()]
     net.initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.03}, kvstore=kv)
@@ -116,7 +116,7 @@ def start_lenet():
 
     loss, accuracy = train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer)
 
-    # save_model_to_gcloud(net)
+    save_model_to_gcloud(net)
     print("printing works!")
     print(accuracy)
     loss = re.search('\[(.*)\]', str(loss)).group(1)
