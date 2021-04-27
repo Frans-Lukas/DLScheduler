@@ -39,12 +39,12 @@ func main() {
 	for _, job := range jobs {
 		job.JobId = helperFunctions.GenerateId(constants.JOB_ID_LENGTH)
 		println("testing reasonable batch size")
-		batchSize := jobHandler.InitialTuning(job)
+		//batchSize := jobHandler.InitialTuning(job)
 
 		//TODO not sure if this works fully (does it run epoch 1 over and over again?)
 		*job.Epoch = 1
 		for i := 0; i < 5; i++ {
-			jobHandler.RunMiniEpoch(job, batchSize)
+			jobHandler.RunMiniEpoch(job)
 			*job.Epoch++
 		}
 		*job.Epoch = 1

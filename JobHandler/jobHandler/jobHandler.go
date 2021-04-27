@@ -544,10 +544,11 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) 
 	return (*job.History)[len(*job.History) - 1].Time
 }
 
-func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int) {
-	job.NumberOfParts = job.DataSetSize / batchSize
-	job.SetNumberOfWorkers(uint(rand2.IntnRange(1, 4)))
-	job.SetNumberOfServers(uint(rand2.IntnRange(1, 4)))
+func (jobHandler JobHandler) RunMiniEpoch(job *Job) {
+	job.NumberOfParts = 1
+	job.SetNumberOfWorkers(uint(rand2.IntnRange(1, 2)))
+	job.SetNumberOfServers(uint(rand2.IntnRange(1, 2)))
+	fmt.Printf("running mini epoch with %d workers and %d servers", job.NumberOfWorkers, job.NumberOfServers)
 
 	jobHandler.DeployFunctions(job)
 
