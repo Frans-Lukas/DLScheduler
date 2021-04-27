@@ -86,7 +86,7 @@ func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 
 	fmt.Printf("num servers: %d, num workers %d\n", numWorkers, numServers)
 
-	for _, podName := range job.DeployedPods {
+	for _, podName := range *job.DeployedPods {
 		jobType := parseJobType(podName)
 		wg.Add(1)
 		job.PodNames[podName] = false
@@ -96,12 +96,15 @@ func (jobHandler JobHandler) InvokeFunctions(job *Job) {
 
 	//wait for all to complete
 	wg.Wait()
+
+	// nil clears the list
+	*job.DeployedPods = nil
 }
 
 func (jobHandler JobHandler) countServersAndWorkers(job *Job) (uint, uint) {
 	numWorkers := uint(0)
 	numServers := uint(0)
-	for _, podName := range job.DeployedPods {
+	for _, podName := range *job.DeployedPods {
 		jobType := parseJobType(podName)
 		switch jobType {
 		case constants.JOB_TYPE_SERVER:
@@ -322,12 +325,14 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 	workerDeployment := make([]uint, len(jobs))
 	serverDeployment := make([]uint, len(jobs))
 
+
 	// So that we take into account already existing workers/servers
 	workerDeploymentTotal := outsideWorkers
 	serverDeploymentTotal := outsideServers
 
 	staticWorkerSetup := make([]bool, len(jobs))
 	staticServerSetup := make([]bool, len(jobs))
+
 
 	println("GetDeploymentWithHighestMarginalUtility: ")
 
@@ -337,6 +342,9 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 		job.UpdateMarginalUtilityFunc()
 		staticWorkers := job.testingErrors.GetError("staticWorker")
 		staticServers := job.testingErrors.GetError("staticServers")
+
+		println(staticWorkers)
+		println(staticServers)
 
 		if staticWorkers >= 1 {
 			workerDeployment[i]  = uint(staticWorkers)
@@ -535,7 +543,7 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) 
 	jobHandler.DeployFunctions(job)
 
 	deployedPods, err := jobHandler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	job.DeployedPods = deployedPods
+	job.DeployedPods = &deployedPods
 	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 	epochStartTime := time.Now()
 	jobHandler.InvokeFunctions(job)
@@ -553,7 +561,7 @@ func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int) {
 	jobHandler.DeployFunctions(job)
 
 	deployedPods, err := jobHandler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	job.DeployedPods = deployedPods
+	job.DeployedPods = &deployedPods
 	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 	epochStartTime := time.Now()
 	jobHandler.InvokeFunctions(job)

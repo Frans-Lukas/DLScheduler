@@ -24,7 +24,7 @@ type Job struct {
 	CurrentCost           float64
 	JobId                 string
 	PodNames              map[string]bool
-	DeployedPods          []string
+	DeployedPods          *[]string
 	Epoch                 *int
 	FunctionChannel       *chan string
 	NumberOfFunctionsUsed uint
@@ -62,6 +62,7 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		history := make([]HistoryEvent, 0)
 		marginalUtilityFunc := make([]float64, 0)
 		costFunc := make([]float64, 0)
+		deployedPods := make([]string, 0)
 		//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
 		epoch := 2
 		tmpChan := make(chan string)
@@ -78,6 +79,7 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		tmpInitialTuning := false
 		job.InitialTuning = &tmpInitialTuning
 		job.testingErrors = ParseTestingErrorsFromJson(job.TestingErrorsPath)
+		job.DeployedPods =  &deployedPods
 
 		println(job.Budget)
 		println(job.TargetLoss)
@@ -171,7 +173,7 @@ func (job *Job) UpdateCostFunc() {
 		if historyEvent.Cost == -1 {
 			println("event with unset cost!")
 		} else {
-			fmt.Printf("numWorkers: %d, numServers: %d, cost: %f\n", historyEvent.NumWorkers, historyEvent.NumServers, 1/historyEvent.Cost)
+			//fmt.Printf("numWorkers: %d, numServers: %d, cost: %f\n", historyEvent.NumWorkers, historyEvent.NumServers, 1/historyEvent.Cost)
 			x = append(x, float64(historyEvent.NumWorkers))
 			y = append(y, float64(historyEvent.NumServers))
 			h = append(h, historyEvent.Cost)
@@ -195,7 +197,7 @@ func (job *Job) UpdateMarginalUtilityFunc() {
 	y := make([]float64, 0)
 	h := make([]float64, 0)
 	for _, historyEvent := range *job.History {
-		fmt.Printf("numWorkers: %d, numServers: %d, steps/s: %f\n", historyEvent.NumWorkers, historyEvent.NumServers, 1/historyEvent.Time)
+		//fmt.Printf("numWorkers: %d, numServers: %d, steps/s: %f\n", historyEvent.NumWorkers, historyEvent.NumServers, 1/historyEvent.Time)
 		x = append(x, float64(historyEvent.NumWorkers))
 		y = append(y, float64(historyEvent.NumServers))
 		h = append(h, 1/historyEvent.Time) // conversion to steps/s

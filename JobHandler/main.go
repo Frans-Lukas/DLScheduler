@@ -175,7 +175,7 @@ func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job, outsideWorkers uint, o
 func waitAndExecuteEpochTraining(handler jb.JobHandler, job *jb.Job) {
 	// TODO: wait until function is fully ready before invoking, sleep as a temp solution.
 	deployedPods, err := handler.WaitForAllWorkerPods(job, "nuclio", time.Second*10)
-	job.DeployedPods = deployedPods
+	job.DeployedPods = &deployedPods
 	helperFunctions.FatalErrCheck(err, "waitForAllWorkerPods")
 
 	executeTrainingOfOneEpoch(handler, job)
@@ -207,5 +207,5 @@ func executeTrainingOfOneEpoch(handler jb.JobHandler, job *jb.Job) {
 	cost := CostCalculator.CalculateCostForPods(job.JobId, handler.ClientSet, handler.MetricsClientSet, epochStartTime)
 	job.UpdateFunctionCostsInHistory(cost)
 
-	println("job is done")
+	println("epoch is done")
 }
