@@ -520,3 +520,20 @@ func (job *Job) getTimeHistoryString() string {
 
 	return b.String()
 }
+
+func (job *Job) ModifyNewLossIfOutlier(newLoss float64) float64 {
+	sum := 0.0
+
+	i := 0
+	for ; i < 5 && i < len(*job.History); i++ {
+		sum += (*job.History)[len(*job.History) - 1 - i].Loss
+	}
+
+	avg := sum / float64(i)
+
+	if newLoss > avg {
+		return avg
+	} else {
+		return newLoss
+	}
+}

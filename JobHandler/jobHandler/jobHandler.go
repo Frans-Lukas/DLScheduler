@@ -194,11 +194,14 @@ func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobT
 	if jobType == constants.JOB_TYPE_WORKER {
 		fmt.Println("got response: ", response)
 		println("job length: ", len(*job.History))
+
+		loss := job.ModifyNewLossIfOutlier(response.Loss)
+
 		*job.History = append(*job.History, HistoryEvent{
 			NumWorkers: uint(numWorkers),
 			NumServers: uint(numServers),
 			WorkerId:   response.WorkerId,
-			Loss:       response.Loss,
+			Loss:       loss,
 			Accuracy:   response.Accuracy,
 			Time:       time.Since(start).Seconds(),
 			Epoch:      epoch,
