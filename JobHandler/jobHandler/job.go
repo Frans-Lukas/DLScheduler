@@ -41,6 +41,7 @@ type Job struct {
 	isTraining            bool
 	isTrainingMutex       sync.Mutex
 	CostFunc              *[]float64
+	ConvergenceFunction   *[]float64
 }
 
 func ParseJson(jsonPath string) ([]*Job, error) {
@@ -304,9 +305,9 @@ func (job *Job) CalculateEpochsTillConvergence() uint {
 
 	startingGuess := []float64{1, 1, 1}
 
-	function := helperFunctions.Python3DParabolaLeastSquares(x, y, make([]float64, 1), startingGuess, "convergence")
+	*job.ConvergenceFunction = helperFunctions.Python3DParabolaLeastSquares(x, y, make([]float64, 1), startingGuess, "convergence")
 
-	convergenceEpoch, err := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, function)
+	convergenceEpoch, err := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, *job.ConvergenceFunction)
 	helperFunctions.FatalErrCheck(err, "CalculateEpochsTillConvergence: ")
 	convergenceEpoch = job.testingErrors.ApplyError(convergenceEpoch, "convergenceEpoch")
 
