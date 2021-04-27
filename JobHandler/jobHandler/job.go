@@ -33,6 +33,7 @@ type Job struct {
 	History               *[]HistoryEvent
 	MarginalUtilityFunc   *[]float64
 	InitialTuning         *bool
+	ActualTrainingStarted *bool
 	workersMutex          sync.Mutex
 	NumberOfWorkers       uint
 	serversMutex          sync.Mutex
@@ -78,6 +79,8 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		job.isTraining = false
 		tmpInitialTuning := false
 		job.InitialTuning = &tmpInitialTuning
+		tmpActualTrainingStarted := false
+		job.ActualTrainingStarted = &tmpActualTrainingStarted
 		job.testingErrors = ParseTestingErrorsFromJson(job.TestingErrorsPath)
 		job.DeployedPods =  &deployedPods
 
@@ -104,13 +107,21 @@ func (job *Job) budgetSurpassed() bool {
 }
 
 func (job *Job) lossReached() bool {
-	lossReached := !job.historyIsEmpty() && (*job.History)[len(*job.History)-1].Loss <= job.TargetLoss
-	if lossReached {
-		println("target loss: ", job.TargetLoss)
-		println("latest loss: ", (*job.History)[len(*job.History)-1].Loss)
-		println("loss reached for job: ", job.JobId)
+	if len(*job.History) < 3 {
+		return false
 	}
-	return lossReached
+
+	for i := 0; i < 3; i++ {
+		if !(*job.History)[len(*job.History) - 1 - i].ActualTrainingEpoch || (*job.History)[len(*job.History) - 1 - i].Loss > job.TargetLoss {
+			return false
+		}
+	}
+
+	println("target loss: ", job.TargetLoss)
+	println("latest loss: ", (*job.History)[len(*job.History)-1].Loss)
+	println("loss reached for job: ", job.JobId)
+
+	return true
 }
 
 func (job *Job) historyIsEmpty() bool {
