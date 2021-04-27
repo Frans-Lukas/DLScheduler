@@ -216,31 +216,33 @@ func (job *Job) UpdateMarginalUtilityFunc() {
 func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorkers uint, oldServers uint, budget float64) float64 {
 	if job.testingErrors.GetError("staticWorkers") >= 1 {
 		if numWorkers != uint(job.testingErrors.GetError("staticWorkers")) {
+			println("\tERROR: not matching exceed static workers", job.testingErrors.GetError("staticWorkers"))
 			return -1
 		}
 	}
 
 	if job.testingErrors.GetError("staticServers") >= 1 {
 		if numServers != uint(job.testingErrors.GetError("staticServers")) {
+			println("\tERROR: not matching static servers", job.testingErrors.GetError("staticServers"))
 			return -1
 		}
 	}
 
 	if budget <= 0 {
-		println("Would go over budget.")
+		println("\tERROR: Would go over budget.")
 		return -1
 	}
 
 	if job.testingErrors.GetError("maxWorkers") >= 1 {
 		if float64(numWorkers) > job.testingErrors.GetError("maxWorkers") {
-			println("Would exceed maxWorkers")
+			println("\tERROR: Would exceed maxWorkers", job.testingErrors.GetError("maxServers"))
 			return -1
 		}
 	}
 
 	if job.testingErrors.GetError("maxServers") >= 1 {
 		if float64(numServers) > job.testingErrors.GetError("maxServers") {
-			println("Would exceed maxServers")
+			println("\tERROR: Would exceed maxServers", job.testingErrors.GetError("maxServers"))
 			return -1
 		}
 	}

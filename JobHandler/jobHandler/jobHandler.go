@@ -405,6 +405,7 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 		}
 
 		if maxUtilityJobIndex == -1 {
+			println("GetDeploymentWithHighestMarginalUtility: done!")
 			deploymentFinished = true
 		} else {
 			switch deploymentType[maxUtilityJobIndex] {
