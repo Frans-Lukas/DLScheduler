@@ -140,7 +140,7 @@ func trainOneEpoch(handler jb.JobHandler, jobs []*jb.Job, outsideWorkers uint, o
 		helperFunctions.FatalErrCheck(err, "trainOneEpoch: ")
 
 		budgetsForEpoch[i] = budgetForeEpoch
-		fmt.Printf("budget for job %s : %f\n", job.JobId, budgetForeEpoch)
+		fmt.Printf("\tbudget for job %s : %f\n", job.JobId, budgetForeEpoch)
 	}
 
 	// 5. Calculate number of functions we can invoke

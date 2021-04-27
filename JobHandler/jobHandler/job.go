@@ -41,6 +41,7 @@ type Job struct {
 	isTraining            bool
 	isTrainingMutex       sync.Mutex
 	CostFunc              *[]float64
+	ConvergenceFunction   *[]float64
 }
 
 func ParseJson(jsonPath string) ([]*Job, error) {
@@ -63,6 +64,7 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		history := make([]HistoryEvent, 0)
 		podNames := make(map[string]bool, 0)
 		marginalUtilityFunc := make([]float64, 0)
+		convergenceFunc := make([]float64, 0)
 		costFunc := make([]float64, 0)
 		//history[0] = HistoryEvent{Epoch: 1, Loss: 1.0}
 		epoch := 2
@@ -75,6 +77,7 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		job.NumberOfServers = 1
 		job.SchedulerIp = &ipString
 		job.MarginalUtilityFunc = &marginalUtilityFunc
+		job.ConvergenceFunction = &convergenceFunc
 		job.CostFunc = &costFunc
 		job.isTraining = false
 		tmpInitialTuning := false
@@ -138,7 +141,7 @@ func (job *Job) CalculateBudgetForEpoch() (float64, error) {
 	fmt.Printf("\tepochs until convergence: %d\n", epochsTillConvergence)
 
 	budgetForEpoch := job.budgetForNextEpoch(epochsTillConvergence)
-	fmt.Printf("\tbudgetForEpoch: %d\n", budgetForEpoch)
+	fmt.Printf("\tbudgetForEpoch: %f\n", budgetForEpoch)
 
 	return budgetForEpoch, nil
 }
@@ -304,9 +307,9 @@ func (job *Job) CalculateEpochsTillConvergence() uint {
 
 	startingGuess := []float64{1, 1, 1}
 
-	function := helperFunctions.Python3DParabolaLeastSquares(x, y, make([]float64, 1), startingGuess, "convergence")
+	*job.ConvergenceFunction = helperFunctions.Python3DParabolaLeastSquares(x, y, make([]float64, 1), startingGuess, "convergence")
 
-	convergenceEpoch, err := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, function)
+	convergenceEpoch, err := helperFunctions.PythonParabolicLeastSquaresEstimateX(job.TargetLoss, *job.ConvergenceFunction)
 	helperFunctions.FatalErrCheck(err, "CalculateEpochsTillConvergence: ")
 	convergenceEpoch = job.testingErrors.ApplyError(convergenceEpoch, "convergenceEpoch")
 
@@ -518,4 +521,21 @@ func (job *Job) getTimeHistoryString() string {
 	b.WriteString(" ]")
 
 	return b.String()
+}
+
+func (job *Job) ModifyNewLossIfOutlier(newLoss float64) float64 {
+	sum := 0.0
+
+	i := 0
+	for ; i < 5 && i < len(*job.History); i++ {
+		sum += (*job.History)[len(*job.History) - 1 - i].Loss
+	}
+
+	avg := sum / float64(i)
+
+	if newLoss > avg {
+		return avg
+	} else {
+		return newLoss
+	}
 }
