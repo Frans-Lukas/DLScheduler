@@ -203,6 +203,7 @@ func (jobHandler JobHandler) InvokeFunction(job *Job, id string, epoch int, jobT
 			Time:       time.Since(start).Seconds(),
 			Epoch:      epoch,
 			Cost:       -1, // is set to real number later
+			ActualTrainingEpoch: *job.ActualTrainingStarted,
 		})
 		println("job length after: ", len(*job.History))
 	}
@@ -544,6 +545,7 @@ func (jobHandler JobHandler) DeleteNuclioFunctionsInJob(job *Job, jobType string
 
 func (jobHandler JobHandler) InitialTuning(job *Job) int {
 	*job.InitialTuning = true
+	*job.ActualTrainingStarted = false
 	datasetSize := job.DataSetSize
 
 	batchSize := int(math.Min(10, float64(datasetSize)))
@@ -599,6 +601,8 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) 
 }
 
 func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int) {
+	*job.ActualTrainingStarted = false
+
 	job.NumberOfParts = job.DataSetSize / batchSize
 	job.SetNumberOfWorkers(uint(rand2.IntnRange(1, 4)))
 	job.SetNumberOfServers(uint(rand2.IntnRange(1, 4)))

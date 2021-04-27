@@ -92,6 +92,10 @@ func trainUntilConvergence(handler jb.JobHandler, jobs []*jb.Job) {
 
 	functionsDeleted := make([]bool, len(jobs))
 
+	for _, job := range jobs {
+		*job.ActualTrainingStarted = true
+	}
+
 	for !allJobsDone {
 		jobsReadyForDeployment := make([]*jb.Job, 0)
 		outsideServers := uint(0)

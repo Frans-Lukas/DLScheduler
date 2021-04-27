@@ -1,14 +1,15 @@
 package jobHandler
 
 type HistoryEvent struct {
-	NumWorkers uint
-	NumServers uint
-	WorkerId   int
-	Loss       float64
-	Accuracy   float64
-	Time       float64
-	Epoch      int
-	Cost       float64
+	NumWorkers          uint
+	NumServers          uint
+	WorkerId            int
+	Loss                float64
+	Accuracy            float64
+	Time                float64
+	Epoch               int
+	Cost                float64
+	ActualTrainingEpoch bool
 }
 
 type FunctionResponse struct {
