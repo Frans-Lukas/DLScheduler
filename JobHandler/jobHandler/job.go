@@ -263,6 +263,7 @@ func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorker
 	cost = job.testingErrors.ApplyError(cost, "costEstimation")
 
 	if cost > budget {
+		println("\tERROR: cost ", cost, " would exceed budget ", budget)
 		return -1
 	}
 
