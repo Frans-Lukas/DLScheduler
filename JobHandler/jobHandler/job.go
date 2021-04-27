@@ -294,6 +294,8 @@ func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorker
 	newStepsPerSec = job.testingErrors.ApplyError(newStepsPerSec, "marginalUtility")
 	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck: ")
 
+	println("\toldStepsPerSec: ", oldStepsPerSec, " newStepsPerSec: ", newStepsPerSec, " utility: ", newStepsPerSec - oldStepsPerSec)
+
 	return newStepsPerSec - oldStepsPerSec
 }
 
