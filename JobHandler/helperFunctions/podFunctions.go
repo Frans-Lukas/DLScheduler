@@ -28,9 +28,21 @@ func IsPodRunning(client kubernetes.Interface, podName string, namespace string)
 			return false, errors.New("podName does not exist: " + podName)
 		}
 
+
 		switch pod.Status.Phase {
 		case v1.PodRunning:
-			return true, nil
+			terminating := false
+			for _, status := range pod.Status.ContainerStatuses {
+				if status.State.Terminated != nil {
+					terminating = true
+					break
+				}
+			}
+			if terminating {
+				return false, errors.New("PodTerminated")
+			} else {
+				return true, nil
+			}
 		case v1.PodSucceeded:
 			return false, nil
 		case v1.PodFailed:
