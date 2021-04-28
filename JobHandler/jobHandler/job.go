@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Job struct {
@@ -42,9 +43,11 @@ type Job struct {
 	isTrainingMutex       sync.Mutex
 	CostFunc              *[]float64
 	ConvergenceFunction   *[]float64
+	creationTime          *time.Time
+	EndTime               *time.Time
 }
 
-func ParseJson(jsonPath string) ([]*Job, error) {
+func ParseJson(jsonPath string, startTime time.Time) ([]*Job, error) {
 	file, err := os.Open(jsonPath)
 
 	helperFunctions.FatalErrCheck(err, "ParseJson: ")
@@ -85,6 +88,8 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 		tmpActualTrainingStarted := false
 		job.ActualTrainingStarted = &tmpActualTrainingStarted
 		job.testingErrors = ParseTestingErrorsFromJson(job.TestingErrorsPath)
+		job.creationTime = &startTime
+		job.EndTime = nil
 
 		println(job.Budget)
 		println(job.TargetLoss)
@@ -97,7 +102,15 @@ func ParseJson(jsonPath string) ([]*Job, error) {
 }
 
 func (job *Job) IsDone() bool {
-	return job.lossReached() || job.budgetSurpassed()
+	if job.lossReached() || job.budgetSurpassed() {
+		if job.EndTime == nil {
+			tmpTime := time.Now()
+			job.EndTime = &tmpTime
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 func (job *Job) budgetSurpassed() bool {
@@ -403,7 +416,10 @@ func (job *Job) GetTrainingData() string {
 	b.WriteString("\t\t\"servers\":" + job.getServerHistoryString() + ",\n")
 	b.WriteString("\t\t\"workers\":" + job.getWorkerHistoryString() + ",\n")
 	b.WriteString("\t\t\"cost\":" + job.getCostHistoryString() + ",\n")
-	b.WriteString("\t\t\"time\":" + job.getTimeHistoryString() + "\n")
+	b.WriteString("\t\t\"time\":" + job.getTimeHistoryString() + ",\n")
+	b.WriteString("\t\t\"startTime\":" + strconv.Itoa(job.creationTime.Second()) + ",\n")
+	b.WriteString("\t\t\"EndTime\":" + strconv.Itoa(job.EndTime.Second()) + ",\n")
+	b.WriteString("\t\t\"totalTime\":" + strconv.FormatFloat(job.EndTime.Sub(*job.creationTime).Seconds(), 'E', -1, 64) + "\n")
 
 	b.WriteString("\t}")
 
@@ -497,7 +513,6 @@ func (job *Job) getWorkerHistoryString() string {
 				isMiniEpoch = false
 			}
 		}
-
 	}
 
 	b.WriteString(" ]")

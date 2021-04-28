@@ -15,6 +15,7 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+	startTime := time.Now()
 	// 1. receive jobs
 	if len(os.Args) < 2 {
 		log.Fatalf("wrong input, needs arguments <jobPath> <outputPath> and optional <pathToCfg>, e.x. exampleJob.json outputFile.txt /home/franslukas/.kube/config")
@@ -33,7 +34,7 @@ func main() {
 
 	// 2. Parse to Job Class
 	jobPath := os.Args[1]
-	jobs, err := jb.ParseJson(jobPath)
+	jobs, err := jb.ParseJson(jobPath, startTime)
 	helperFunctions.FatalErrCheck(err, "main: ")
 
 	for _, job := range jobs {
