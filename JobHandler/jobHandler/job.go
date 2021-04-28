@@ -417,15 +417,24 @@ func (job *Job) getLossHistoryString() string {
 
 	currEpoch := -1
 
+	isMiniEpoch := true
+
 	for i, event := range *job.History {
 		if event.Epoch > currEpoch {
-			if i != 0 {
+			if i != 0 && isMiniEpoch == true && event.ActualTrainingEpoch{
+				b.WriteString(" | ")
+			} else if i != 0 {
 				b.WriteString(", ")
 			}
 			b.WriteString(fmt.Sprintf("%f", event.Loss))
 
 			currEpoch = event.Epoch
+
+			if isMiniEpoch && event.ActualTrainingEpoch {
+				isMiniEpoch = false
+			}
 		}
+
 	}
 
 	b.WriteString(" ]")
@@ -440,15 +449,24 @@ func (job *Job) getServerHistoryString() string {
 
 	currEpoch := -1
 
+	isMiniEpoch := true
+
 	for i, event := range *job.History {
 		if event.Epoch > currEpoch {
-			if i != 0 {
+			if i != 0 && isMiniEpoch == true && event.ActualTrainingEpoch{
+				b.WriteString(" | ")
+			} else if i != 0 {
 				b.WriteString(", ")
 			}
 			b.WriteString(strconv.Itoa(int(event.NumServers)))
 
 			currEpoch = event.Epoch
+
+			if isMiniEpoch && event.ActualTrainingEpoch {
+				isMiniEpoch = false
+			}
 		}
+
 	}
 
 	b.WriteString(" ]")
@@ -462,16 +480,24 @@ func (job *Job) getWorkerHistoryString() string {
 	b.WriteString("[ ")
 
 	currEpoch := -1
+	isMiniEpoch := true
 
 	for i, event := range *job.History {
 		if event.Epoch > currEpoch {
-			if i != 0 {
+			if i != 0 && isMiniEpoch == true && event.ActualTrainingEpoch{
+				b.WriteString(" | ")
+			} else if i != 0 {
 				b.WriteString(", ")
 			}
 			b.WriteString(strconv.Itoa(int(event.NumWorkers)))
 
 			currEpoch = event.Epoch
+
+			if isMiniEpoch && event.ActualTrainingEpoch {
+				isMiniEpoch = false
+			}
 		}
+
 	}
 
 	b.WriteString(" ]")
@@ -485,15 +511,22 @@ func (job *Job) getCostHistoryString() string {
 	b.WriteString("[ ")
 
 	currEpoch := -1
+	isMiniEpoch := true
 
 	for i, event := range *job.History {
 		if event.Epoch > currEpoch {
-			if i != 0 {
+			if i != 0 && isMiniEpoch == true && event.ActualTrainingEpoch{
+				b.WriteString(" | ")
+			} else if i != 0 {
 				b.WriteString(", ")
 			}
 			b.WriteString(fmt.Sprintf("%f", event.Cost))
 
 			currEpoch = event.Epoch
+
+			if isMiniEpoch && event.ActualTrainingEpoch {
+				isMiniEpoch = false
+			}
 		}
 	}
 
@@ -509,14 +542,22 @@ func (job *Job) getTimeHistoryString() string {
 
 	currEpoch := -1
 
+	isMiniEpoch := true
+
 	for i, event := range *job.History {
 		if event.Epoch > currEpoch {
-			if i != 0 {
+			if i != 0 && isMiniEpoch == true && event.ActualTrainingEpoch{
+				b.WriteString(" | ")
+			} else if i != 0 {
 				b.WriteString(", ")
 			}
 			b.WriteString(fmt.Sprintf("%f", event.Time))
 
 			currEpoch = event.Epoch
+
+			if isMiniEpoch && event.ActualTrainingEpoch {
+				isMiniEpoch = false
+			}
 		}
 	}
 
