@@ -5,7 +5,7 @@
     "dataSetSize": 100,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
     "scriptPath": "/DLScheduler/MXNetImplementations/LeNet/main.py",
-    "testingErrorsPath": "basicErrorFile.json"
+    "testingErrorsPath": "input/basicErrorFile.json"
   },
   {
     "budget": 5000000,
@@ -13,6 +13,6 @@
     "dataSetSize": 100,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
     "scriptPath": "/DLScheduler/MXNetImplementations/LeNet/main.py",
-    "testingErrorsPath": "basicErrorFile.json"
+    "testingErrorsPath": "input/basicErrorFile.json"
   }
 ]
