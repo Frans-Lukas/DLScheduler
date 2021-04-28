@@ -59,8 +59,8 @@ func initialTuning(job *jb.Job, jobHandler jb.JobHandler, wg *sync.WaitGroup) {
 
 	//TODO not sure if this works fully (does it run epoch 1 over and over again?)
 	*job.Epoch = 1
-	for i := 0; i < 5; i++ {
-		jobHandler.RunMiniEpoch(job, batchSize)
+	for i := 0; i < 4; i++ {
+		jobHandler.RunMiniEpoch(job, batchSize, i)
 		*job.Epoch++
 	}
 
