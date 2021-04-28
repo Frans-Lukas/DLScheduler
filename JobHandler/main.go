@@ -18,7 +18,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	// 1. receive jobs
 	if len(os.Args) < 2 {
-		log.Fatalf("wrong input, needs arguments <jobPath> <outputPath> and optional <pathToCfg>, e.x. exampleJob.json outputFile.txt /home/franslukas/.kube/config")
+		log.Fatalf("wrong input, needs arguments <jobPath> <outputPath> and optional <pathToCfg>, e.x. singleTenant83.json outputFile.txt /home/franslukas/.kube/config")
 	}
 
 	var jobHandler jb.JobHandler
