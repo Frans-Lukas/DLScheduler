@@ -10,7 +10,6 @@ import (
 	"jobHandler/constants"
 	"jobHandler/helperFunctions"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	rand2 "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -601,12 +600,15 @@ func (jobHandler JobHandler) deployAndRunWithBatchSize(job *Job, batchSize int) 
 	return (*job.History)[len(*job.History) - 1].Time
 }
 
-func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int) {
+func (jobHandler JobHandler) RunMiniEpoch(job *Job, batchSize int, miniEpochNum int) {
 	*job.ActualTrainingStarted = false
 
 	job.NumberOfParts = job.DataSetSize / batchSize
-	job.SetNumberOfWorkers(uint(rand2.IntnRange(1, 3)))
-	job.SetNumberOfServers(uint(rand2.IntnRange(1, 3)))
+
+	permutations := [][]uint{{1,1}, {1,2}, {2,1}, {2,2}}
+
+	job.SetNumberOfWorkers(permutations[miniEpochNum][0])
+	job.SetNumberOfServers(permutations[miniEpochNum][1])
 
 
 	fmt.Printf("running mini epoch with %d workers and %d servers\n", job.NumberOfWorkers, job.NumberOfServers)

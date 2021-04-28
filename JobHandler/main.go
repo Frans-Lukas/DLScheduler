@@ -10,6 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -37,26 +38,34 @@ func main() {
 	jobs, err := jb.ParseJson(jobPath, startTime)
 	helperFunctions.FatalErrCheck(err, "main: ")
 
+
+	var wg sync.WaitGroup
 	for _, job := range jobs {
-		job.JobId = helperFunctions.GenerateId(constants.JOB_ID_LENGTH)
-		println("testing reasonable batch size")
-		batchSize := jobHandler.InitialTuning(job)
-
-		//TODO not sure if this works fully (does it run epoch 1 over and over again?)
-		*job.Epoch = 1
-		for i := 0; i < 5; i++ {
-			jobHandler.RunMiniEpoch(job, batchSize)
-			*job.Epoch++
-		}
-
-		job.NumberOfParts = 1
-		println("done with testing reasonable batch size")
+		wg.Add(1)
+		go initialTuning(job, jobHandler, &wg)
 	}
+	wg.Wait()
 
 	println("train until convergence")
 	trainUntilConvergence(jobHandler, jobs)
 
 	storeTrainingData(jobs, os.Args[2])
+}
+
+func initialTuning(job *jb.Job, jobHandler jb.JobHandler, wg *sync.WaitGroup) {
+	defer wg.Done()
+	job.JobId = helperFunctions.GenerateId(constants.JOB_ID_LENGTH)
+	println("testing reasonable batch size")
+	batchSize := jobHandler.InitialTuning(job)
+
+	//TODO not sure if this works fully (does it run epoch 1 over and over again?)
+	*job.Epoch = 1
+	for i := 0; i < 4; i++ {
+		jobHandler.RunMiniEpoch(job, batchSize, i)
+		*job.Epoch++
+	}
+
+	println("done with testing reasonable batch size")
 }
 
 func storeTrainingData(jobs []*jb.Job, outputFilePath string) {
