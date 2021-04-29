@@ -151,7 +151,7 @@ def main():
     # Load the training data
     train_data = gluon.data.DataLoader(
         gluon.data.vision.CIFAR10(train=True, root="/opt/nuclio/data").transform(transform), batch_size,
-        sampler=SplitSampler(5000, num_parts, store.rank))
+        sampler=SplitSampler(50000, num_parts, store.rank))
 
     # Use ResNet from model zoo
     net = vision.resnet18_v1()

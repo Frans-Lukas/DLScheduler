@@ -63,6 +63,7 @@ func initialTuning(job *jb.Job, jobHandler jb.JobHandler, wg *sync.WaitGroup) {
 	}
 
 	println("done with testing reasonable batch size")
+	*job.InitialTuning = false
 }
 
 func storeTrainingData(jobs []*jb.Job, outputFilePath string) {
