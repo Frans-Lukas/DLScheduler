@@ -4,6 +4,6 @@
   "costEstimation"   : 1.00,
   "maxWorkers"       : 0,
   "maxServers"       : 0,
-  "staticWorkers"    : 0,
-  "staticServers"    : 0
+  "staticWorkers"    : 2,
+  "staticServers"    : 2
 }
