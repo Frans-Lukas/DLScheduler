@@ -11,3 +11,7 @@
 ./test_runner.sh 8
 ./test_runner.sh 9
 ./test_runner.sh 10
+./test_runner.sh 11
+./test_runner.sh 12
+./test_runner.sh 13
+./test_runner.sh 14

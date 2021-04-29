@@ -11,6 +11,10 @@ echo "7. Default scheduler single tenant 2 worker 2 server"
 echo "8. Default scheduler multi tenant 2 worker 2 server"
 echo "9. Default scheduler single tenant 3 worker 3 server"
 echo "10. Default scheduler multi tenant 3 worker 3 server"
+echo "11. Default scheduler single tenant 2 worker 1 server"
+echo "12. Default scheduler multi tenant 2 worker 1 server"
+echo "13. Default scheduler single tenant 3 worker 1 server"
+echo "14. Default scheduler multi tenant 3 worker 1 server"
 echo ""
 
 
@@ -75,6 +79,22 @@ case $choice in
 10)
   echo "Starting default scheduler multi tenant static 3w 3s"
   go run main.go input/twoTenant83StaticThree.json output/multi_job_default_scheduler_83_tl_static_3w_3s.txt /etc/kubernetes/admin.conf
+  ;;
+11)
+  echo "Starting default scheduler single tenant static 2w 1s"
+  go run main.go input/singleTenant83StaticTwoOne.json output/single_job_default_scheduler_83_tl_static_2w_1s.txt /etc/kubernetes/admin.conf
+  ;;
+12)
+  echo "Starting default scheduler multi tenant static 2w 1s"
+  go run main.go input/twoTenant83StaticTwoOne.json output/multi_job_default_scheduler_83_tl_static_2w_1s.txt /etc/kubernetes/admin.conf
+  ;;
+13)
+  echo "Starting default scheduler single tenant static 3w 1s"
+  go run main.go input/singleTenant83StaticThreeOne.json output/single_job_default_scheduler_83_tl_static_3w_1s.txt /etc/kubernetes/admin.conf
+  ;;
+14)
+  echo "Starting default scheduler multi tenant static 3w 1s"
+  go run main.go input/twoTenant83StaticThreeOne.json output/multi_job_default_scheduler_83_tl_static_3w_1s.txt /etc/kubernetes/admin.conf
   ;;
 *)
   echo "invalid selection"
