@@ -11,7 +11,6 @@ echo "7. Default scheduler single tenant 2 worker 2 server"
 echo "8. Default scheduler multi tenant 2 worker 2 server"
 echo ""
 
-sudo echo "activate sudo"
 
 if [[ $# -eq 1 ]]; then
   choice=$1
@@ -53,19 +52,19 @@ case $choice in
   ;;
 5)
   echo "Starting default scheduler single tenant static 1w 1s"
-  go run main.go singleTenant83StaticOne.json single_job_default_scheduler_83_tl_static_1w_1s.txt /etc/kubernetes/admin.conf
+  go run main.go input/singleTenant83StaticOne.json output/single_job_default_scheduler_83_tl_static_1w_1s.txt /etc/kubernetes/admin.conf
   ;;
 6)
   echo "Starting default scheduler multi tenant static 1w 1s"
-  go run main.go twoTenant83StaticOne.json multi_job_default_scheduler_83_tl_static_1w_1s.txt /etc/kubernetes/admin.conf
+  go run main.go input/twoTenant83StaticOne.json output/multi_job_default_scheduler_83_tl_static_1w_1s.txt /etc/kubernetes/admin.conf
   ;;
 7)
   echo "Starting default scheduler single tenant static 2w 2s"
-  go run main.go singleTenant83StaticTwo.json single_job_default_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
+  go run main.go input/singleTenant83StaticTwo.json output/single_job_default_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
   ;;
 8)
   echo "Starting default scheduler multi tenant static 2w 2s"
-  go run main.go twoTenant83StaticTwo.json multi_job_default_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
+  go run main.go input/twoTenant83StaticTwo.json output/multi_job_default_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
   ;;
 *)
   echo "invalid selection"
