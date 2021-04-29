@@ -9,6 +9,8 @@ echo "5. Default scheduler single tenant 1 worker 1 server"
 echo "6. Default scheduler multi tenant 1 worker 1 server"
 echo "7. Default scheduler single tenant 2 worker 2 server"
 echo "8. Default scheduler multi tenant 2 worker 2 server"
+echo "9. Default scheduler single tenant 3 worker 3 server"
+echo "10. Default scheduler multi tenant 3 worker 3 server"
 echo ""
 
 
@@ -65,6 +67,14 @@ case $choice in
 8)
   echo "Starting default scheduler multi tenant static 2w 2s"
   go run main.go input/twoTenant83StaticTwo.json output/multi_job_default_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
+  ;;
+9)
+  echo "Starting default scheduler single tenant static 3w 3s"
+  go run main.go input/singleTenant83StaticThree.json output/single_job_default_scheduler_83_tl_static_3w_3s.txt /etc/kubernetes/admin.conf
+  ;;
+10)
+  echo "Starting default scheduler multi tenant static 3w 3s"
+  go run main.go input/twoTenant83StaticThree.json output/multi_job_default_scheduler_83_tl_static_3w_3s.txt /etc/kubernetes/admin.conf
   ;;
 *)
   echo "invalid selection"
