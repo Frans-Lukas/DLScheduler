@@ -186,14 +186,14 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
 
             trainer.step(batch.data[0].shape[0])
 
-            loss_tmp = loss.mean()
-            loss_tmp = re.search('\[(.*)\]', str(loss_tmp)).group(1)
-            current_loss = float(loss_tmp)
-            if current_loss < target_loss:
-                concurrent_count += 1
-            else:
-                concurrent_count = 0
-            epochs += 1
+        loss_tmp = loss.mean()
+        loss_tmp = re.search('\[(.*)\]', str(loss_tmp)).group(1)
+        current_loss = float(loss_tmp)
+        if current_loss < target_loss:
+            concurrent_count += 1
+        else:
+            concurrent_count = 0
+        epochs += 1
 
 
             # if os.environ["DMLC_NUM_WORKER"] == "2":
