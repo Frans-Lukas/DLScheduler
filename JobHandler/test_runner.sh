@@ -48,7 +48,7 @@ echo $model
 
 
 echo "killing all nuclio functions"
-#./nuclio/kill_all_nuclio_funcs.sh
+./nuclio/kill_all_nuclio_funcs.sh
 
 case $choice in
 1)
