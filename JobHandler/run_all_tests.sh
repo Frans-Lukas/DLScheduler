@@ -24,7 +24,6 @@
 #./test_runner.sh 3 2
 #./test_runner.sh 4 2
 #./test_runner.sh 5 2
-#./test_runner.sh 2 2
 #./test_runner.sh 6 2
 #./test_runner.sh 7 2
 #./test_runner.sh 8 2
