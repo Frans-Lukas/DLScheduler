@@ -2,16 +2,17 @@ import json
 import os
 import re
 import sys
+import timeit
 
 import mxnet
 import mxnet as mx
 import mxnet.autograd as ag
 import mxnet.metric
 import mxnet.ndarray as F
-from cloudStorage import download_simple, upload_simple
 from mxnet import gluon
 from mxnet.gluon import nn
-import timeit
+
+from cloudStorage import download_simple, upload_simple
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
@@ -42,6 +43,16 @@ class Net(gluon.Block):
         x = F.tanh(self.fc1(x))
         x = F.tanh(self.fc2(x))
         return x
+
+
+class TestData:
+
+    def __init__(self) -> None:
+        self.id = "baseline"
+        self.epochs = 0
+        self.time = 0.0
+
+
 
 
 def save_model_to_gcloud(net: Net):
@@ -97,6 +108,9 @@ def get_mnist_iterator_container(batch_size, input_shape, num_parts=1, part_inde
 def start_lenet():
     start = timeit.default_timer()
 
+    testData = TestData()
+    with open('results.json', 'w') as f:
+        json.dump(testData.__dict__, f)
     kv = mxnet.kv.create('dist')
     mx.random.seed(42)
     batch_size = 100
@@ -113,7 +127,6 @@ def start_lenet():
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
     epoch = 1
-    testData = TestData()
 
     # WORKS DISTRIBUTED x2 workers UP until this point!
     # Which means it is the training that freezes it...
@@ -132,13 +145,14 @@ def start_lenet():
 
     testData.time = stop - start
 
-    json.dumps(testData.__dict__)
+    with open('results.json', 'w') as f:
+        json.dump(testData.__dict__, f)
 
 
 def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer):
     loss = any
     accuracy = any
-    target_loss = 0.83
+    target_loss = 0.85
     current_loss = 1
     concurrent_count = 0
     epochs = 0
@@ -226,14 +240,4 @@ def evaluate(ctx, net, val_data):
 
 
 if __name__ == '__main__': main()
-
-
-class TestData:
-
-    def __init__(self) -> None:
-        self.id = "baseline"
-        self.epochs = 0
-        self.time = 0.0
-
-
 
