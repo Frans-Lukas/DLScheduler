@@ -2,16 +2,17 @@ import json
 import os
 import re
 import sys
+import timeit
 
 import mxnet
 import mxnet as mx
 import mxnet.autograd as ag
 import mxnet.metric
 import mxnet.ndarray as F
-from cloudStorage import download_simple, upload_simple
 from mxnet import gluon
 from mxnet.gluon import nn
-import timeit
+
+from cloudStorage import download_simple, upload_simple
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
@@ -42,6 +43,16 @@ class Net(gluon.Block):
         x = F.tanh(self.fc1(x))
         x = F.tanh(self.fc2(x))
         return x
+
+
+class TestData:
+
+    def __init__(self) -> None:
+        self.id = "baseline"
+        self.epochs = 0
+        self.time = 0.0
+
+
 
 
 def save_model_to_gcloud(net: Net):
@@ -226,14 +237,4 @@ def evaluate(ctx, net, val_data):
 
 
 if __name__ == '__main__': main()
-
-
-class TestData:
-
-    def __init__(self) -> None:
-        self.id = "baseline"
-        self.epochs = 0
-        self.time = 0.0
-
-
 
