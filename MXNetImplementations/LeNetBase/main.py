@@ -127,7 +127,10 @@ def start_lenet():
 def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer):
     loss = any
     accuracy = any
-    for i in range(epoch):
+    target_loss = 0.83
+    current_loss = 1
+    concurrent_count = 0
+    while concurrent_count < 3:
         # Reset the train data iterator.
         train_data.reset()
         # Loop over the train data iterator.
@@ -160,6 +163,15 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
             # batch size of data to normalize the gradient by 1/batch_size.
 
             trainer.step(batch.data[0].shape[0])
+
+            loss_tmp = loss.mean()
+            loss_tmp = re.search('\[(.*)\]', str(loss_tmp)).group(1)
+            current_loss = float(loss_tmp)
+            if current_loss < target_loss:
+                concurrent_count += 1
+            else:
+                concurrent_count = 0
+
 
             # if os.environ["DMLC_NUM_WORKER"] == "2":
             #     # print("regexpresultstart{\"loss\":0.9, \"accuracy\":0.9, \"worker_id\":0}regexpresultend")
