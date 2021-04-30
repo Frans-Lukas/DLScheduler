@@ -130,7 +130,7 @@ def start_lenet():
     loss, accuracy, epochs, lossHistory = train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data,
                                                 trainer)
 
-    testData.lossHistory = epochs
+    testData.lossHistory = lossHistory
     testData.epochs = epochs
 
     print("printing works!")
