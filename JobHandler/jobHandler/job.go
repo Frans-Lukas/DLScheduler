@@ -122,21 +122,35 @@ func (job *Job) budgetSurpassed() bool {
 }
 
 func (job *Job) lossReached() bool {
-	if len(*job.History) < 3 {
+	if len(*job.History) == 0 {
 		return false
 	}
 
-	for i := 0; i < 3; i++ {
-		if !(*job.History)[len(*job.History) - 1 - i].ActualTrainingEpoch || (*job.History)[len(*job.History) - 1 - i].Loss > job.TargetLoss {
+	validEpochs := 0
+	currEpoch := -1
+
+	for i := len(*job.History) -1 ; i >= 0; i-- {
+		if validEpochs > 3 {
+			break
+		}
+
+		if !(*job.History)[i].ActualTrainingEpoch || (*job.History)[i].Loss > job.TargetLoss {
 			return false
+		} else if currEpoch != (*job.History)[i].Epoch {
+			validEpochs++
+			currEpoch = (*job.History)[i].Epoch
 		}
 	}
 
-	println("target loss: ", job.TargetLoss)
-	println("latest loss: ", (*job.History)[len(*job.History)-1].Loss)
-	println("loss reached for job: ", job.JobId)
+	if validEpochs >= 3 {
+		println("target loss: ", job.TargetLoss)
+		println("latest loss: ", (*job.History)[len(*job.History)-1].Loss)
+		println("loss reached for job: ", job.JobId)
 
-	return true
+		return true
+	} else {
+		return false
+	}
 }
 
 func (job *Job) historyIsEmpty() bool {
