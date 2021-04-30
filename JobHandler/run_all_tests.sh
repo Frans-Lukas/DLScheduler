@@ -1,22 +1,25 @@
 #!/bin/bash
 
 #TODO remember that the commented out tests need to be run again
-#./test_runner.sh 3 1
+
 #./test_runner.sh 4 1
-#./test_runner.sh 1 1
 #./test_runner.sh 2 1
-#./test_runner.sh 5 1
+#./test_runner.sh 6 1
+#./test_runner.sh 7 1
+#./test_runner.sh 8 1
+
+./test_runner.sh 1 1
+./test_runner.sh 3 1
 ./test_runner.sh 4 1
-./test_runner.sh 2 1
-./test_runner.sh 6 1
-./test_runner.sh 7 1
-./test_runner.sh 8 1
+./test_runner.sh 5 1
 ./test_runner.sh 9 1
 ./test_runner.sh 10 1
 ./test_runner.sh 11 1
 ./test_runner.sh 12 1
 ./test_runner.sh 13 1
 ./test_runner.sh 14 1
+
+
 
 #TODO uncomment these to run the Cifar10 tests
 #./test_runner.sh 1 2
