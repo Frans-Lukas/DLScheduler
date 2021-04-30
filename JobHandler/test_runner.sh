@@ -18,33 +18,52 @@ echo "14. Default scheduler multi tenant 3 worker 1 server"
 echo ""
 
 
-if [[ $# -eq 1 ]]; then
+if [[ $# -eq 2 ]]; then
   choice=$1
+  model=$2
 else
   echo -n "Enter test choice:"
   read choice
+
+  echo "1. LeNet model used"
+  echo "2. Cifar10 model used"
+  echo -n "Enter model choice:"
+  read model
 fi
 
+case $model in
+1)
+  model="LeNet"
+  ;;
+2)
+  model="Cifar10"
+  ;;
+*)
+  echo "invalid selection"
+  ;;
+esac
+
 echo $choice
+echo $model
 
 
 echo "killing all nuclio functions"
-./nuclio/kill_all_nuclio_funcs.sh
+#./nuclio/kill_all_nuclio_funcs.sh
 
 case $choice in
 1)
   echo "Starting default scheduler single tenant"
-  go run main.go input/singleTenant83.json output/single_job_default_scheduler_83_tl.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/singleTenant83.json output/$model/single_job_default_scheduler_83_tl.txt /etc/kubernetes/admin.conf
   ;;
 2)
   echo "Starting default scheduler multi tenant"
-  go run main.go input/twoTenant83.json output/multi_job_default_scheduler_83_tl.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/twoTenant83.json output/$model/multi_job_default_scheduler_83_tl.txt /etc/kubernetes/admin.conf
   ;;
 3)
   echo "Starting gang scheduler single tenant"
   sudo /etc/kubernetes/sched-manager/enable-gang.sh
   sleep 100
-  go run main.go input/singleTenant83.json output/single_job_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/singleTenant83.json output/$model/single_job_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
   sudo /etc/kubernetes/sched-manager/enable-default.sh
   sleep 100
   ;;
@@ -52,49 +71,49 @@ case $choice in
   echo "Starting gang scheduler multi tenant"
   sudo /etc/kubernetes/sched-manager/enable-gang.sh
   sleep 100
-  go run main.go input/twoTenant83.json output/multi_job_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/twoTenant83.json output/$model/multi_job_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
   sudo /etc/kubernetes/sched-manager/enable-default.sh
   sleep 100
   ;;
 5)
   echo "Starting default scheduler single tenant static 1w 1s"
-  go run main.go input/singleTenant83StaticOne.json output/single_job_default_scheduler_83_tl_static_1w_1s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/singleTenant83StaticOne.json output/$model/single_job_default_scheduler_83_tl_static_1w_1s.txt /etc/kubernetes/admin.conf
   ;;
 6)
   echo "Starting default scheduler multi tenant static 1w 1s"
-  go run main.go input/twoTenant83StaticOne.json output/multi_job_default_scheduler_83_tl_static_1w_1s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/twoTenant83StaticOne.json output/$model/multi_job_default_scheduler_83_tl_static_1w_1s.txt /etc/kubernetes/admin.conf
   ;;
 7)
   echo "Starting default scheduler single tenant static 2w 2s"
-  go run main.go input/singleTenant83StaticTwo.json output/single_job_default_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/singleTenant83StaticTwo.json output/$model/single_job_default_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
   ;;
 8)
   echo "Starting default scheduler multi tenant static 2w 2s"
-  go run main.go input/twoTenant83StaticTwo.json output/multi_job_default_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/twoTenant83StaticTwo.json output/$model/multi_job_default_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
   ;;
 9)
   echo "Starting default scheduler single tenant static 3w 3s"
-  go run main.go input/singleTenant83StaticThree.json output/single_job_default_scheduler_83_tl_static_3w_3s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/singleTenant83StaticThree.json output/$model/single_job_default_scheduler_83_tl_static_3w_3s.txt /etc/kubernetes/admin.conf
   ;;
 10)
   echo "Starting default scheduler multi tenant static 3w 3s"
-  go run main.go input/twoTenant83StaticThree.json output/multi_job_default_scheduler_83_tl_static_3w_3s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/twoTenant83StaticThree.json output/$model/multi_job_default_scheduler_83_tl_static_3w_3s.txt /etc/kubernetes/admin.conf
   ;;
 11)
   echo "Starting default scheduler single tenant static 2w 1s"
-  go run main.go input/singleTenant83StaticTwoOne.json output/single_job_default_scheduler_83_tl_static_2w_1s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/singleTenant83StaticTwoOne.json output/$model/single_job_default_scheduler_83_tl_static_2w_1s.txt /etc/kubernetes/admin.conf
   ;;
 12)
   echo "Starting default scheduler multi tenant static 2w 1s"
-  go run main.go input/twoTenant83StaticTwoOne.json output/multi_job_default_scheduler_83_tl_static_2w_1s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/twoTenant83StaticTwoOne.json output/$model/multi_job_default_scheduler_83_tl_static_2w_1s.txt /etc/kubernetes/admin.conf
   ;;
 13)
   echo "Starting default scheduler single tenant static 3w 1s"
-  go run main.go input/singleTenant83StaticThreeOne.json output/single_job_default_scheduler_83_tl_static_3w_1s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/singleTenant83StaticThreeOne.json output/$model/single_job_default_scheduler_83_tl_static_3w_1s.txt /etc/kubernetes/admin.conf
   ;;
 14)
   echo "Starting default scheduler multi tenant static 3w 1s"
-  go run main.go input/twoTenant83StaticThreeOne.json output/multi_job_default_scheduler_83_tl_static_3w_1s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/twoTenant83StaticThreeOne.json output/$model/multi_job_default_scheduler_83_tl_static_3w_1s.txt /etc/kubernetes/admin.conf
   ;;
 *)
   echo "invalid selection"
