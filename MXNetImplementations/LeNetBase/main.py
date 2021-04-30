@@ -108,6 +108,9 @@ def get_mnist_iterator_container(batch_size, input_shape, num_parts=1, part_inde
 def start_lenet():
     start = timeit.default_timer()
 
+    testData = TestData()
+    with open('results.json', 'w') as f:
+        json.dump(testData.__dict__, f)
     kv = mxnet.kv.create('dist')
     mx.random.seed(42)
     batch_size = 100
@@ -124,7 +127,6 @@ def start_lenet():
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
     epoch = 1
-    testData = TestData()
 
     # WORKS DISTRIBUTED x2 workers UP until this point!
     # Which means it is the training that freezes it...
@@ -143,7 +145,8 @@ def start_lenet():
 
     testData.time = stop - start
 
-    json.dumps(testData.__dict__)
+    with open('results.json', 'w') as f:
+        json.dump(testData.__dict__, f)
 
 
 def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer):
