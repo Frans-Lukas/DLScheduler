@@ -138,7 +138,7 @@ def start_lenet():
 def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer):
     loss = any
     accuracy = any
-    target_loss = 0.83
+    target_loss = 0.85
     current_loss = 1
     concurrent_count = 0
     epochs = 0
