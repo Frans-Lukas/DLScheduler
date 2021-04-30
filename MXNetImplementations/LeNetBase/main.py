@@ -109,8 +109,6 @@ def start_lenet():
     start = timeit.default_timer()
 
     testData = TestData()
-    with open('results.json', 'w') as f:
-        json.dump(testData.__dict__, f)
     kv = mxnet.kv.create('dist')
     mx.random.seed(42)
     batch_size = 100
@@ -120,7 +118,6 @@ def start_lenet():
         num_parts = kv.num_workers
     train_data = get_mnist_iterator_container(batch_size, (1, 28, 28), num_parts=num_parts, part_index=kv.rank)
     net = Net()
-    net = load_model(net)
     ctx = [mx.gpu() if mx.test_utils.list_gpus() else mx.cpu()]
     net.initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.03}, kvstore=kv)
@@ -135,7 +132,6 @@ def start_lenet():
 
     testData.epochs = epochs
 
-    save_model_to_gcloud(net)
     print("printing works!")
     print(accuracy)
     loss = re.search('\[(.*)\]', str(loss)).group(1)
