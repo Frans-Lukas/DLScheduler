@@ -362,7 +362,7 @@ func (JobHandler JobHandler) GetDeploymentWithHighestMarginalUtility(jobs []*Job
 	for i, job := range jobs {
 		job.UpdateCostFunc()
 		job.UpdateMarginalUtilityFunc()
-		staticWorkers := job.testingErrors.GetError("staticWorker")
+		staticWorkers := job.testingErrors.GetError("staticWorkers")
 		staticServers := job.testingErrors.GetError("staticServers")
 
 		println(staticWorkers)
