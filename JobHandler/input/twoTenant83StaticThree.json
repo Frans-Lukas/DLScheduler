@@ -1,6 +1,6 @@
 [
   {
-    "budget": 5000000,
+    "budget": 10000000,
     "targetLoss": 0.83,
     "dataSetSize": 100,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
@@ -8,7 +8,7 @@
     "testingErrorsPath": "input/staticWSThreeErrorFile.json"
   },
   {
-    "budget": 5000000,
+    "budget": 10000000,
     "targetLoss": 0.83,
     "dataSetSize": 100,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
