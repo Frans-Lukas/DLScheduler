@@ -16,13 +16,13 @@ if __name__ == '__main__':
                 fileDict = json.loads(dataFiltered)
                 fig = px.line(x=fileDict[0].get('epochs'), y=fileDict[0].get('loss'))
                 fig.write_html('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", ".html"),
-                               auto_open=False)
+                               auto_open=False, x="epoch", y="loss")
                 fig = px.line(x=fileDict[0].get('epochs'), y=fileDict[0].get('time'))
                 fig.write_html('results/time' + filename.replace(inputFolderPath, "").replace(".txt", ".html"),
-                               auto_open=False)
+                               auto_open=False, x="epoch", y="time")
                 fig = px.line(x=fileDict[0].get('epochs'), y=fileDict[0].get('workers'))
                 fig.write_html('results/workers' + filename.replace(inputFolderPath, "").replace(".txt", ".html"),
-                               auto_open=False)
+                               auto_open=False, x="epoch", y="workers")
                 fig = px.line(x=fileDict[0].get('epochs'), y=fileDict[0].get('servers'))
                 fig.write_html('results/servers' + filename.replace(inputFolderPath, "").replace(".txt", ".html"),
-                               auto_open=False)
+                               auto_open=False, x="epoch", y="servers")
