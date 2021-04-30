@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import sys
@@ -7,10 +8,10 @@ import mxnet as mx
 import mxnet.autograd as ag
 import mxnet.metric
 import mxnet.ndarray as F
+from cloudStorage import download_simple, upload_simple
 from mxnet import gluon
 from mxnet.gluon import nn
-
-from cloudStorage import download_simple, upload_simple
+import timeit
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
@@ -94,6 +95,8 @@ def get_mnist_iterator_container(batch_size, input_shape, num_parts=1, part_inde
 
 
 def start_lenet():
+    start = timeit.default_timer()
+
     kv = mxnet.kv.create('dist')
     mx.random.seed(42)
     batch_size = 100
@@ -110,11 +113,14 @@ def start_lenet():
     metric = mx.metric.Accuracy()
     softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
     epoch = 1
+    testData = TestData()
 
     # WORKS DISTRIBUTED x2 workers UP until this point!
     # Which means it is the training that freezes it...
 
-    loss, accuracy = train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer)
+    loss, accuracy, epochs = train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer)
+
+    testData.epochs = epochs
 
     save_model_to_gcloud(net)
     print("printing works!")
@@ -122,6 +128,11 @@ def start_lenet():
     loss = re.search('\[(.*)\]', str(loss)).group(1)
     print(
         "regexpresultstart{\"loss\":" + loss + ", \"accuracy\":" + str(accuracy) + ", \"worker_id\":0}regexpresultend")
+    stop = timeit.default_timer()
+
+    testData.time = stop - start
+
+    json.dumps(testData.__dict__)
 
 
 def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer):
@@ -130,6 +141,7 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
     target_loss = 0.83
     current_loss = 1
     concurrent_count = 0
+    epochs = 0
     while concurrent_count < 3:
         # Reset the train data iterator.
         train_data.reset()
@@ -171,6 +183,7 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
                 concurrent_count += 1
             else:
                 concurrent_count = 0
+            epochs += 1
 
 
             # if os.environ["DMLC_NUM_WORKER"] == "2":
@@ -187,7 +200,7 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
         # Reset evaluation result to initial state.
         metric.reset()
     loss = loss.mean()
-    return loss, accuracy
+    return loss, accuracy, epochs
 
 
 def evaluate(ctx, net, val_data):
@@ -213,3 +226,14 @@ def evaluate(ctx, net, val_data):
 
 
 if __name__ == '__main__': main()
+
+
+class TestData:
+
+    def __init__(self) -> None:
+        self.id = "baseline"
+        self.epochs = 0
+        self.time = 0.0
+
+
+
