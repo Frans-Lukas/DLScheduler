@@ -70,3 +70,9 @@ case $choice in
   echo "invalid selection"
   ;;
 esac
+
+
+#TODO:
+# 1. Run full epochs without serverless restarts as baseline comparison
+# 2. Run long-ass DL model with some of the tests
+# 3. Run static with 3w and 3s
