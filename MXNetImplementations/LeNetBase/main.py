@@ -51,8 +51,7 @@ class TestData:
         self.id = "baseline"
         self.epochs = 0
         self.time = 0.0
-
-
+        self.lossHistory = []
 
 
 def save_model_to_gcloud(net: Net):
@@ -128,8 +127,10 @@ def start_lenet():
     # WORKS DISTRIBUTED x2 workers UP until this point!
     # Which means it is the training that freezes it...
 
-    loss, accuracy, epochs = train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, trainer)
+    loss, accuracy, epochs, lossHistory = train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data,
+                                                trainer)
 
+    testData.lossHistory = epochs
     testData.epochs = epochs
 
     print("printing works!")
@@ -152,6 +153,7 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
     current_loss = 1
     concurrent_count = 0
     epochs = 0
+    lossHistory = []
     while concurrent_count < 3:
         # Reset the train data iterator.
         train_data.reset()
@@ -189,20 +191,20 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
         loss_tmp = loss.mean()
         loss_tmp = re.search('\[(.*)\]', str(loss_tmp)).group(1)
         current_loss = float(loss_tmp)
+        lossHistory.append(current_loss)
         if current_loss < target_loss:
             concurrent_count += 1
         else:
             concurrent_count = 0
         epochs += 1
 
-
-            # if os.environ["DMLC_NUM_WORKER"] == "2":
-            #     # print("regexpresultstart{\"loss\":0.9, \"accuracy\":0.9, \"worker_id\":0}regexpresultend")
-            #     print("batch, then train_data:")
-            #     print(batch)
-            #     print(train_data)
-            #     return [0.99, 0.99], 0.99
-            # DID NOT MAKE IT HERE, WHICH MEANS SOMETHING ABOVE FREEZES WITH TWO WORKERS
+        # if os.environ["DMLC_NUM_WORKER"] == "2":
+        #     # print("regexpresultstart{\"loss\":0.9, \"accuracy\":0.9, \"worker_id\":0}regexpresultend")
+        #     print("batch, then train_data:")
+        #     print(batch)
+        #     print(train_data)
+        #     return [0.99, 0.99], 0.99
+        # DID NOT MAKE IT HERE, WHICH MEANS SOMETHING ABOVE FREEZES WITH TWO WORKERS
         # Gets the evaluation result.
         name, accuracy = metric.get()
         # print('[Epoch %d] training: %s' % (epoch, metric_str(name, accuracy)))
@@ -210,7 +212,7 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
         # Reset evaluation result to initial state.
         metric.reset()
     loss = loss.mean()
-    return loss, accuracy, epochs
+    return loss, accuracy, epochs, lossHistory
 
 
 def evaluate(ctx, net, val_data):
@@ -236,4 +238,3 @@ def evaluate(ctx, net, val_data):
 
 
 if __name__ == '__main__': main()
-
