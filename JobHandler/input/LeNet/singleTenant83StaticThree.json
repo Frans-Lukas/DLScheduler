@@ -5,6 +5,6 @@
     "dataSetSize": 100,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
     "scriptPath": "/DLScheduler/MXNetImplementations/LeNet/main.py",
-    "testingErrorsPath": "input/staticWTwoErrorFile.json"
+    "testingErrorsPath": "input/errorFiles/staticWSThreeErrorFile.json"
   }
 ]
