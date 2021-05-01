@@ -16,7 +16,8 @@
 ./test_runner.sh 12 1
 ./test_runner.sh 13 1
 ./test_runner.sh 14 1
-
+./test_runner.sh 15 1 #TODO has not been run yet
+./test_runner.sh 16 1 #TODO has not been run yet
 
 
 #TODO uncomment these to run the Cifar10 tests
@@ -34,3 +35,5 @@
 #./test_runner.sh 12 2
 #./test_runner.sh 13 2
 #./test_runner.sh 14 2
+#./test_runner.sh 15 2
+#./test_runner.sh 16 2
