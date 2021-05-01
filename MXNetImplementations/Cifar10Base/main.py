@@ -258,6 +258,8 @@ def main():
     target_loss = 0.5
     concurrent_count = 0
     while concurrent_count < 3:
+
+        print("starting epoch: ", epochs)
         # Iterate through batches and run training using multiple GPUs
         batch_num = 1
         for batch in train_data:
