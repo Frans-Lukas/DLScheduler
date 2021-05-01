@@ -150,7 +150,6 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
     loss = any
     accuracy = any
     target_loss = 0.85
-    current_loss = 1
     concurrent_count = 0
     epochs = 0
     lossHistory = []
