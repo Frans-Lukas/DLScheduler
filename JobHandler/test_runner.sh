@@ -15,8 +15,8 @@ echo "11. Default scheduler single tenant 2 worker 1 server"
 echo "12. Default scheduler multi tenant 2 worker 1 server"
 echo "13. Default scheduler single tenant 3 worker 1 server"
 echo "14. Default scheduler multi tenant 3 worker 1 server"
-echo "13. Default scheduler single tenant 1 worker 2 server"
-echo "14. Default scheduler multi tenant 1 worker 2 server"
+echo "15. Default scheduler single tenant 1 worker 2 server"
+echo "16. Default scheduler multi tenant 1 worker 2 server"
 echo ""
 
 
