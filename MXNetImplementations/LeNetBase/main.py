@@ -196,6 +196,7 @@ def train(ctx, epoch, metric, net, softmax_cross_entropy_loss, train_data, train
         else:
             concurrent_count = 0
         epochs += 1
+        print("Done with one epcoh, loss:", loss_tmp)
 
         # if os.environ["DMLC_NUM_WORKER"] == "2":
         #     # print("regexpresultstart{\"loss\":0.9, \"accuracy\":0.9, \"worker_id\":0}regexpresultend")

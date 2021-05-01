@@ -30,4 +30,4 @@ spec:
 ### Debug a nuctl function
 Sometimes it is necessary to enter the pod in which the function is deployed for debugging purposes. To create a usable shell inside a pod simply call:
 1. List pods to get $POD_NAME with `kubectl get pod -n nuclio`.
-2. `kubectl exec --stdin --tty $POD_NAME -n nuclio -- /bin/bash`.
+2. `kubectl exec --stdin --tty $POD_NAME -n nuclio -- /bin/bash`
