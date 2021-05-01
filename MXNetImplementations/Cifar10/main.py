@@ -26,42 +26,17 @@ import random
 import re
 
 import mxnet as mx
-import mxnet.ndarray as F
 import numpy as np
 from mxnet import autograd, gluon, kv, nd
-from mxnet.gluon import nn
 from mxnet.gluon.model_zoo import vision
+from mxnet.gluon.model_zoo.vision import ResNetV1
 
 from cloudStorage import download_simple, upload_simple
 
 MODEL_WEIGHTS_PATH = "/tmp/model_params.h5"
 
 
-class Net(gluon.Block):
-    def __init__(self, **kwargs):
-        super(Net, self).__init__(**kwargs)
-        with self.name_scope():
-            # layers created in name_scope will inherit name space
-            # from parent layer.
-            self.conv1 = nn.Conv2D(20, kernel_size=(5, 5))
-            self.pool1 = nn.MaxPool2D(pool_size=(2, 2), strides=(2, 2))
-            self.conv2 = nn.Conv2D(50, kernel_size=(5, 5))
-            self.pool2 = nn.MaxPool2D(pool_size=(2, 2), strides=(2, 2))
-            self.fc1 = nn.Dense(500)
-            self.fc2 = nn.Dense(10)
-
-    def forward(self, x):
-        x = self.pool1(F.tanh(self.conv1(x)))
-        x = self.pool2(F.tanh(self.conv2(x)))
-        # 0 means copy over size from corresponding dimension.
-        # -1 means infer size from the rest of dimensions.
-        x = x.reshape((0, -1))
-        x = F.tanh(self.fc1(x))
-        x = F.tanh(self.fc2(x))
-        return x
-
-
-def save_model_to_gcloud(net: Net):
+def save_model_to_gcloud(net: ResNetV1):
     net.save_params(MODEL_WEIGHTS_PATH)
     name = get_weights_file_name()
     if os.path.exists(MODEL_WEIGHTS_PATH):
@@ -80,7 +55,7 @@ def get_weights_file_name():
     return file_name
 
 
-def load_model(net: Net):
+def load_model(net: ResNetV1):
     load_model_from_gcloud()
     if os.path.isfile(MODEL_WEIGHTS_PATH):
         net.load_params(MODEL_WEIGHTS_PATH)
@@ -89,7 +64,7 @@ def load_model(net: Net):
 
 def main():
     # Create a distributed key-value store
-    store = kv.create('local')
+    store = kv.create('dist')
 
     # Clasify the images into one of the 10 digits
     num_outputs = 10
@@ -149,9 +124,8 @@ def main():
     else:
         num_parts = int(num_parts)
     # Load the training data
-    train_data = gluon.data.DataLoader(
-        gluon.data.vision.CIFAR10(train=True, root="opt/nuclio/data").transform(transform), batch_size,
-        sampler=SplitSampler(2500, num_parts, store.rank))
+    train_data = gluon.data.DataLoader(gluon.data.vision.CIFAR10(train=True, root="opt/nuclio/data").transform(transform), batch_size,
+                                       sampler=SplitSampler(2500, num_parts, store.rank))
 
     # Use ResNet from model zoo
     net = vision.resnet18_v1()
@@ -159,6 +133,8 @@ def main():
     # Initialize the parameters with Xavier initializer
     net.collect_params().initialize(mx.init.Xavier(), ctx=ctx)
     load_model(net)
+
+    # SoftmaxCrossEntropy is the most common choice of loss function for multiclass classification
 
     # Use Adam optimizer. Ask trainer to use the distributor kv store.
     trainer = gluon.Trainer(net.collect_params(), 'adam', {'learning_rate': .001}, kvstore=store)
@@ -215,6 +191,19 @@ def main():
 
     # Train a batch using multiple GPUs
     def train_batch(batch_list, context, network, gluon_trainer):
+        """ Training with multiple GPUs
+
+        Parameters
+        ----------
+        batch_list: List
+          list of dataset
+        context: List
+          a list of all GPUs to be used for training
+        network:
+          ResNet
+        gluon_trainer:
+          rain module of gluon
+        """
         # Split and load data into multiple GPUs
         data = batch_list[0]
         data = gluon.utils.split_and_load(data, context)
