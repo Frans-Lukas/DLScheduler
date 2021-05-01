@@ -1,7 +1,7 @@
 [
   {
     "budget": 10000000,
-    "targetLoss": 0.83,
+    "targetLoss": 0.5,
     "dataSetSize": 100,
     "imageUrl": "docker.io/franslukas/processor-mxnet_sh:latest",
     "scriptPath": "/DLScheduler/MXNetImplementations/Cifar10/main.py",
