@@ -279,6 +279,7 @@ def main():
         else:
             concurrent_count = 0
         epochs += 1
+        print("current loss: ", loss_val)
 
     testData.lossHistory = loss_history
     testData.epochs = epochs
