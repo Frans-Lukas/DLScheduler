@@ -89,7 +89,7 @@ def load_model(net: Net):
 
 def main():
     # Create a distributed key-value store
-    store = kv.create('dist')
+    store = kv.create('local')
 
     # Clasify the images into one of the 10 digits
     num_outputs = 10
@@ -150,8 +150,8 @@ def main():
         num_parts = int(num_parts)
     # Load the training data
     train_data = gluon.data.DataLoader(
-        gluon.data.vision.CIFAR10(train=True, root="/opt/nuclio/data").transform(transform), batch_size,
-        sampler=SplitSampler(50000, num_parts, store.rank))
+        gluon.data.vision.CIFAR10(train=True, root="data").transform(transform), batch_size,
+        sampler=SplitSampler(250, num_parts, store.rank))
 
     # Use ResNet from model zoo
     net = vision.resnet18_v1()
