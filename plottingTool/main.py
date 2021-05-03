@@ -55,31 +55,55 @@ if __name__ == '__main__':
                         else:
                             color = "LightSeaGreen"
 
+                        symbol = ""
+                        if i == 0:
+                            symbol = "circle"
+                        else:
+                            symbol = "x"
+
+                        dash = ""
+                        if i == 0:
+                            dash = "solid"
+                        else:
+                            dash = "dash"
+
+                        name = ""
+                        if i == 0:
+                            name = "job1"
+                        else:
+                            name = "job2"
+
                         sca = px.scatter(x=var.get('epochs'), y=var.get('loss'), trendline="lowess")
-                        sca.update_traces(line=dict(color=color))
-                        sca.update_traces(marker=dict(color=color))
+                        sca.update_traces(line=dict(color=color, dash=dash))
+                        sca.update_traces(marker=dict(color=color, symbol=symbol))
+                        sca.update_traces(name=name, showlegend=True)
                         loss.add_trace(sca.data[0])
                         loss.add_trace(sca.data[1])
 
                         sca = px.scatter(x=var.get('epochs'), y=var.get('time'), trendline="lowess")
-                        sca.update_traces(line=dict(color=color))
-                        sca.update_traces(marker=dict(color=color))
+                        sca.update_traces(line=dict(color=color, dash=dash))
+                        sca.update_traces(marker=dict(color=color, symbol=symbol))
+                        sca.update_traces(name=name, showlegend=True)
                         time.add_trace(sca.data[0])
                         time.add_trace(sca.data[1])
 
                         sca = px.scatter(x=var.get('epochs'), y=var.get('workers'), trendline="lowess")
-                        sca.update_traces(line=dict(color=color))
-                        sca.update_traces(marker=dict(color=color))
+                        sca.update_traces(line=dict(color=color, dash=dash))
+                        sca.update_traces(marker=dict(color=color, symbol=symbol))
+                        sca.update_traces(name=name, showlegend=True)
                         workers.add_trace(sca.data[0])
                         workers.add_trace(sca.data[1])
 
                         sca = px.scatter(x=var.get('epochs'), y=var.get('servers'), trendline="lowess")
-                        sca.update_traces(line=dict(color=color))
-                        sca.update_traces(marker=dict(color=color))
+                        sca.update_traces(line=dict(color=color, dash=dash))
+                        sca.update_traces(marker=dict(color=color, symbol=symbol))
+                        sca.update_traces(name=name, showlegend=True)
                         servers.add_trace(sca.data[0])
                         servers.add_trace(sca.data[1])
 
                         i += 1
+
+                    loss.update_layout(title='Loss values per epoch', xaxis_title='Epoch', yaxis_title='Loss')
 
                     loss.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                     time.write_image('results/time' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
