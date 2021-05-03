@@ -39,5 +39,12 @@
 #./test_runner.sh 16 2
 ./test_runner.sh 17 1
 ./test_runner.sh 18 1
+./test_runner.sh 19 1
+./test_runner.sh 20 1
+./test_runner.sh 21 1
+
 ./test_runner.sh 17 2
 ./test_runner.sh 18 2
+./test_runner.sh 19 2
+./test_runner.sh 20 2
+./test_runner.sh 21 2
