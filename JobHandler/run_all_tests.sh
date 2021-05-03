@@ -50,3 +50,8 @@
 ./test_runner.sh 19 2
 ./test_runner.sh 20 2
 ./test_runner.sh 21 2
+
+./test_runner.sh 22 1
+./test_runner.sh 23 1
+./test_runner.sh 22 2
+./test_runner.sh 23 2
