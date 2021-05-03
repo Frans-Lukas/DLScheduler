@@ -9,11 +9,22 @@ import sys
 import kaleido
 import statsmodels
 import numpy as np
+from pathlib import Path
 
 if __name__ == '__main__':
     inputFolderPath = "../JobHandler/output"
 
     for directory in glob.glob(os.path.join(inputFolderPath, "*")):
+
+        Path("results/loss/LeNet").mkdir(parents=True, exist_ok=True)
+        Path("results/loss/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path("results/time/LeNet").mkdir(parents=True, exist_ok=True)
+        Path("results/time/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path("results/workers/LeNet").mkdir(parents=True, exist_ok=True)
+        Path("results/workers/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path("results/servers/LeNet").mkdir(parents=True, exist_ok=True)
+        Path("results/servers/Cifar10").mkdir(parents=True, exist_ok=True)
+
         for filename in glob.glob(os.path.join(directory, '*.txt')):
             with open(os.path.join(os.getcwd(), filename), 'r') as f:
                 if "baseLine" in filename:
