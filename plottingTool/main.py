@@ -3,26 +3,87 @@ import json
 import os
 
 import plotly.express as px
+import plotly.graph_objects as go
+import psutil
 import sys
+import kaleido
+import statsmodels
+import numpy as np
+from pathlib import Path
 
 if __name__ == '__main__':
     inputFolderPath = "../JobHandler/output"
 
     for directory in glob.glob(os.path.join(inputFolderPath, "*")):
+
+        Path("results/loss/LeNet").mkdir(parents=True, exist_ok=True)
+        Path("results/loss/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path("results/time/LeNet").mkdir(parents=True, exist_ok=True)
+        Path("results/time/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path("results/workers/LeNet").mkdir(parents=True, exist_ok=True)
+        Path("results/workers/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path("results/servers/LeNet").mkdir(parents=True, exist_ok=True)
+        Path("results/servers/Cifar10").mkdir(parents=True, exist_ok=True)
+
         for filename in glob.glob(os.path.join(directory, '*.txt')):
             with open(os.path.join(os.getcwd(), filename), 'r') as f:
-                dataUnfiltered = f.read()
-                dataFiltered = dataUnfiltered.replace(" | ", ", ")
-                fileDict = json.loads(dataFiltered)
-                fig = px.line(x=fileDict[0].get('epochs'), y=fileDict[0].get('loss'))
-                fig.write_html('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", ".html"),
-                               auto_open=False, x="epoch", y="loss")
-                fig = px.line(x=fileDict[0].get('epochs'), y=fileDict[0].get('time'))
-                fig.write_html('results/time' + filename.replace(inputFolderPath, "").replace(".txt", ".html"),
-                               auto_open=False, x="epoch", y="time")
-                fig = px.line(x=fileDict[0].get('epochs'), y=fileDict[0].get('workers'))
-                fig.write_html('results/workers' + filename.replace(inputFolderPath, "").replace(".txt", ".html"),
-                               auto_open=False, x="epoch", y="workers")
-                fig = px.line(x=fileDict[0].get('epochs'), y=fileDict[0].get('servers'))
-                fig.write_html('results/servers' + filename.replace(inputFolderPath, "").replace(".txt", ".html"),
-                               auto_open=False, x="epoch", y="servers")
+                if "baseLine" in filename:
+                    dataUnfiltered = f.read()
+                    dataFiltered = dataUnfiltered.replace(" | ", ", ")
+                    fileDict = json.loads(dataFiltered)
+
+                    y = fileDict.get('lossHistory')
+
+                    if y is not None:
+                        fig = px.scatter(x=np.linspace(1, len(y), len(y)), y=y, trendline="lowess")
+                        fig.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                else:
+                    dataUnfiltered = f.read()
+                    dataFiltered = dataUnfiltered.replace(" | ", ", ")
+                    fileDict = json.loads(dataFiltered)
+
+                    loss = px.scatter()
+                    time = px.scatter()
+                    workers = px.scatter()
+                    servers = px.scatter()
+
+                    i = 0
+                    for var in fileDict:
+                        color = ""
+                        if i == 0:
+                            color = "RoyalBlue"
+                        else:
+                            color = "LightSeaGreen"
+
+                        sca = px.scatter(x=var.get('epochs'), y=var.get('loss'), trendline="lowess")
+                        sca.update_traces(line=dict(color=color))
+                        sca.update_traces(marker=dict(color=color))
+                        loss.add_trace(sca.data[0])
+                        loss.add_trace(sca.data[1])
+
+                        sca = px.scatter(x=var.get('epochs'), y=var.get('time'), trendline="lowess")
+                        sca.update_traces(line=dict(color=color))
+                        sca.update_traces(marker=dict(color=color))
+                        time.add_trace(sca.data[0])
+                        time.add_trace(sca.data[1])
+
+                        sca = px.scatter(x=var.get('epochs'), y=var.get('workers'), trendline="lowess")
+                        sca.update_traces(line=dict(color=color))
+                        sca.update_traces(marker=dict(color=color))
+                        workers.add_trace(sca.data[0])
+                        workers.add_trace(sca.data[1])
+
+                        sca = px.scatter(x=var.get('epochs'), y=var.get('servers'), trendline="lowess")
+                        sca.update_traces(line=dict(color=color))
+                        sca.update_traces(marker=dict(color=color))
+                        servers.add_trace(sca.data[0])
+                        servers.add_trace(sca.data[1])
+
+                        i += 1
+
+                    loss.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                    time.write_image('results/time' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                    workers.write_image(
+                        'results/workers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                    servers.write_image(
+                        'results/servers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
