@@ -142,6 +142,16 @@ case $choice in
   sudo /etc/kubernetes/sched-manager/enable-default.sh
   sleep 100
   ;;
+
+22)
+  echo "Starting (three) multi tenant static 2w 2s"
+  go run main.go input/$model/threeTenant83StaticTwo.json output/$model/multi_job_three_gang_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
+
+  ;;
+23)
+  echo "Starting (three) multi tenant"
+  go run main.go input/$model/threeTenant83.json output/$model/multi_job_three_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
+  ;;
 *)
   echo "invalid selection"
   ;;
