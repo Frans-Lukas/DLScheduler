@@ -125,11 +125,11 @@ case $choice in
   echo "Starting gang scheduler single tenant static 2w 2s"
   sudo /etc/kubernetes/sched-manager/enable-gang.sh
   sleep 100
-  go run main.go input/$model/singleTenant83.json output/$model/single_job_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/singleTenant83.json output/$model/single_job_gang_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
   ;;
 18)
   echo "Starting gang scheduler multi tenant 2w 2s"
-  go run main.go input/$model/twoTenant83.json output/$model/multi_job_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/twoTenant83.json output/$model/multi_job_gang_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
   sudo /etc/kubernetes/sched-manager/enable-default.sh
   sleep 100
   ;;
