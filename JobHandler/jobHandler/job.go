@@ -130,7 +130,7 @@ func (job *Job) lossReached() bool {
 	currEpoch := -1
 
 	for i := len(*job.History) -1 ; i >= 0; i-- {
-		if validEpochs > 3 {
+		if validEpochs >= 3 {
 			break
 		}
 
