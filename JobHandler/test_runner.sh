@@ -63,15 +63,11 @@ case $choice in
   ;;
 3)
   echo "Starting gang scheduler single tenant"
-  sudo /etc/kubernetes/sched-manager/enable-gang.sh
-  sleep 100
   go run main.go input/$model/singleTenant83.json output/$model/single_job_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
   ;;
 4)
   echo "Starting gang scheduler multi tenant"
   go run main.go input/$model/twoTenant83.json output/$model/multi_job_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
-  sudo /etc/kubernetes/sched-manager/enable-default.sh
-  sleep 100
   ;;
 5)
   echo "Starting default scheduler single tenant static 1w 1s"
@@ -123,8 +119,6 @@ case $choice in
   ;;
 17)
   echo "Starting gang scheduler single tenant static 2w 2s"
-  sudo /etc/kubernetes/sched-manager/enable-gang.sh
-  sleep 100
   go run main.go input/$model/singleTenant83staticTwo.json output/$model/single_job_gang_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
   ;;
 18)
@@ -134,19 +128,14 @@ case $choice in
 20)
   echo "Starting gang scheduler (three) multi tenant static 2w 2s"
   go run main.go input/$model/threeTenant83StaticTwo.json output/$model/multi_job_three_gang_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
-
   ;;
 21)
   echo "Starting gang scheduler (three) multi tenant"
   go run main.go input/$model/threeTenant83.json output/$model/multi_job_three_gang_scheduler_83_tl.txt /etc/kubernetes/admin.conf
-  sudo /etc/kubernetes/sched-manager/enable-default.sh
-  sleep 100
   ;;
-
 22)
   echo "Starting (three) multi tenant static 2w 2s"
   go run main.go input/$model/threeTenant83StaticTwo.json output/$model/multi_job_three_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
-
   ;;
 23)
   echo "Starting (three) multi tenant"
