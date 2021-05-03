@@ -67,11 +67,7 @@ if __name__ == '__main__':
                         else:
                             dash = "dash"
 
-                        name = ""
-                        if i == 0:
-                            name = "job1"
-                        else:
-                            name = "job2"
+                        name = "Job " + str(i + 1)
 
                         sca = px.scatter(x=var.get('epochs'), y=var.get('loss'), trendline="lowess")
                         sca.update_traces(line=dict(color=color, dash=dash))
@@ -80,7 +76,7 @@ if __name__ == '__main__':
                         loss.add_trace(sca.data[0])
                         loss.add_trace(sca.data[1])
 
-                        sca = px.scatter(x=var.get('epochs'), y=var.get('time'), trendline="lowess")
+                        sca = px.scatter(x=var.get('epochs'), y=[1 / i for i in var.get('time')], trendline="lowess")
                         sca.update_traces(line=dict(color=color, dash=dash))
                         sca.update_traces(marker=dict(color=color, symbol=symbol))
                         sca.update_traces(name=name, showlegend=True)
@@ -104,6 +100,9 @@ if __name__ == '__main__':
                         i += 1
 
                     loss.update_layout(title='Loss values per epoch', xaxis_title='Epoch', yaxis_title='Loss')
+                    time.update_layout(title='Epochs/second each epoch', xaxis_title='Epoch', yaxis_title='Epochs/second')
+                    workers.update_layout(title='Active workers per epoch', xaxis_title='Epoch', yaxis_title='Workers')
+                    servers.update_layout(title='Active servers per epoch', xaxis_title='Epoch', yaxis_title='Servers')
 
                     loss.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                     time.write_image('results/time' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
