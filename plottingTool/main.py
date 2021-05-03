@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
                     if y is not None:
                         fig = px.scatter(x=np.linspace(1, len(y), len(y)), y=y, trendline="lowess")
-                        fig.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", ".png"))
+                        fig.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                 else:
                     dataUnfiltered = f.read()
                     dataFiltered = dataUnfiltered.replace(" | ", ", ")
@@ -70,9 +70,9 @@ if __name__ == '__main__':
 
                         i += 1
 
-                    loss.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", ".png"))
-                    time.write_image('results/time' + filename.replace(inputFolderPath, "").replace(".txt", ".png"))
+                    loss.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                    time.write_image('results/time' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                     workers.write_image(
-                        'results/workers' + filename.replace(inputFolderPath, "").replace(".txt", ".png"))
+                        'results/workers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                     servers.write_image(
-                        'results/servers' + filename.replace(inputFolderPath, "").replace(".txt", ".png"))
+                        'results/servers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
