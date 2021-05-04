@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # b2_full = None
     for model in models:
         for dataCouple in dataCouples:
-
+            print(dataCouple)
             result = pd.DataFrame(columns=["totalTime", "model", "testName", "schedType", "id"])
             for i, fileName in enumerate(dataCouple):
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
             inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[k])
             ax = plt.Subplot(fig, inner[0])
             # print(result.head())
-            ax.title.set_text(str(fileNameToId[dataCouple[0]]) + " vs. " + str(fileNameToId[dataCouple[1]]))
+            ax.title.set_text(model + ": " + str(fileNameToId[dataCouple[0]]) + " vs. " + str(fileNameToId[dataCouple[1]]))
             # ax.set_xlabel("Job id")
             # ax.set_ylabel("Job runtime (s)")
             b_heights = result[result.schedType == "default"]["totalTime"]
@@ -96,7 +96,8 @@ if __name__ == '__main__':
 
             bins = result[result.schedType == "gang"]["id"]
 
-            width = max(max(b_bins) if (len(b_bins) > 0) else 0, max(a_bins) if len(a_bins) > 0 else 0) / (len(a_bins) + len(b_bins))
+            width = max(max(b_bins) if (len(b_bins) > 0) else 0, max(a_bins) if len(a_bins) > 0 else 0) / (
+                        len(a_bins) + len(b_bins))
             # if fileNameToId[dataCouple[0]] == 3 and fileNameToId[dataCouple[1]] == 4:
             #     width = 0.001
 
@@ -112,9 +113,6 @@ if __name__ == '__main__':
                 print(b_heights)
                 print()
                 print()
-                if not threeFourPrinted:
-                    threeFourPrinted = True
-                    continue
 
             if not legendExists:
                 leg = ax.legend([b1, b2], ["gang scheduler", "default scheduler"])
