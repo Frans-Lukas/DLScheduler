@@ -48,6 +48,7 @@ if __name__ == '__main__':
     outer = gridspec.GridSpec(3, 4, wspace=0.5, hspace=0.5)
 
     legendExists = False
+    threeFourPrinted = False
     k = 0
     currIdNum = 1
     fileNameToId = {}
@@ -58,6 +59,7 @@ if __name__ == '__main__':
 
             result = pd.DataFrame(columns=["totalTime", "model", "testName", "schedType", "id"])
             for i, fileName in enumerate(dataCouple):
+
                 if fileName not in fileNameToId:
                     fileNameToId[fileName] = currIdNum
                     currIdNum += 1
@@ -83,7 +85,7 @@ if __name__ == '__main__':
                     print(path + "does not exist")
             inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[k])
             ax = plt.Subplot(fig, inner[0])
-            print(result.head())
+            # print(result.head())
             ax.title.set_text(str(fileNameToId[dataCouple[0]]) + " vs. " + str(fileNameToId[dataCouple[1]]))
             # ax.set_xlabel("Job id")
             # ax.set_ylabel("Job runtime (s)")
@@ -94,15 +96,25 @@ if __name__ == '__main__':
 
             bins = result[result.schedType == "gang"]["id"]
 
-            width = 0.4
-            print("a_bins")
-            print(a_bins)
-            print(a_heights)
+            width = max(max(b_bins) if (len(b_bins) > 0) else 0, max(a_bins) if len(a_bins) > 0 else 0) / (len(a_bins) + len(b_bins))
+            # if fileNameToId[dataCouple[0]] == 3 and fileNameToId[dataCouple[1]] == 4:
+            #     width = 0.001
+
             b1 = ax.bar(a_bins, a_heights, width=width, facecolor='cornflowerblue')
-            print("b_bins")
-            print(b_bins)
-            print(b_heights)
+
             b2 = ax.bar(b_bins, b_heights, width=width, facecolor='seagreen')
+            if fileNameToId[dataCouple[0]] == 3 and fileNameToId[dataCouple[1]] == 4:
+                print("a_bins")
+                print(a_bins)
+                print(a_heights)
+                print("b_bins")
+                print(b_bins)
+                print(b_heights)
+                print()
+                print()
+                if not threeFourPrinted:
+                    threeFourPrinted = True
+                    continue
 
             if not legendExists:
                 leg = ax.legend([b1, b2], ["gang scheduler", "default scheduler"])
@@ -116,14 +128,15 @@ if __name__ == '__main__':
                 bb.y1 += yOffset
                 leg.set_bbox_to_anchor(bb, transform=ax.transAxes)
 
-            print()
-            print()
             k += 1
             fig.add_subplot(ax)
             # if len(b_bins) > 0:
             #     b1_full = b1
             # if len(a_bins) > 0:
             #     b2_full = b2
+
+    for i in fileNameToId:
+        print(str(i) + ": " + str(fileNameToId[i]))
 
     # plt.legend([b1_full, b2_full], ["gang scheduler", "default scheduler"])
     fig.show()
