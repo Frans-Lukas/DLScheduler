@@ -33,6 +33,21 @@ if __name__ == '__main__':
         "multi_job_three_gang_scheduler_83_tl_static_2w_2s.txt",
     ]
 
+    title = [
+        "ID=1, M=R, J=1, C=D",
+        "ID=2, M=R, J=2, C=D",
+        "ID=3, M=R, J=3, C=D",
+        "ID=4, M=R, J=1, C=S",
+        "ID=5, M=R, J=2, C=S",
+        "ID=6, M=R, J=3, C=S",
+        "ID=7, M=L, J=1, C=D",
+        "ID=8, M=L, J=2, C=D",
+        "ID=9, M=L, J=3, C=D",
+        "ID=10, M=L, J=1, C=S",
+        "ID=11, M=L, J=2, C=S",
+        "ID=12 ,M=L, J=3, C=S",
+    ]
+
     dataCouples = [oneJobDynamic, oneJobStatic, twoJobsDynamic, twoJobsStatic, threeJobsDynamic, threeJobsStatic]
     models = ["Cifar10", "LeNet"]
     pd.set_option("display.max_rows", 101)
@@ -86,7 +101,9 @@ if __name__ == '__main__':
             inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[k])
             ax = plt.Subplot(fig, inner[0])
             # print(result.head())
-            ax.title.set_text(model + ": " + str(fileNameToId[dataCouple[0]]) + " vs. " + str(fileNameToId[dataCouple[1]]))
+            ax.title.set_text(title[k])
+
+            # ("RestNet18" if model == "Cifar10" else model) + ": " + str(fileNameToId[dataCouple[0]]) + " vs. " + str(fileNameToId[dataCouple[1]]))
             # ax.set_xlabel("Job id")
             # ax.set_ylabel("Job runtime (s)")
             b_heights = result[result.schedType == "default"]["totalTime"]
@@ -97,7 +114,7 @@ if __name__ == '__main__':
             bins = result[result.schedType == "gang"]["id"]
 
             width = max(max(b_bins) if (len(b_bins) > 0) else 0, max(a_bins) if len(a_bins) > 0 else 0) / (
-                        len(a_bins) + len(b_bins))
+                    len(a_bins) + len(b_bins))
             # if fileNameToId[dataCouple[0]] == 3 and fileNameToId[dataCouple[1]] == 4:
             #     width = 0.001
 
