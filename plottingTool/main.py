@@ -36,6 +36,7 @@ if __name__ == '__main__':
 
                     if y is not None:
                         fig = px.scatter(x=np.linspace(1, len(y), len(y)), y=y, trendline="lowess")
+                        fig.update_layout(title='Loss values per epoch', xaxis_title='Epoch', yaxis_title='Loss')
                         fig.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                 else:
                     dataUnfiltered = f.read()
@@ -52,20 +53,26 @@ if __name__ == '__main__':
                         color = ""
                         if i == 0:
                             color = "RoyalBlue"
-                        else:
+                        elif i == 1:
                             color = "LightSeaGreen"
+                        else:
+                            color = "firebrick"
 
                         symbol = ""
                         if i == 0:
                             symbol = "circle"
-                        else:
+                        elif i == 1:
                             symbol = "x"
+                        else:
+                            symbol = "diamond"
 
                         dash = ""
                         if i == 0:
                             dash = "solid"
-                        else:
+                        elif i == 1:
                             dash = "dash"
+                        else:
+                            dash = "dashdot"
 
                         name = "Job " + str(i + 1)
 
