@@ -36,6 +36,7 @@ if __name__ == '__main__':
 
                     if y is not None:
                         fig = px.scatter(x=np.linspace(1, len(y), len(y)), y=y, trendline="lowess")
+                        fig.update_layout(title='Loss values per epoch', xaxis_title='Epoch', yaxis_title='Loss')
                         fig.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                 else:
                     dataUnfiltered = f.read()
