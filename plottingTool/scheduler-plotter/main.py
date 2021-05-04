@@ -40,12 +40,19 @@ if __name__ == '__main__':
     pd.set_option('display.width', 100000)
     pd.set_option("max_colwidth", 400)
 
-    fig = plt.figure(figsize=(10,8))
+    fig = plt.figure(figsize=(10, 8))
+    fig.suptitle("Deep learning training time comparisons\n with different configurations", fontsize=18)
+    fig.text(0.5, 0.04, 'Job Id (+0.5 skew for default scheduler)', ha='center')
+    fig.text(0.04, 0.5, 'Job runtime (s)', va='center', rotation='vertical')
+    # plt.legend([""])
     outer = gridspec.GridSpec(3, 4, wspace=0.5, hspace=0.5)
 
+    legendExists = False
     k = 0
     currIdNum = 1
     fileNameToId = {}
+    # b1_full = None
+    # b2_full = None
     for model in models:
         for dataCouple in dataCouples:
 
@@ -78,8 +85,8 @@ if __name__ == '__main__':
             ax = plt.Subplot(fig, inner[0])
             print(result.head())
             ax.title.set_text(str(fileNameToId[dataCouple[0]]) + " vs. " + str(fileNameToId[dataCouple[1]]))
-            ax.set_xlabel("Job id")
-            ax.set_ylabel("Job runtime (s)")
+            # ax.set_xlabel("Job id")
+            # ax.set_ylabel("Job runtime (s)")
             b_heights = result[result.schedType == "default"]["totalTime"]
             a_heights = result[result.schedType == "gang"]["totalTime"]
             b_bins = [i + 0.5 for i, _ in enumerate(b_heights)]
@@ -96,12 +103,27 @@ if __name__ == '__main__':
             print(b_bins)
             print(b_heights)
             b2 = ax.bar(b_bins, b_heights, width=width, facecolor='seagreen')
-            # ax.legend([b1, b2], ["gang scheduler", "default scheduler"])
+
+            if not legendExists:
+                leg = ax.legend([b1, b2], ["gang scheduler", "default scheduler"])
+                legendExists = True
+                bb = leg.get_bbox_to_anchor().inverse_transformed(ax.transAxes)
+                xOffset = -0.5
+                yOffset = 0.55
+                bb.x0 += xOffset
+                bb.x1 += xOffset
+                bb.y0 += yOffset
+                bb.y1 += yOffset
+                leg.set_bbox_to_anchor(bb, transform=ax.transAxes)
 
             print()
             print()
             k += 1
             fig.add_subplot(ax)
-            handles, labels = ax.get_legend_handles_labels()
-            fig.legend(handles, labels, loc='upper center')
+            # if len(b_bins) > 0:
+            #     b1_full = b1
+            # if len(a_bins) > 0:
+            #     b2_full = b2
+
+    # plt.legend([b1_full, b2_full], ["gang scheduler", "default scheduler"])
     fig.show()
