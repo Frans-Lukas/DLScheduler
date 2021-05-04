@@ -13,8 +13,8 @@ if __name__ == '__main__':
         "single_job_gang_scheduler_83_tl.txt",
     ]
     oneJobStatic = [
+        "single_job_default_scheduler_83_tl_static_2w_2s.txt",
         "single_job_gang_scheduler_83_tl_static_2w_2s.txt",
-        "single_job_default_scheduler_83_tl_static_2w_2s.txt"
     ]
     twoJobsDynamic = [
         "multi_job_default_scheduler_83_tl.txt",
@@ -91,8 +91,8 @@ if __name__ == '__main__':
             # ax.set_ylabel("Job runtime (s)")
             b_heights = result[result.schedType == "default"]["totalTime"]
             a_heights = result[result.schedType == "gang"]["totalTime"]
-            b_bins = [i + 0.5 for i, _ in enumerate(b_heights)]
-            a_bins = [i for i, _ in enumerate(a_heights)]
+            b_bins = [i for i, _ in enumerate(b_heights)]
+            a_bins = [i + 0.5 for i, _ in enumerate(a_heights)]
 
             bins = result[result.schedType == "gang"]["id"]
 
