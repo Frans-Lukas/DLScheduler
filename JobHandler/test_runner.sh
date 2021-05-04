@@ -119,11 +119,11 @@ case $choice in
   ;;
 17)
   echo "Starting gang scheduler single tenant static 2w 2s"
-  go run main.go input/$model/singleTenant83staticTwo.json output/$model/single_job_gang_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/singleTenant83StaticTwo.json output/$model/single_job_gang_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
   ;;
 18)
   echo "Starting gang scheduler multi tenant 2w 2s"
-  go run main.go input/$model/twoTenant83staticTwo.json output/$model/multi_job_gang_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
+  go run main.go input/$model/twoTenant83StaticTwo.json output/$model/multi_job_gang_scheduler_83_tl_static_2w_2s.txt /etc/kubernetes/admin.conf
   ;;
 20)
   echo "Starting gang scheduler (three) multi tenant static 2w 2s"
