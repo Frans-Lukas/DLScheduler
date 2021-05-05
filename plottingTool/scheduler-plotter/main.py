@@ -35,16 +35,16 @@ if __name__ == '__main__':
 
     title = [
         "ID=1, M=R, J=1, C=D",
-        "ID=2, M=R, J=2, C=D",
-        "ID=3, M=R, J=3, C=D",
-        "ID=4, M=R, J=1, C=S",
-        "ID=5, M=R, J=2, C=S",
+        "ID=2, M=R, J=1, C=S",
+        "ID=3, M=R, J=2, C=D",
+        "ID=4, M=R, J=2, C=S",
+        "ID=5, M=R, J=3, C=D",
         "ID=6, M=R, J=3, C=S",
         "ID=7, M=L, J=1, C=D",
-        "ID=8, M=L, J=2, C=D",
-        "ID=9, M=L, J=3, C=D",
-        "ID=10, M=L, J=1, C=S",
-        "ID=11, M=L, J=2, C=S",
+        "ID=8, M=L, J=1, C=S",
+        "ID=9, M=L, J=2, C=D",
+        "ID=10, M=L, J=2, C=S",
+        "ID=11, M=L, J=3, C=D",
         "ID=12 ,M=L, J=3, C=S",
     ]
 
