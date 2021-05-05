@@ -59,8 +59,14 @@ if __name__ == '__main__':
     fig.suptitle("Distributed deep learning training times\n with different configurations", fontsize=18)
     fig.text(0.5, 0.04, 'Job Id (+0.5 skew for default scheduler)', ha='center')
     fig.text(0.04, 0.5, 'Job runtime (s)', va='center', rotation='vertical')
+
+    fig2 = plt.figure(figsize=(10, 8))
+    fig2.suptitle("Distributed deep learning epoch times\n with different configurations", fontsize=18)
+    fig2.text(0.5, 0.04, 'Epoch #', ha='center')
+    fig2.text(0.04, 0.5, 'Epoch runtime (s)', va='center', rotation='vertical')
     # plt.legend([""])
     outer = gridspec.GridSpec(3, 4, wspace=0.5, hspace=0.5)
+    outer2 = gridspec.GridSpec(3, 4, wspace=0.5, hspace=0.5)
 
     legendExists = False
     threeFourPrinted = False
@@ -73,6 +79,7 @@ if __name__ == '__main__':
         for dataCouple in dataCouples:
             print(dataCouple)
             result = pd.DataFrame(columns=["totalTime", "model", "testName", "schedType", "id"])
+            result_line = pd.DataFrame(columns=["epochs", "time", "model", "testName", "schedType", "id"])
             for i, fileName in enumerate(dataCouple):
 
                 if fileName not in fileNameToId:
@@ -89,19 +96,25 @@ if __name__ == '__main__':
                         schedType = "gang" if "gang" in fileName else "default"
                         schedTypes = [schedType for _ in fileDict]
                         ids = [i + j for j, _ in enumerate(fileDict)]
-                        print(ids)
+                        df_line = pd.DataFrame(fileDict, columns=["epochs", "time"])
+                        print(df_line)
                         df = pd.DataFrame(fileDict, columns=["totalTime"])
                         df["model"] = currentModels
                         df["schedType"] = schedTypes
                         df["testName"] = testName
                         df["id"] = ids
                         result = pd.concat([result, df])
+                        result_line = pd.concat([result_line, df_line])
+
                 except FileNotFoundError:
                     print(path + "does not exist")
             inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[k])
+            inner2 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer2[k])
             ax = plt.Subplot(fig, inner[0])
+            ax2 = plt.Subplot(fig2, inner2[0])
             # print(result.head())
             ax.title.set_text(title[k])
+            ax2.title.set_text(title[k])
 
             # ("RestNet18" if model == "Cifar10" else model) + ": " + str(fileNameToId[dataCouple[0]]) + " vs. " + str(fileNameToId[dataCouple[1]]))
             # ax.set_xlabel("Job id")
@@ -117,34 +130,38 @@ if __name__ == '__main__':
                     len(a_bins) + len(b_bins))
             # if fileNameToId[dataCouple[0]] == 3 and fileNameToId[dataCouple[1]] == 4:
             #     width = 0.001
+            gangSchedTimes = result_line[result.schedType == "gang"]
+            defaultSchedTimes = result_line[result.schedType == "default"]
+
+            b12 = ax2.scatter(gangSchedTimes["epochs"][0], gangSchedTimes["time"][0], c='cornflowerblue')
+            b22 = ax2.scatter(defaultSchedTimes["epochs"][0], defaultSchedTimes["time"][0], c='seagreen')
 
             b1 = ax.bar(a_bins, a_heights, width=width, facecolor='cornflowerblue')
 
             b2 = ax.bar(b_bins, b_heights, width=width, facecolor='seagreen')
-            if fileNameToId[dataCouple[0]] == 3 and fileNameToId[dataCouple[1]] == 4:
-                print("a_bins")
-                print(a_bins)
-                print(a_heights)
-                print("b_bins")
-                print(b_bins)
-                print(b_heights)
-                print()
-                print()
 
             if not legendExists:
                 leg = ax.legend([b1, b2], ["gang scheduler", "default scheduler"])
+                leg2 = ax2.legend([b12, b22], ["gang scheduler", "default scheduler"])
                 legendExists = True
                 bb = leg.get_bbox_to_anchor().inverse_transformed(ax.transAxes)
+                bb2 = leg2.get_bbox_to_anchor().inverse_transformed(ax2.transAxes)
                 xOffset = -0.5
                 yOffset = 0.55
                 bb.x0 += xOffset
                 bb.x1 += xOffset
                 bb.y0 += yOffset
                 bb.y1 += yOffset
+                bb2.x0 += xOffset
+                bb2.x1 += xOffset
+                bb2.y0 += yOffset
+                bb2.y1 += yOffset
                 leg.set_bbox_to_anchor(bb, transform=ax.transAxes)
+                leg2.set_bbox_to_anchor(bb2, transform=ax2.transAxes)
 
             k += 1
             fig.add_subplot(ax)
+            fig2.add_subplot(ax2)
             # if len(b_bins) > 0:
             #     b1_full = b1
             # if len(a_bins) > 0:
@@ -155,3 +172,4 @@ if __name__ == '__main__':
 
     # plt.legend([b1_full, b2_full], ["gang scheduler", "default scheduler"])
     fig.show()
+    fig2.show()
