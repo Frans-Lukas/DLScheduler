@@ -56,7 +56,7 @@ if __name__ == '__main__':
     pd.set_option("max_colwidth", 400)
 
     fig = plt.figure(figsize=(10, 8))
-    fig.suptitle("Deep learning training time comparisons\n with different configurations", fontsize=18)
+    fig.suptitle("Distributed deep learning training times\n with different configurations", fontsize=18)
     fig.text(0.5, 0.04, 'Job Id (+0.5 skew for default scheduler)', ha='center')
     fig.text(0.04, 0.5, 'Job runtime (s)', va='center', rotation='vertical')
     # plt.legend([""])
