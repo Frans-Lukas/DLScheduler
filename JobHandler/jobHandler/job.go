@@ -164,13 +164,18 @@ func (job *Job) CalculateBudgetForEpoch() (float64, error) {
 		return -1, errors.New("CalculateBudgetForEpoch: empty history")
 	}
 
-	epochsTillConvergence := job.CalculateEpochsTillConvergence()
-	fmt.Printf("\tepochs until convergence: %d\n", epochsTillConvergence)
+	if job.testingErrors.GetError("ignoreBudget") == 0 {
+		epochsTillConvergence := job.CalculateEpochsTillConvergence()
+		fmt.Printf("\tepochs until convergence: %d\n", epochsTillConvergence)
 
-	budgetForEpoch := job.budgetForNextEpoch(epochsTillConvergence)
-	fmt.Printf("\tbudgetForEpoch: %f\n", budgetForEpoch)
-
-	return budgetForEpoch, nil
+		budgetForEpoch := job.budgetForNextEpoch(epochsTillConvergence)
+		fmt.Printf("\tbudgetForEpoch: %f\n", budgetForEpoch)
+		return budgetForEpoch, nil
+	} else {
+		println("ignoreBudget set")
+		fmt.Printf("\tbudgetForEpoch: %f\n", job.Budget)
+		return job.Budget, nil
+	}
 }
 
 func (job *Job) FunctionsHaveFinished() bool {
@@ -298,13 +303,17 @@ func (job *Job) MarginalUtilityCheck(numWorkers uint, numServers uint, oldWorker
 		job.UpdateCostFunc()
 	}
 
-	cost, err := helperFunctions.Python3DPolynomialEstimateH(float64(numWorkers), float64(numServers), *job.CostFunc)
-	helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck: ")
-	cost = job.testingErrors.ApplyError(cost, "costEstimation")
+	var err error
 
-	if cost > budget {
-		println("\tERROR: cost ", cost, " would exceed budget ", budget)
-		return -1
+	if job.testingErrors.GetError("ignoreBudget") == 0 {
+		cost, err := helperFunctions.Python3DPolynomialEstimateH(float64(numWorkers), float64(numServers), *job.CostFunc)
+		helperFunctions.FatalErrCheck(err, "MarginalUtilityCheck: ")
+		cost = job.testingErrors.ApplyError(cost, "costEstimation")
+
+		if cost > budget {
+			println("\tERROR: cost ", cost, " would exceed budget ", budget)
+			return -1
+		}
 	}
 
 	oldStepsPerSec := -1.0
