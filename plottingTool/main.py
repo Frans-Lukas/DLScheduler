@@ -3,6 +3,7 @@ import json
 import os
 
 import plotly.express as px
+from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import psutil
 import sys
@@ -15,6 +16,7 @@ if __name__ == '__main__':
     inputFolderPath = "../JobHandler/output"
 
     for directory in glob.glob(os.path.join(inputFolderPath, "*")):
+        plots = []
 
         Path("results/loss/LeNet").mkdir(parents=True, exist_ok=True)
         Path("results/loss/Cifar10").mkdir(parents=True, exist_ok=True)
@@ -37,7 +39,8 @@ if __name__ == '__main__':
                     if y is not None:
                         fig = px.scatter(x=np.linspace(1, len(y), len(y)), y=y, trendline="lowess")
                         fig.update_layout(title='Loss values per epoch', xaxis_title='Epoch', yaxis_title='Loss')
-                        fig.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                        fig.write_image(
+                            'results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                 else:
                     dataUnfiltered = f.read()
                     dataFiltered = dataUnfiltered.replace(" | ", ", ")
@@ -107,7 +110,8 @@ if __name__ == '__main__':
                         i += 1
 
                     loss.update_layout(title='Loss values per epoch', xaxis_title='Epoch', yaxis_title='Loss')
-                    time.update_layout(title='Epochs/second each epoch', xaxis_title='Epoch', yaxis_title='Epochs/second')
+                    time.update_layout(title='Epochs/second each epoch', xaxis_title='Epoch',
+                                       yaxis_title='Epochs/second')
                     workers.update_layout(title='Active workers per epoch', xaxis_title='Epoch', yaxis_title='Workers')
                     servers.update_layout(title='Active servers per epoch', xaxis_title='Epoch', yaxis_title='Servers')
 
@@ -117,3 +121,203 @@ if __name__ == '__main__':
                         'results/workers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                     servers.write_image(
                         'results/servers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+
+                    plots.append((filename, loss, time, workers, servers))
+
+        singleLoss = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
+        multiLoss = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
+        multiLossThree = make_subplots(rows=2, cols=1, subplot_titles=("Default", "Static 2W 2S"))
+        singleTime = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
+        multiTime = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
+        multiTimeThree = make_subplots(rows=2, cols=1, subplot_titles=("Default", "Static 2W 2S"))
+        singleWorkers = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
+        multiWorkers = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
+        multiWorkersThree = make_subplots(rows=2, cols=1, subplot_titles=("Default", "Static 2W 2S"))
+        singleServers = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
+        multiServers = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
+        multiServersThree = make_subplots(rows=2, cols=1, subplot_titles=("Default", "Static 2W 2S"))
+
+        defaultWorkersServersLeNet = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Single job workers", "Single job servers", "Two jobs workers", "Two jobs servers", "Three jobs workers",
+            "Three jobs servers"))
+        defaultWorkersServersResNet = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Single job workers", "Single job servers", "Two jobs workers", "Two jobs servers", "Three jobs workers",
+            "Three jobs servers"))
+
+        for plot in plots:
+            if "three" in plot[0] and "gang" not in plot[0]:
+                currLossFig = multiLossThree
+                currTimeFig = multiTimeThree
+                currWorkersFig = multiWorkersThree
+                currServersFig = multiServersThree
+                workerServerRow = 3
+            elif "single" in plot[0] and "gang" not in plot[0]:
+                currLossFig = singleLoss
+                currTimeFig = singleTime
+                currWorkersFig = singleWorkers
+                currServersFig = singleServers
+                workerServerRow = 1
+            elif "multi" in plot[0] and "gang" not in plot[0]:
+                currLossFig = multiLoss
+                currTimeFig = multiTime
+                currWorkersFig = multiWorkers
+                currServersFig = multiServers
+                workerServerRow = 2
+            else:
+                continue
+
+            if "three" in plot[0] and "static" not in plot[0]:
+                row = 1
+                col = 1
+            elif "three" in plot[0] and "static" in plot[0]:
+                row = 2
+                col = 1
+            elif "1w_1s" in plot[0]:
+                row = 1
+                col = 2
+            elif "1w_2s" in plot[0]:
+                row = 2
+                col = 1
+            elif "2w_1s" in plot[0]:
+                row = 2
+                col = 2
+            elif "2w_2s" in plot[0]:
+                row = 3
+                col = 1
+            else:
+                row = 1
+                col = 1
+
+            if row != 1 or col != 1:
+                plot[1].update_traces(showlegend=False)
+                plot[2].update_traces(showlegend=False)
+                plot[3].update_traces(showlegend=False)
+                plot[4].update_traces(showlegend=False)
+
+            if row == 1 and col == 1:
+                plot[3].update_traces(showlegend=False)
+                if workerServerRow != 3:
+                    plot[4].update_traces(showlegend=False)
+                if "Cifar10" in directory:
+                    for trace in plot[3].data:
+                        defaultWorkersServersResNet.add_trace(trace, row=workerServerRow, col=1)
+                    for trace in plot[4].data:
+                        defaultWorkersServersResNet.add_trace(trace, row=workerServerRow, col=2)
+                if "LeNet" in directory:
+                    for trace in plot[3].data:
+                        defaultWorkersServersLeNet.add_trace(trace, row=workerServerRow, col=1)
+                    for trace in plot[4].data:
+                        defaultWorkersServersLeNet.add_trace(trace, row=workerServerRow, col=2)
+                plot[3].update_traces(showlegend=True)
+                plot[4].update_traces(showlegend=True)
+
+            for trace in plot[1].data:
+                currLossFig.add_trace(trace, row=row, col=col)
+
+            for trace in plot[2].data:
+                currTimeFig.add_trace(trace, row=row, col=col)
+
+            for trace in plot[3].data:
+                currWorkersFig.add_trace(trace, row=row, col=col)
+
+            for trace in plot[4].data:
+                currServersFig.add_trace(trace, row=row, col=col)
+
+        if directory.replace(inputFolderPath + "/", "") == "Cifar10":
+            model = "ResNet18"
+        else:
+            model = "LeNet"
+
+        singleTime.update_layout(title_text="Epochs/Second for a single " + model + " job", height=700, width=900)
+        singleTime.update_xaxes(title_text="Epoch")
+        singleTime.update_yaxes(title_text="Epochs/Second")
+
+        multiTime.update_layout(title_text="Epochs/Second for two " + model + " jobs", height=700, width=900)
+        multiTime.update_xaxes(title_text="Epoch")
+        multiTime.update_yaxes(title_text="Epochs/Second")
+
+        multiTimeThree.update_layout(title_text="Epochs/Second for three " + model + " jobs", height=700, width=900)
+        multiTimeThree.update_xaxes(title_text="Epoch")
+        multiTimeThree.update_yaxes(title_text="Epochs/Second")
+
+        singleLoss.update_layout(title_text="Loss for a single " + model + " job", height=700, width=900)
+        singleLoss.update_xaxes(title_text="Epoch")
+        singleLoss.update_yaxes(title_text="Loss")
+
+        multiLoss.update_layout(title_text="Loss for two " + model + " jobs", height=700, width=900)
+        multiLoss.update_xaxes(title_text="Epoch")
+        multiLoss.update_yaxes(title_text="Loss")
+
+        multiLossThree.update_layout(title_text="Loss for three " + model + " jobs", height=700, width=900)
+        multiLossThree.update_xaxes(title_text="Epoch")
+        multiLossThree.update_yaxes(title_text="Loss")
+
+        singleServers.update_layout(title_text="Servers used for a single " + model + " job", height=700, width=900)
+        singleServers.update_xaxes(title_text="Epoch")
+        singleServers.update_yaxes(title_text="Servers")
+
+        multiServers.update_layout(title_text="Servers used for two " + model + " jobs", height=700, width=900)
+        multiServers.update_xaxes(title_text="Epoch")
+        multiServers.update_yaxes(title_text="Servers")
+
+        multiServersThree.update_layout(title_text="Servers used for three " + model + " jobs", height=700, width=900)
+        multiServersThree.update_xaxes(title_text="Epoch")
+        multiServersThree.update_yaxes(title_text="Servers")
+
+        singleWorkers.update_layout(title_text="Workers used for a single " + model + " job", height=700, width=900)
+        singleWorkers.update_xaxes(title_text="Epoch")
+        singleWorkers.update_yaxes(title_text="Workers")
+
+        multiWorkers.update_layout(title_text="Workers used for two " + model + " jobs", height=700, width=900)
+        multiWorkers.update_xaxes(title_text="Epoch")
+        multiWorkers.update_yaxes(title_text="Workers")
+
+        multiWorkersThree.update_layout(title_text="Workers used for three " + model + " jobs", height=700, width=900)
+        multiWorkersThree.update_xaxes(title_text="Epoch")
+        multiWorkersThree.update_yaxes(title_text="Workers")
+
+        defaultWorkersServersLeNet.update_layout(title_text="Workers and servers used for default LeNet jobs",
+                                                 height=700, width=900)
+        defaultWorkersServersLeNet.update_xaxes(title_text="Epoch")
+        defaultWorkersServersLeNet.update_yaxes(title_text="Workers", col=1)
+        defaultWorkersServersLeNet.update_yaxes(title_text="Servers", col=2)
+
+        defaultWorkersServersResNet.update_layout(title_text="Workers and servers used for default ResNet18 jobs",
+                                                  height=700, width=900)
+        defaultWorkersServersResNet.update_xaxes(title_text="Epoch")
+        defaultWorkersServersResNet.update_yaxes(title_text="Workers", col=1)
+        defaultWorkersServersResNet.update_yaxes(title_text="Servers", col=2)
+
+        singleLoss.write_image('results/loss' + directory.replace(inputFolderPath, "") + "/singleLossCombined.png")
+        multiLoss.write_image('results/loss' + directory.replace(inputFolderPath, "") + "/multiLossCombined.png")
+        multiLossThree.write_image(
+            'results/loss' + directory.replace(inputFolderPath, "") + "/multiThreeLossCombined.png")
+        singleTime.write_image('results/time' + directory.replace(inputFolderPath, "") + "/singleTimeCombined.png")
+        multiTime.write_image('results/time' + directory.replace(inputFolderPath, "") + "/multiTimeCombined.png")
+        multiTimeThree.write_image(
+            'results/time' + directory.replace(inputFolderPath, "") + "/multiTimeThreeCombined.png")
+        singleWorkers.write_image(
+            'results/workers' + directory.replace(inputFolderPath, "") + "/singleWorkersCombined.png")
+        multiWorkers.write_image(
+            'results/workers' + directory.replace(inputFolderPath, "") + "/multiWorkersCombined.png")
+        multiWorkersThree.write_image(
+            'results/workers' + directory.replace(inputFolderPath, "") + "/multiWorkersThreeCombined.png")
+        singleServers.write_image(
+            'results/servers' + directory.replace(inputFolderPath, "") + "/singleServersCombined.png")
+        multiServers.write_image(
+            'results/servers' + directory.replace(inputFolderPath, "") + "/multiServersCombined.png")
+        multiServersThree.write_image(
+            'results/servers' + directory.replace(inputFolderPath, "") + "/multiServersThreeCombined.png")
+
+        if len(defaultWorkersServersResNet.data) != 0:
+            defaultWorkersServersResNet.write_image("results/defaultWorkersServersResNet.png")
+        if len(defaultWorkersServersLeNet.data) != 0:
+            defaultWorkersServersLeNet.write_image("results/defaultWorkersServersLeNet.png")
