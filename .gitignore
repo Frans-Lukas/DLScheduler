@@ -12,6 +12,7 @@
 *html
 *text.txt
 .nfs*
+plottingTool/scheduler-plotter/results*
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
