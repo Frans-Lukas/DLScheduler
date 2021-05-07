@@ -2,8 +2,6 @@
 
 #TODO remember that the commented out tests need to be run again
 
-
-
 #sudo /etc/kubernetes/sched-manager/enable-gang.sh
 #sleep 100
 #./test_runner.sh 2 1
@@ -14,9 +12,8 @@
 #sleep 100
 #./test_runner.sh 6 1
 
-
-#sudo /etc/kubernetes/sched-manager/enable-gang.sh
-#sleep 100
+sudo /etc/kubernetes/sched-manager/enable-gang.sh
+sleep 100
 ./test_runner.sh 4 1
 ./test_runner.sh 21 1
 ./test_runner.sh 3 1
@@ -74,6 +71,5 @@
 #./test_runner.sh 16 2
 #./test_runner.sh 22 2
 #./test_runner.sh 23 2
-
 
 #TODO uncomment these to run the Cifar10 tests
