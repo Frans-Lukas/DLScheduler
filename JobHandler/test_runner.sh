@@ -20,7 +20,7 @@ echo "16. Default scheduler multi tenant 1 worker 2 server"
 echo ""
 
 
-if [[ $# -eq 2 ]]; then
+if [[ $# -ge 2 ]]; then
   choice=$1
   model=$2
 else
