@@ -1,0 +1,14 @@
+[
+	{
+		"id": "",
+		"epochs":2,
+		"loss":[  ],
+		"servers":[  ],
+		"workers":[  ],
+		"cost":[  ],
+		"time":[  ]
+		"startTime":46,
+		"EndTime":56,
+		"totalTime":1.0023454156E+01,
+	}
+]
