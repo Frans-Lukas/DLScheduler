@@ -141,6 +141,14 @@ case $choice in
   echo "Starting (three) multi tenant"
   go run main.go input/$model/threeTenant83.json output/$model/multi_job_three_83_tl.txt /etc/kubernetes/admin.conf
   ;;
+24)
+  echo "Starting gang scheduler (three) multi tenant"
+  go run main.go input/$model/threeTenant83.json output/$model/repeated_three_gang_$3.txt /etc/kubernetes/admin.conf
+ ;;
+25)
+  echo "Starting default scheduler (three) multi tenant"
+  go run main.go input/$model/threeTenant83.json output/$model/repeated_three_default_$3.txt /etc/kubernetes/admin.conf
+ ;;
 *)
   echo "invalid selection"
   ;;

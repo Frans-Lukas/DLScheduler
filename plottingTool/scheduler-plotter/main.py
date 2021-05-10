@@ -6,7 +6,7 @@ import pandas as pd
 from matplotlib import gridspec
 
 if __name__ == '__main__':
-    inputFolderPath = "../../JobHandler/output"
+    inputFolderPath = "../../JobHandler/output2"
 
     oneJobDynamic = [
         "single_job_default_scheduler_83_tl.txt",
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     # b2_full = None
     for model in models:
         for dataCouple in dataCouples:
-            print(dataCouple)
+            # print(dataCouple)
             result = pd.DataFrame(columns=["totalTime", "model", "testName", "schedType", "id"])
             result_line = pd.DataFrame(columns=["epochs", "time", "model", "testName", "nrOfEpochs", "schedType", "id"])
             for i, fileName in enumerate(dataCouple):
@@ -109,7 +109,7 @@ if __name__ == '__main__':
                         schedTypes = [schedType for _ in fileDict]
                         ids = [i + j for j, _ in enumerate(fileDict)]
                         df_line = pd.DataFrame(fileDict, columns=["epochs", "time", "nrOfEpochs"])
-                        print(df_line)
+                        # print(df_line)
                         df = pd.DataFrame(fileDict, columns=["totalTime"])
                         df["model"] = currentModels
                         df["schedType"] = schedTypes
@@ -138,6 +138,9 @@ if __name__ == '__main__':
             a_heights = result[result.schedType == "gang"]["totalTime"]
             b_bins = [i for i, _ in enumerate(b_heights)]
             a_bins = [i + 0.5 for i, _ in enumerate(a_heights)]
+            print(k)
+            print(b_heights.mean())
+            print(a_heights.mean())
 
             bins = result[result.schedType == "gang"]["id"]
 
@@ -199,8 +202,8 @@ if __name__ == '__main__':
             # if len(a_bins) > 0:
             #     b2_full = b2
 
-    for i in fileNameToId:
-        print(str(i) + ": " + str(fileNameToId[i]))
+    # for i in fileNameToId:
+    #     print(str(i) + ": " + str(fileNameToId[i]))
 
     # plt.legend([b1_full, b2_full], ["gang scheduler", "default scheduler"])
     fig.show()
