@@ -14,18 +14,19 @@ from pathlib import Path
 
 if __name__ == '__main__':
     inputFolderPath = "../JobHandler/output"
+    outputFolderPath = "results"
 
     for directory in glob.glob(os.path.join(inputFolderPath, "*")):
         plots = []
 
-        Path("results/loss/LeNet").mkdir(parents=True, exist_ok=True)
-        Path("results/loss/Cifar10").mkdir(parents=True, exist_ok=True)
-        Path("results/time/LeNet").mkdir(parents=True, exist_ok=True)
-        Path("results/time/Cifar10").mkdir(parents=True, exist_ok=True)
-        Path("results/workers/LeNet").mkdir(parents=True, exist_ok=True)
-        Path("results/workers/Cifar10").mkdir(parents=True, exist_ok=True)
-        Path("results/servers/LeNet").mkdir(parents=True, exist_ok=True)
-        Path("results/servers/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path(outputFolderPath + "/loss/LeNet").mkdir(parents=True, exist_ok=True)
+        Path(outputFolderPath + "/loss/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path(outputFolderPath + "/time/LeNet").mkdir(parents=True, exist_ok=True)
+        Path(outputFolderPath + "/time/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path(outputFolderPath + "/workers/LeNet").mkdir(parents=True, exist_ok=True)
+        Path(outputFolderPath + "/workers/Cifar10").mkdir(parents=True, exist_ok=True)
+        Path(outputFolderPath + "/servers/LeNet").mkdir(parents=True, exist_ok=True)
+        Path(outputFolderPath + "/servers/Cifar10").mkdir(parents=True, exist_ok=True)
 
         for filename in glob.glob(os.path.join(directory, '*.txt')):
             with open(os.path.join(os.getcwd(), filename), 'r') as f:
@@ -40,7 +41,7 @@ if __name__ == '__main__':
                         fig = px.scatter(x=np.linspace(1, len(y), len(y)), y=y, trendline="lowess")
                         fig.update_layout(title='Loss values per epoch', xaxis_title='Epoch', yaxis_title='Loss')
                         fig.write_image(
-                            'results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                            outputFolderPath + '/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                 else:
                     dataUnfiltered = f.read()
                     dataFiltered = dataUnfiltered.replace(" | ", ", ")
@@ -115,12 +116,12 @@ if __name__ == '__main__':
                     workers.update_layout(title='Active workers per epoch', xaxis_title='Epoch', yaxis_title='Workers')
                     servers.update_layout(title='Active servers per epoch', xaxis_title='Epoch', yaxis_title='Servers')
 
-                    loss.write_image('results/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
-                    time.write_image('results/time' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                    loss.write_image(outputFolderPath + '/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                    time.write_image(outputFolderPath + '/time' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                     workers.write_image(
-                        'results/workers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                        outputFolderPath + '/workers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                     servers.write_image(
-                        'results/servers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                        outputFolderPath + '/servers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
 
                     plots.append((filename, loss, time, workers, servers))
 
@@ -296,28 +297,28 @@ if __name__ == '__main__':
         defaultWorkersServersResNet.update_yaxes(title_text="Workers", col=1)
         defaultWorkersServersResNet.update_yaxes(title_text="Servers", col=2)
 
-        singleLoss.write_image('results/loss' + directory.replace(inputFolderPath, "") + "/singleLossCombined.png")
-        multiLoss.write_image('results/loss' + directory.replace(inputFolderPath, "") + "/multiLossCombined.png")
+        singleLoss.write_image(outputFolderPath + '/loss' + directory.replace(inputFolderPath, "") + "/singleLossCombined.png")
+        multiLoss.write_image(outputFolderPath + '/loss' + directory.replace(inputFolderPath, "") + "/multiLossCombined.png")
         multiLossThree.write_image(
-            'results/loss' + directory.replace(inputFolderPath, "") + "/multiThreeLossCombined.png")
-        singleTime.write_image('results/time' + directory.replace(inputFolderPath, "") + "/singleTimeCombined.png")
-        multiTime.write_image('results/time' + directory.replace(inputFolderPath, "") + "/multiTimeCombined.png")
+            outputFolderPath + '/loss' + directory.replace(inputFolderPath, "") + "/multiThreeLossCombined.png")
+        singleTime.write_image(outputFolderPath + '/time' + directory.replace(inputFolderPath, "") + "/singleTimeCombined.png")
+        multiTime.write_image(outputFolderPath + '/time' + directory.replace(inputFolderPath, "") + "/multiTimeCombined.png")
         multiTimeThree.write_image(
-            'results/time' + directory.replace(inputFolderPath, "") + "/multiTimeThreeCombined.png")
+            outputFolderPath + '/time' + directory.replace(inputFolderPath, "") + "/multiTimeThreeCombined.png")
         singleWorkers.write_image(
-            'results/workers' + directory.replace(inputFolderPath, "") + "/singleWorkersCombined.png")
+            outputFolderPath + '/workers' + directory.replace(inputFolderPath, "") + "/singleWorkersCombined.png")
         multiWorkers.write_image(
-            'results/workers' + directory.replace(inputFolderPath, "") + "/multiWorkersCombined.png")
+            outputFolderPath + '/workers' + directory.replace(inputFolderPath, "") + "/multiWorkersCombined.png")
         multiWorkersThree.write_image(
-            'results/workers' + directory.replace(inputFolderPath, "") + "/multiWorkersThreeCombined.png")
+            outputFolderPath + '/workers' + directory.replace(inputFolderPath, "") + "/multiWorkersThreeCombined.png")
         singleServers.write_image(
-            'results/servers' + directory.replace(inputFolderPath, "") + "/singleServersCombined.png")
+            outputFolderPath + '/servers' + directory.replace(inputFolderPath, "") + "/singleServersCombined.png")
         multiServers.write_image(
-            'results/servers' + directory.replace(inputFolderPath, "") + "/multiServersCombined.png")
+            outputFolderPath + '/servers' + directory.replace(inputFolderPath, "") + "/multiServersCombined.png")
         multiServersThree.write_image(
-            'results/servers' + directory.replace(inputFolderPath, "") + "/multiServersThreeCombined.png")
+            outputFolderPath + '/servers' + directory.replace(inputFolderPath, "") + "/multiServersThreeCombined.png")
 
         if len(defaultWorkersServersResNet.data) != 0:
-            defaultWorkersServersResNet.write_image("results/defaultWorkersServersResNet.png")
+            defaultWorkersServersResNet.write_image(outputFolderPath + "/defaultWorkersServersResNet.png")
         if len(defaultWorkersServersLeNet.data) != 0:
-            defaultWorkersServersLeNet.write_image("results/defaultWorkersServersLeNet.png")
+            defaultWorkersServersLeNet.write_image(outputFolderPath + "/defaultWorkersServersLeNet.png")

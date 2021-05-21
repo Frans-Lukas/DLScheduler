@@ -149,6 +149,18 @@ case $choice in
   echo "Starting default scheduler (three) multi tenant"
   go run main.go input/$model/threeTenant83.json output/$model/repeated_three_default_$3.txt /etc/kubernetes/admin.conf
  ;;
+26)
+  echo "Starting (three) multi tenant static 1w 1s"
+  go run main.go input/$model/threeTenant83StaticOne.json output/$model/multi_job_three_83_tl_static_1w_1s.txt /etc/kubernetes/admin.conf
+  ;;
+27)
+  echo "Starting (three) multi tenant static 1w 2s"
+  go run main.go input/$model/threeTenant83StaticOneTwo.json output/$model/multi_job_three_83_tl_static_1w_2s.txt /etc/kubernetes/admin.conf
+  ;;
+28)
+  echo "Starting (three) multi tenant static 2w 1s"
+  go run main.go input/$model/threeTenant83StaticTwoOne.json output/$model/multi_job_three_83_tl_static_2w_1s.txt /etc/kubernetes/admin.conf
+  ;;
 *)
   echo "invalid selection"
   ;;

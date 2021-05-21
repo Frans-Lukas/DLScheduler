@@ -12,24 +12,33 @@
 #sleep 100
 #./test_runner.sh 6 1
 
-sudo /etc/kubernetes/sched-manager/enable-gang.sh
+sudo /etc/kubernetes/sched-manager/enable-default.sh
 sleep 100
-./test_runner.sh 4 1
-./test_runner.sh 21 1
-./test_runner.sh 3 1
-./test_runner.sh 4 1
-./test_runner.sh 17 1
-./test_runner.sh 18 1 #< or 18 2
-./test_runner.sh 19 1
-./test_runner.sh 20 1
-./test_runner.sh 21 1 #<
-./test_runner.sh 3 2
-./test_runner.sh 4 2
-./test_runner.sh 17 2
-./test_runner.sh 18 2 #<
-./test_runner.sh 19 2
-./test_runner.sh 20 2 #<
-./test_runner.sh 21 2
+./test_runner.sh 26 1
+./test_runner.sh 27 1
+./test_runner.sh 28 1
+./test_runner.sh 26 2
+./test_runner.sh 27 2
+./test_runner.sh 28 2
+
+#sudo /etc/kubernetes/sched-manager/enable-gang.sh
+#sleep 100
+#./test_runner.sh 4 1
+#./test_runner.sh 21 1
+#./test_runner.sh 3 1
+#./test_runner.sh 4 1
+#./test_runner.sh 17 1
+#./test_runner.sh 18 1 #< or 18 2
+#./test_runner.sh 19 1
+#./test_runner.sh 20 1
+#./test_runner.sh 21 1 #<
+#./test_runner.sh 3 2
+#./test_runner.sh 4 2
+#./test_runner.sh 17 2
+#./test_runner.sh 18 2 #<
+#./test_runner.sh 19 2
+#./test_runner.sh 20 2 #<
+#./test_runner.sh 21 2
 #sudo /etc/kubernetes/sched-manager/enable-default.sh
 #sleep 100
 #./test_runner.sh 23 1
