@@ -17,9 +17,9 @@ sleep 100
 ./test_runner.sh 26 1
 ./test_runner.sh 27 1
 ./test_runner.sh 28 1
-./test_runner.sh 26 2
-./test_runner.sh 27 2
-./test_runner.sh 28 2
+#./test_runner.sh 26 2
+#./test_runner.sh 27 2
+#./test_runner.sh 28 2
 
 #sudo /etc/kubernetes/sched-manager/enable-gang.sh
 #sleep 100

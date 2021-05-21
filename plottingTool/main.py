@@ -41,7 +41,8 @@ if __name__ == '__main__':
                         fig = px.scatter(x=np.linspace(1, len(y), len(y)), y=y, trendline="lowess")
                         fig.update_layout(title='Loss values per epoch', xaxis_title='Epoch', yaxis_title='Loss')
                         fig.write_image(
-                            outputFolderPath + '/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                            outputFolderPath + '/loss' + filename.replace(inputFolderPath, "").replace(".txt",
+                                                                                                       "plot.png"))
                 else:
                     dataUnfiltered = f.read()
                     dataFiltered = dataUnfiltered.replace(" | ", ", ")
@@ -116,12 +117,16 @@ if __name__ == '__main__':
                     workers.update_layout(title='Active workers per epoch', xaxis_title='Epoch', yaxis_title='Workers')
                     servers.update_layout(title='Active servers per epoch', xaxis_title='Epoch', yaxis_title='Servers')
 
-                    loss.write_image(outputFolderPath + '/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
-                    time.write_image(outputFolderPath + '/time' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                    loss.write_image(
+                        outputFolderPath + '/loss' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                    time.write_image(
+                        outputFolderPath + '/time' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
                     workers.write_image(
-                        outputFolderPath + '/workers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                        outputFolderPath + '/workers' + filename.replace(inputFolderPath, "").replace(".txt",
+                                                                                                      "plot.png"))
                     servers.write_image(
-                        outputFolderPath + '/servers' + filename.replace(inputFolderPath, "").replace(".txt", "plot.png"))
+                        outputFolderPath + '/servers' + filename.replace(inputFolderPath, "").replace(".txt",
+                                                                                                      "plot.png"))
 
                     plots.append((filename, loss, time, workers, servers))
 
@@ -129,22 +134,22 @@ if __name__ == '__main__':
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         multiLoss = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
-        multiLossThree = make_subplots(rows=2, cols=1, subplot_titles=("Default", "Static 2W 2S"))
+        multiLossThree = make_subplots(rows=3, cols=2, subplot_titles=("Default", "Static 2W 2S"))
         singleTime = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         multiTime = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
-        multiTimeThree = make_subplots(rows=2, cols=1, subplot_titles=("Default", "Static 2W 2S"))
+        multiTimeThree = make_subplots(rows=3, cols=2, subplot_titles=("Default", "Static 2W 2S"))
         singleWorkers = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         multiWorkers = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
-        multiWorkersThree = make_subplots(rows=2, cols=1, subplot_titles=("Default", "Static 2W 2S"))
+        multiWorkersThree = make_subplots(rows=3, cols=2, subplot_titles=("Default", "Static 2W 2S"))
         singleServers = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         multiServers = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
-        multiServersThree = make_subplots(rows=2, cols=1, subplot_titles=("Default", "Static 2W 2S"))
+        multiServersThree = make_subplots(rows=3, cols=2, subplot_titles=("Default", "Static 2W 2S"))
 
         defaultWorkersServersLeNet = make_subplots(rows=3, cols=2, subplot_titles=(
             "Single job workers", "Single job servers", "Two jobs workers", "Two jobs servers", "Three jobs workers",
@@ -175,13 +180,7 @@ if __name__ == '__main__':
             else:
                 continue
 
-            if "three" in plot[0] and "static" not in plot[0]:
-                row = 1
-                col = 1
-            elif "three" in plot[0] and "static" in plot[0]:
-                row = 2
-                col = 1
-            elif "1w_1s" in plot[0]:
+            if "1w_1s" in plot[0]:
                 row = 1
                 col = 2
             elif "1w_2s" in plot[0]:
@@ -193,6 +192,8 @@ if __name__ == '__main__':
             elif "2w_2s" in plot[0]:
                 row = 3
                 col = 1
+            elif "repeated" in plot[0]:
+                continue
             else:
                 row = 1
                 col = 1
@@ -297,12 +298,16 @@ if __name__ == '__main__':
         defaultWorkersServersResNet.update_yaxes(title_text="Workers", col=1)
         defaultWorkersServersResNet.update_yaxes(title_text="Servers", col=2)
 
-        singleLoss.write_image(outputFolderPath + '/loss' + directory.replace(inputFolderPath, "") + "/singleLossCombined.png")
-        multiLoss.write_image(outputFolderPath + '/loss' + directory.replace(inputFolderPath, "") + "/multiLossCombined.png")
+        singleLoss.write_image(
+            outputFolderPath + '/loss' + directory.replace(inputFolderPath, "") + "/singleLossCombined.png")
+        multiLoss.write_image(
+            outputFolderPath + '/loss' + directory.replace(inputFolderPath, "") + "/multiLossCombined.png")
         multiLossThree.write_image(
             outputFolderPath + '/loss' + directory.replace(inputFolderPath, "") + "/multiThreeLossCombined.png")
-        singleTime.write_image(outputFolderPath + '/time' + directory.replace(inputFolderPath, "") + "/singleTimeCombined.png")
-        multiTime.write_image(outputFolderPath + '/time' + directory.replace(inputFolderPath, "") + "/multiTimeCombined.png")
+        singleTime.write_image(
+            outputFolderPath + '/time' + directory.replace(inputFolderPath, "") + "/singleTimeCombined.png")
+        multiTime.write_image(
+            outputFolderPath + '/time' + directory.replace(inputFolderPath, "") + "/multiTimeCombined.png")
         multiTimeThree.write_image(
             outputFolderPath + '/time' + directory.replace(inputFolderPath, "") + "/multiTimeThreeCombined.png")
         singleWorkers.write_image(
