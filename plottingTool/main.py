@@ -134,22 +134,26 @@ if __name__ == '__main__':
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         multiLoss = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
-        multiLossThree = make_subplots(rows=3, cols=2, subplot_titles=("Default", "Static 2W 2S"))
+        multiLossThree = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         singleTime = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         multiTime = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
-        multiTimeThree = make_subplots(rows=3, cols=2, subplot_titles=("Default", "Static 2W 2S"))
+        multiTimeThree = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         singleWorkers = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         multiWorkers = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
-        multiWorkersThree = make_subplots(rows=3, cols=2, subplot_titles=("Default", "Static 2W 2S"))
+        multiWorkersThree = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         singleServers = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
         multiServers = make_subplots(rows=3, cols=2, subplot_titles=(
             "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
-        multiServersThree = make_subplots(rows=3, cols=2, subplot_titles=("Default", "Static 2W 2S"))
+        multiServersThree = make_subplots(rows=3, cols=2, subplot_titles=(
+            "Default", "Static 1W 1S", "Static 1W 2S", "Static 2W 1S", "Static 2W 2S"))
 
         defaultWorkersServersLeNet = make_subplots(rows=3, cols=2, subplot_titles=(
             "Single job workers", "Single job servers", "Two jobs workers", "Two jobs servers", "Three jobs workers",
